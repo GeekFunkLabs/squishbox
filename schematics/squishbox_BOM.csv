@@ -1,0 +1,14 @@
+Comment,Designator,Footprint,Quantity,LCSC Part Number,
+10uF,"C1,C2,C8",805,3,C90544,https://jlcpcb.com/partdetail/91731-0805B106K100NT/C90544
+2.2nF,"C10,C9",805,2,C49956 ,https://jlcpcb.com/partdetail/50965-0805B222K101NT/C49956
+22uF,"C11,C12",805,2,C87158,https://jlcpcb.com/partdetail/TaiyoYuden-JMK212BJ226MGT/C87158
+47pF,C13,805,1,C113839,https://jlcpcb.com/partdetail/Yageo-CC0805JRNPOBBN470/C113839
+2.2uF,"C6,C5",805,2,C318705 ,https://jlcpcb.com/partdetail/299834-CL21A225KACLNNC/C318705a
+100nF,"C7,C3,C4",805,3,C28378 ,https://jlcpcb.com/partdetail/29129-0805F104M500NT/C28378
+6.8uH,L1,"SMD,5.2x5.7mm,5030",1,C2847478,https://jlcpcb.com/partdetail/Koherelec-MDA50306R8M/C2847478
+470R,"R2,R1",805,2,C119076 ,https://jlcpcb.com/partdetail/120345-RS05K471JT/C119076
+1k,"R3,R4",805,2,C218388 ,https://jlcpcb.com/partdetail/VikingTech-ARG05FTC1001/C218388
+169k,R5,805,1,C218356,https://jlcpcb.com/partdetail/VikingTech-ARG05FTC1693/C218356
+30.1k,R6,805,1,C170874,https://jlcpcb.com/partdetail/Walsin_TechCorp-WR08X3012FTL/C170874
+PCM5102,U1,TSSOP-20_4.4x6.5mm_P0.65mm,1,C107671 ,https://jlcpcb.com/partdetail/TexasInstruments-PCM5102APWR/C107671
+AP63301,U3,TSOT-23-6,1,C2158003,https://jlcpcb.com/partdetail/DiodesIncorporated-AP63301WU7/C2158003
