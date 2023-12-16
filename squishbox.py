@@ -105,7 +105,7 @@ class SquishBox():
           buttoncallback: When the state of a button connected to BTN_SW
             changes, this function is called with 1 if the button was
             pressed, 0 if it was released.
-          wificon: contains either the WIFIUP or WIFIDOWN character
+          wifistatus: contains either the WIFIUP or WIFIDOWN character
             depending on the last-known status of the wifi adapter
         """
         GPIO.setwarnings(False)
@@ -137,7 +137,6 @@ class SquishBox():
             for row in bits:
                 self._lcd_send(row, 1)
 
-        self.wificon = WIFIDOWN
         self.wifi_state()
         sys.excepthook = lambda etype, err, tb: self.display_error(err, etype=etype, tb=tb)
 
@@ -557,8 +556,8 @@ class SquishBox():
         """Executes a shell command and returns the output
         
         Uses subprocess.run to execute a shell command and returns the output
-        as ascii with leading and trailing whitespace removed. Blocks until
-        shell command has returned.
+        as ascii with trailing newlines removed. Blocks until shell command
+        has returned.
         
         Args:
           cmd: text of the command line to execute
@@ -567,7 +566,7 @@ class SquishBox():
         Returns: the stripped ascii STDOUT of the command
         """
         return subprocess.run(cmd, check=True, stdout=subprocess.PIPE, shell=True,
-                              encoding='ascii', **kwargs).stdout.strip()
+                              encoding='ascii', **kwargs).stdout.rstrip('\n')
 
     @staticmethod
     def gpio_set(pin, state):
@@ -586,7 +585,7 @@ class SquishBox():
             if state: GPIO.output(pin, GPIO.HIGH)
             else: GPIO.output(pin, GPIO.LOW)
 
-    def wifi_state(self, setstate=''):
+    def wifi_state(self, state=''):
         """Checks or sets the state of the wifi adapter
         
         Turns the wifi adapter on or off, or simply returns its current
@@ -594,17 +593,16 @@ class SquishBox():
         only that it is enabled or disabled.
 
         Args:
-          setstate: 'block' or 'unblock' to set the state, or
-            empty string to check current state
+          setstate: 'on' or 'off' to set the state, empty string just
+            checks the current state
 
-        Returns: 'blocked' or 'unblocked'
+        Returns: 'on' or 'off'
         """
-        if setstate:
-            self.shell_cmd(f"sudo rfkill {setstate} wifi")
-            state = 'blocked' if setstate == 'block' else 'unblocked'
+        if state:
+            self.shell_cmd(f"sudo nmcli radio wifi {state}")
         else:
-            state = self.shell_cmd("rfkill list wifi -o SOFT -rn")
-        self.wificon = WIFIDOWN if state == 'blocked' else WIFIUP
+            state = 'on' if self.shell_cmd("nmcli radio wifi") == 'enabled' else 'off'
+        self.wifistatus = WIFIDOWN if state == 'off' else WIFIUP
         return state
 
     def wifi_settings(self):
@@ -615,43 +613,58 @@ class SquishBox():
         enable/disable wifi and enter passkeys for visible networks
         in order to connect.
         """
-        self.lcd_clear()
-        if ip := sb.shell_cmd("hostname -I"):
-            self.lcd_write(f"Connected as {ip}", ROWS - 2, mode='scroll')
-        else:
-            self.lcd_write("Not connected", ROWS - 2, mode='ljust')
-        if self.wifi_state() == 'blocked':
-            if self.choose_opt(["Enable WiFi"], row=ROWS - 1) == 0:
-                self.wifi_state('unblock')
-        else:
+        while True:
+            self.lcd_clear()
+            if ip := sb.shell_cmd("hostname -I"):
+                self.lcd_write(f"Connected as {ip}", ROWS - 2, mode='scroll')
+            else:
+                self.lcd_write("Not connected", ROWS - 2, mode='ljust')
+            if self.wifi_state() == 'off':
+                if self.choose_opt(["Enable WiFi"], row=ROWS - 1) == 0:
+                    self.wifi_state('on')
+            else:
+                nw = sb.shell_cmd("nmcli -g IN-USE,SSID dev wifi").split('\n')
+                ssid = [x[0].replace('*', CHECK) + x[2:] for x in nw if x[2:]]
+                opts = ssid + ["Scan", "Disable WiFi"]
+                i = max(''.join(s[0] for s in ssid).find(CHECK), 0)
+                j = self.choose_opt(opts, ROWS - 1, i, 'scroll', timeout=-1)
+                if j < 0: break
+                elif opts[j] == "Disable WiFi":
+                    self.wifi_state('off')
+                    break
+                elif opts[j] == "Scan":
+                    pass
+                elif opts[j][0] == CHECK:
+                    self.lcd_write(opts[j][1:], ROWS - 2, mode='ljust')
+                    self.lcd_write("disconnecting ", ROWS - 1, mode='rjust', now=True)
+                    self.progresswheel_start()
+                    sb.shell_cmd(f"sudo nmcli con down {opts[j][1:]}")
+                    self.progresswheel_stop()
+                    continue
+                else:
+                    self.lcd_write(opts[j][1:], ROWS - 2, mode='ljust')
+                    self.lcd_write("connecting ", ROWS - 1, mode='rjust', now=True)
+                    self.progresswheel_start()
+                    try: x = sb.shell_cmd(f"sudo nmcli con up {opts[j][1:]}")
+                    except subprocess.CalledProcessError: x = -1                        
+                    self.progresswheel_stop()
+                    if x == -1:
+                        self.lcd_write("Password:", ROWS - 2, mode='ljust')
+                        psk = self.char_input(charset = USCHARS)
+                        if psk == '': continue
+                        self.lcd_write("connecting ", ROWS - 1, mode='rjust', now=True)
+                        self.progresswheel_start()
+                        try: x = sb.shell_cmd(f"sudo nmcli dev wifi connect {opts[j][1:]} password {psk}")
+                        except subprocess.CalledProcessError: x = -1
+                        self.progresswheel_stop()
+                    if x == -1:
+                        self.lcd_write("connection fail", ROWS - 1, mode='rjust')
+                        self.waitfortap(MENU_TIMEOUT)
+                    continue
             self.lcd_write("scanning ", ROWS - 1, mode='rjust', now=True)
-            x = sb.shell_cmd("iw dev wlan0 link")
-            ssid = "".join(re.findall('SSID: ([^\n]+)', x))
-            opts = [CHECK + ssid] if ssid else []
             self.progresswheel_start()
-            try: x = sb.shell_cmd("sudo iw wlan0 scan", timeout=15)
-            except subprocess.TimeoutExpired: x = ""
+            sb.shell_cmd("sudo nmcli -g IN-USE,SSID dev wifi")
             self.progresswheel_stop()
-            networks = set(re.findall('SSID: ([^\n]+)', x))
-            opts += [*(networks - {ssid}), "Disable WiFi"]
-            j = self.choose_opt(opts, row=ROWS - 1, mode='scroll', timeout=-1)
-            if j < 0: return
-            elif opts[j] == "Disable WiFi":
-                self.wifi_state('block')
-            elif j >= 0:
-                if CHECK in opts[j]: return
-                self.lcd_write("Password:", ROWS - 2, mode='ljust')
-                psk = self.char_input(charset = PRNCHARS)
-                if psk == '': return
-                self.lcd_clear()
-                self.lcd_write(opts[j], ROWS - 2, mode='ljust')
-                self.lcd_write("adding network ", ROWS - 1, mode='rjust', now=True)
-                self.progresswheel_start()
-                network = f'\nnetwork={{\n  ssid=\"{opts[j]}\"\n  psk=\"{psk}\"\n}}'
-                sb.shell_cmd(f"echo {network} | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf")
-                sb.shell_cmd("sudo systemctl restart dhcpcd")
-                self.progresswheel_stop()
-                self.wifi_settings()
 
     def _button_event(self, button):
         t = time.time()
@@ -794,7 +807,7 @@ class FluidBox:
                     sb.lcd_write('; '.join(warn), 1, mode='scroll')
                     sb.waitfortap()
                 sb.lcd_write("patch 0/0", 1, mode='rjust')
-            sb.lcd_write(sb.wificon, 1, 0)
+            sb.lcd_write(sb.wifistatus, 1, 0)
             warn = []
             self.lastsig = None
             self.lcdwrite = None
