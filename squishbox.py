@@ -340,6 +340,7 @@ class SquishBox():
 
         Returns: index of option chosen, or -1 if canceled
         """
+        i = i % len(opts)
         while True:
             self.lcd_write(opts[i], row, mode=mode)
             t = time.time()
@@ -452,10 +453,10 @@ class SquishBox():
         """
         if i < 0: i = len(text) + i
         c = charset.find(text[i])
-        mode = 'line'
+        mode = 'blink'
         self._lcd_setcursormode(mode)
         while True:
-            if mode == 'line':
+            if mode == 'blink':
                 self.lcd_write(text[max(0, i+1-COLS) : max(COLS, i+1)],
                                row, mode='ljust', now=True)
             else:
@@ -466,7 +467,7 @@ class SquishBox():
                 event = self.update(callback=False)
                 if event == NULL: continue
                 if event == INC:
-                    if mode == 'line':
+                    if mode == 'blink':
                         i = min(i + 1, len(text)) 
                         if i == len(text): text += ' '
                         c = charset.find(text[i])
@@ -474,14 +475,14 @@ class SquishBox():
                         c = (c + 1) % len(charset)
                         text = text[0:i] + charset[c] + text[i+1 :]
                 elif event == DEC:
-                    if mode == 'line':
+                    if mode == 'blink':
                         i = max(i - 1, 0)
                         c = charset.find(text[i])
                     else:
                         c = (c - 1) % len(charset)
                         text = text[0:i] + charset[c] + text[i+1 :]
                 elif event == SELECT:
-                    mode = 'line' if mode == 'blink' else 'blink'
+                    mode = 'blink' if mode == 'line' else 'line'
                     self._lcd_setcursormode(mode)
                 elif event == ESCAPE:
                     self._lcd_setcursormode('hide')
