@@ -378,6 +378,7 @@ WantedBy=sysinit.target
 EOF
     sudo systemctl enable squishbox.service
     sudo systemctl enable lcdsplash.service
+    sudo systemctl enable NetworkManager.service
     ASK_TO_REBOOT=true
 
 elif [[ $installtype == 2 ]]; then
