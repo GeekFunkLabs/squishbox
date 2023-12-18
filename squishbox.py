@@ -622,6 +622,7 @@ class SquishBox():
             if self.wifi_state() == 'off':
                 if self.choose_opt(["Enable WiFi"], row=ROWS - 1) == 0:
                     self.wifi_state('on')
+                break
             else:
                 nw = sb.shell_cmd("nmcli -g IN-USE,SSID dev wifi").split('\n')
                 ssid = [x[0].replace('*', CHECK) + x[2:] for x in nw if x[2:]]
@@ -984,7 +985,7 @@ class FluidBox:
         k = sb.choose_opt(['Power Down', 'MIDI Devices', 'Wifi Settings', 'USB File Copy'], row=1)
         if k == 0:
             sb.lcd_write("Shutting down..", 0, mode='ljust')
-            sb.lcd_write("Wait 30s, unplug", 1, mode='ljust', now=True)
+            sb.lcd_write("Wait 15s, unplug", 1, mode='ljust', now=True)
             sb.shell_cmd("sudo poweroff")
             sys.exit()
         elif k == 1:
