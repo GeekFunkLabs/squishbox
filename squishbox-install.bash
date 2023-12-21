@@ -168,25 +168,8 @@ else
     exit 1
 fi
 
-query "Enter install location" $HOME; installdir=$response
-if ! [[ -d $installdir ]]; then
-    if noyes "'$installdir' does not exist. Create it and proceed?"; then
-        exit 1
-    else
-        mkdir -p $installdir
-    fi
-fi
-
-if yesno "Install/update synthesizer software?"; then
-    install_synth=true
-fi
-
-if yesno "Update/upgrade your operating system?"; then
-    UPGRADE=true
-fi
-
 defcard=0
-echo "Which audio output would you like to use?"
+echo "Select your audio output device:"
 echo "  0. No change"
 echo "  1. Default"
 i=2
@@ -201,6 +184,23 @@ for dev in ${AUDIOCARDS[@]}; do
 done
 query "Choose" $defcard; audiosetup=$response
 
+query "Enter install location" $HOME; installdir=$response
+if ! [[ -d $installdir ]]; then
+    if noyes "'$installdir' does not exist. Create it and proceed?"; then
+        exit 1
+    else
+        mkdir -p $installdir
+    fi
+fi
+
+if yesno "Install/update software?"; then
+    install_synth=true
+fi
+
+if yesno "Update your operating system?"; then
+    UPGRADE=true
+fi
+
 if yesno "Set up web-based file manager?"; then
     filemgr=true
     echo "  Please create a user name and password."
@@ -208,7 +208,7 @@ if yesno "Set up web-based file manager?"; then
     read -r -p "    password: " fmgr_pass < /dev/tty
 fi
 
-if yesno "Download and install ~400MB of additional soundfonts?"; then
+if noyes "Download and install ~400MB of additional soundfonts?"; then
     soundfonts=true
 fi
 
@@ -230,30 +230,26 @@ if [[ $install_synth ]]; then
     sysupdate
     apt_pkg_install "python3-yaml"
 	apt_pkg_install "python3-rpi.gpio"
-    apt_pkg_install "fluid-soundfont-gm"
+    apt_pkg_install "fluid-soundfont-gm" 
     apt_pkg_install "ladspa-sdk" optional
     apt_pkg_install "swh-plugins" optional
     apt_pkg_install "tap-plugins" optional
     apt_pkg_install "wah-plugins" optional
 
     # install/update fluidpatcher
-    CUR_FP_VER=`sed -n '/^__version__/s|[^0-9\.]*||gp' $installdir/fluidpatcher/__init__.py`
-    FP_VER=`curl -s https://api.github.com/repos/GeekFunkLabs/fluidpatcher/releases/latest | sed -n '/tag_name/s|[^0-9\.]*||gp'`
-    if [[ ! $CUR_FP_VER == $FP_VER ]]; then
-        inform "Installing/Updating FluidPatcher version $NEW_FP_VER ..."
-        wget -qO - https://github.com/GeekFunkLabs/fluidpatcher/tarball/master | tar -xzm
-        fptemp=`ls -dt GeekFunkLabs-fluidpatcher-* | head -n1`
-        cd $fptemp
-        find . -type d -exec mkdir -p ../{} \;
-        # copy files, but don't overwrite banks, config (i.e. yaml files)
-        find . -type f ! -name "*.yaml" ! -name "hw_overlay.py" -exec cp -f {} ../{} \;
-        find . -type f -name "*.yaml" -exec cp -n {} ../{} \;
-        cd ..
-        rm -rf $fptemp
-        ln -s /usr/share/sounds/sf2/FluidR3_GM.sf2 SquishBox/sf2/ > /dev/null
-        gcc -shared assets/patchcord.c -o patchcord.so
-        sudo mv -f patchcord.so /usr/lib/ladspa
-    fi
+	inform "Installing/Updating FluidPatcher version $NEW_FP_VER ..."
+	wget -qO - https://github.com/GeekFunkLabs/fluidpatcher/tarball/master | tar -xzm
+	fptemp=`ls -dt GeekFunkLabs-fluidpatcher-* | head -n1`
+	cd $fptemp
+	find . -type d -exec mkdir -p ../{} \;
+	# copy files, but don't overwrite banks, config (i.e. yaml files)
+	find . -type f ! -name "*.yaml" ! -name "hw_overlay.py" -exec cp -f {} ../{} \;
+	find . -type f -name "*.yaml" -exec cp -n {} ../{} \;
+	cd ..
+	rm -rf $fptemp
+	ln -s /usr/share/sounds/sf2/FluidR3_GM.sf2 SquishBox/sf2/ > /dev/null
+	gcc -shared assets/patchcord.c -o patchcord.so
+	sudo mv -f patchcord.so /usr/lib/ladspa
 
     # compile/install fluidsynth
     CUR_FS_VER=`fluidsynth --version 2> /dev/null | sed -n '/runtime version/s|[^0-9\.]*||gp'`
