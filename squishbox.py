@@ -1085,7 +1085,7 @@ if __name__ == "__main__":
     os.umask(0o002)
     sb = SquishBox()
     sb.lcd_clear()
-    try: fp = FluidPatcher("SquishBox/squishboxconf.yaml")
+    try: fp = FluidPatcher("fluidpatcher/conf/squishboxconf.yaml")
     except Exception as e:
         sb.display_error(e, "bad config file: ")
     else:
