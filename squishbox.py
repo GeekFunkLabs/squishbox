@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
-"""SquishBox Raspberry Pi FluidPatcher interface
+"""SquishBox Raspberry Pi interface
 
-This script runs FluidPatcher and provides a menu interface using the LCD,
-rotary encoder, and stomp switch for loading banks, choosing patches,
-and changing settings.
+This script provides an interface for
+`Fluidpatcher <https://github.com/GeekFunkLabs/fluidpatcher>`_,
+a performance-oriented patch-based wrapper around the
+FluidSynth <https://fluidsynth.org>`_ software synthesizer,
+on a headlesss (i.e. lacking monitor and keyboard) Raspberry Pi,
+using a character LCD, a momentary button/stompswitch, and a
+pushbutton rotary encoder.
 
 This script can also be imported as a module to create other applications
-for the `SquishBox <https://www.geekfunklabs.com/producs/squishbox>`_, or for
-any Raspberry Pi connected to a character LCD and either:
-
-- a momentary button (BTN_SW) and rotary encoder (ROT_L, ROT_R, BTN_R)
-- *or* just two momentary buttons (BTN_SW, BTN_R)
-
+for the `SquishBox <https://www.geekfunklabs.com/products/squishbox>`_
 The `SquishBox` class initializes the character LCD and sets up GPIO pins for
 for the encoder, stompswitch, and output pins (including LED). It provides
 convenience methods for writing to the LCD, polling inputs/updating the
 display, standard menu and input functions, and a few utilities such as
 shell command access and wifi control.
+
+Requires:
+- RPi.GPIO
+- fluidpatcher
 """
 
 __version__ = '0.8.5'
@@ -30,49 +33,30 @@ import traceback
 
 import RPi.GPIO as GPIO
 
-# squishbox stompswitch
-STOMP_MIDICHANNEL = 16
-STOMP_MOMENT_CC = 30
-STOMP_TOGGLE_CC = 31
-
-# hardware version, set by install script
-HW_VERSION = 'v6'
-
-# RPi GPIO pin numbers (BCM numbering) for different hardware versions
-ACTIVE = GPIO.LOW
-if HW_VERSION == 'v6':
-    LCD_RS = 2; LCD_EN = 3; LCD_DATA = 11, 5, 6, 13  # LCD pins
-    ROT_L = 22; ROT_R = 10; BTN_R = 9                # rotary encoder R/L pins + button
-    BTN_SW = 27; PIN_LED = 17                        # stompbutton and LED
-elif HW_VERSION == 'v4':
-    LCD_RS = 4; LCD_EN = 17; LCD_DATA = 9, 11, 5, 6
-    ROT_L = 2; ROT_R = 3; BTN_R = 27
-    BTN_SW = 22; PIN_LED = 10
-elif HW_VERSION == 'v3':
-    LCD_RS = 4; LCD_EN = 27; LCD_DATA = 9, 11, 5, 6
-    ROT_L = 0; ROT_R = 0; BTN_R = 3
-    BTN_SW = 2; PIN_LED = 0
-elif HW_VERSION == 'v2':
-    LCD_RS = 15; LCD_EN = 23; LCD_DATA = 24, 25, 8, 7
-    ROT_L = 0; ROT_R = 0; BTN_R = 22
-    BTN_SW = 27; PIN_LED = 0
-    ACTIVE = GPIO.HIGH
-PIN_OUT = PIN_LED, 12, 16, 26 # additional free pins - see SquishBox.gpio_set()
-
-# adjust timings/values below as needed/desired
-HOLD_TIME = 1.0
-MENU_TIMEOUT = 5.0
-BLINK_TIME = 0.1
-SCROLL_TIME = 0.4
-SCROLL_PAUSE = 4
-POLL_TIME = 0.01
-BOUNCE_TIME = 0.02
-COLS, ROWS = 16, 2
-EXEC_TIME = 50e-6 # increase if LCD displays garbage
-
-# optional file to customize any of the above settings (and preserve through updates)
-try: from hw_overlay import *
-except ModuleNotFoundError: pass
+# user-adjustable settings
+LCD_RS = 2; LCD_EN = 3; LCD_DATA = 11, 5, 6, 13  # LCD pins
+ROT_L = 22; ROT_R = 10; BTN_R = 9                # rotary encoder R/L pins + button
+BTN_SW = 27; PIN_LED = 17                        # stompbutton and LED
+ACTIVE = GPIO.LOW                                # voltage level for pressed buttons
+PIN_OUT = PIN_LED, 12, 16, 26                    # free pins - see gpio_set()
+COLS, ROWS = 16, 2                               # LCD display size
+SCROLL_TIME = 0.4; SCROLL_PAUSE = 4              # scrolling text options
+HOLD_TIME = 1.0; MENU_TIMEOUT = 5.0              # menu timimng options
+BLINK_TIME = 0.1                                 # default text blink time
+POLL_TIME = 0.01                                 # default button polling interval
+BOUNCE_TIME = 0.02                               # button debounce time
+EXEC_TIME = 50e-6                                # increase if LCD displays garbage
+STOMP_CHAN = 16                                  # MIDI channel for stompswitch
+STOMP_MOMENT = 30                                # CC number for momentary message
+STOMP_TOGGLE = 31                                # CC number for toggle message
+MIDI_CTRL = None                                 # MIDI channel for controls below, disabled if None
+MIDI_DEC = None                                  # CC for patch/value decrement
+MIDI_INC = None                                  # CC for patch/value increment
+MIDI_BANK = None                                 # CC to load the next bank
+MIDI_PATCH = None                                # knob/slider CC for selecting patches
+MIDI_SHUTDOWN = None                             # CC to trigger shutdown when held
+MIDI_SELECT = None                               # CC for menu/select
+MIDI_ESCAPE = None                               # CC for escape/back
 
 # custom characters
 c = """\
@@ -88,7 +72,7 @@ c = """\
 charbits = [[int(c[i:i + 5], 2) for i in range(j, 320, 40)] for j in range(0, 40, 5)]
 BACKSLASH, TILDE, CHECK, XMARK, SUBDIR, WIFIUP, WIFIDOWN, MIDIACT = [chr(i) for i in range(8)]
 FNCHARS = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_./" + BACKSLASH
-USCHARS = ''' abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*|/_?.,;:'"`-+=<>()[]{}''' + BACKSLASH + TILDE
+USCHARS = """ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*|/_?.,;:'"`-+=<>()[]{}""" + BACKSLASH + TILDE
 # button states
 UP = 0; DOWN = 1; HELD = 2
 # events
@@ -128,7 +112,7 @@ class SquishBox():
         self.encstate = 0b000000
         self.encvalue = 0
         self.buttoncallback = None
-
+        self.nextevent = NULL
         for val in (0x33, 0x32, 0x28, 0x0c, 0x06):
             self._lcd_send(val)
         self.lcd_clear()
@@ -136,7 +120,6 @@ class SquishBox():
             self._lcd_send(0x40 | loc << 3)
             for row in bits:
                 self._lcd_send(row, 1)
-
         self.wifi_state()
         sys.excepthook = lambda etype, err, tb: self.display_error(err, etype=etype, tb=tb)
 
@@ -151,8 +134,8 @@ class SquishBox():
         that function instead of sending an event.
 
         * NULL (0) - no event
-        * DEC (1) - stompswitch tapped or encoder rotated counter-clockwise
-        * INC (2) - encoder button tapped or encoder rotated clockwise
+        * DEC (1) - encoder step counter-clockwise or stompswitch tap
+        * INC (2) - encoder step clockwise or encoder button tap
         * SELECT (3) - encoder button held for HOLD_TIME seconds
         * ESCAPE (4) - stompswitch held for HOLD_TIME seconds
 
@@ -184,7 +167,9 @@ class SquishBox():
         if t > self.blinktimer:
             self.blinked = [[""] * COLS for _ in range(ROWS)]
             self.blinktimer = 0
-        event = NULL
+        event = self.nextevent
+        self.nextevent = NULL
+        if event: return event
         for b in BTN_R, BTN_SW:
             if t - self.timer[b] > BOUNCE_TIME:
                 if GPIO.input(b) == ACTIVE:
@@ -737,6 +722,8 @@ class FluidBox:
         """Creates the FluidBox"""
         self.pno = 0
         self.buttonstate = 0
+        self.nextbank = None
+        self.shutdowntimer = 0
         fp.midi_callback = self.listener
         sb.buttoncallback = self.handle_buttonevent
 
@@ -746,10 +733,10 @@ class FluidBox:
         Sends a momentary and toggling MIDI message, and toggles sets the LED
         to match the state of the toggle.
         """
-        fp.send_event(f"cc:{STOMP_MIDICHANNEL}:{STOMP_MOMENT_CC}:{val}")
+        fp.send_event(type='cc', chan=STOMP_CHAN, par1=STOMP_MOMENT, par2=val)
         if val:
             self.buttonstate ^= 1
-            fp.send_event(f"cc:{STOMP_MIDICHANNEL}:{STOMP_TOGGLE_CC}:{self.buttonstate}")
+            fp.send_event(type='cc', chan=STOMP_CHAN, par1=STOMP_TOGGLE, par2=self.buttonstate)
             sb.gpio_set(PIN_LED, self.buttonstate)
 
     def listener(self, sig):
@@ -784,15 +771,25 @@ class FluidBox:
                 if PIN_OUT[sig.setpin] == PIN_LED:
                     self.buttonstate = 1 if sig.val else 0
                 sb.gpio_set(PIN_OUT[sig.setpin], sig.val)
+            elif 'event' in sig:
+                sb.nextevent = sig.event
+            elif 'bank' in sig:
+                banks = sorted([b.relative_to(fp.bankdir) for b in fp.bankdir.rglob('*.yaml')])
+                bno = (banks.index(fp.currentbank) + 1 ) % len(banks) if fp.currentbank in banks else 0
+                self.nextbank = banks[bno]
+            elif 'shutdown' in sig:
+                if sig.val > 0:
+                    self.shutdowntimer = time.time()
+                else:
+                    self.shutdowntimer = 0
         else:
             self.lastsig = sig
 
     def patchmode(self):
-        """Selects a patch and displays the main screen"""
-        if fp.patches:
-            warn = fp.apply_patch(self.pno)
-        else:
-            warn = fp.apply_patch('')
+        """Applies a patch and displays the main screen"""
+        if fp.patches: warn = fp.apply_patch(self.pno)
+        else: warn = fp.apply_patch('')
+        if MIDI_CTRL: self.add_midicontrols()
         pno = self.pno
         sb.lcd_clear(now=False)
         while True:
@@ -815,6 +812,15 @@ class FluidBox:
             while True:
                 if pno != self.pno:
                     return
+                if self.nextbank:
+                    self.load_bank(self.nextbank)
+                    self.nextbank = None
+                    return
+                if self.shutdowntimer and time.time() - self.shutdowntimer > 5:
+            		sb.lcd_write("Shutting down..", 0, mode='ljust')
+            		sb.lcd_write("Wait 15s, unplug", 1, mode='ljust', now=True)
+            		sb.shell_cmd("sudo poweroff")
+            		sys.exit()
                 if self.lastsig:
                     sb.lcd_blink(MIDIACT, 1, 1)
                     self.lastsig = None
@@ -1074,6 +1080,28 @@ class FluidBox:
             sb.display_error(e, "halted - errors: ")
         else:
             sb.progresswheel_stop()
+
+    @staticmethod
+    def add_midicontrols():
+        """creates rules for controlling the interface with MIDI"""
+        if MIDI_DEC != None:
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_DEC, par2='1-127', event=DEC)
+        if MIDI_INC != None:
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_INC, par2='1-127', event=INC)
+        if MIDI_BANK != None:
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_BANK, par2='1-127', bank=1)
+        if MIDI_SHUTDOWN != None:
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_SHUTDOWN, shutdown=1)
+        else:
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_DEC, shutdown=1)
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_INC, shutdown=1)
+        if MIDI_PATCH != None:
+            selectspec =  f"0-127=1-{min(len(fp.patches), 128)}"
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_PATCH, par2=selectspec, patch='select')
+        if MIDI_SELECT != None:
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_SELECT, event=SELECT)
+        if MIDI_ESCAPE != None:
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_ESCAPE, event=ESCAPE)
 
 
 if __name__ == "__main__":
