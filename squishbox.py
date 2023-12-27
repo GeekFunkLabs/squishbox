@@ -817,10 +817,10 @@ class FluidBox:
                     self.nextbank = None
                     return
                 if self.shutdowntimer and time.time() - self.shutdowntimer > 5:
-            		sb.lcd_write("Shutting down..", 0, mode='ljust')
-            		sb.lcd_write("Wait 15s, unplug", 1, mode='ljust', now=True)
-            		sb.shell_cmd("sudo poweroff")
-            		sys.exit()
+                    sb.lcd_write("Shutting down..", 0, mode='ljust')
+                    sb.lcd_write("Wait 15s, unplug", 1, mode='ljust', now=True)
+                    sb.shell_cmd("sudo poweroff")
+                    sys.exit()
                 if self.lastsig:
                     sb.lcd_blink(MIDIACT, 1, 1)
                     self.lastsig = None
@@ -1113,7 +1113,7 @@ if __name__ == "__main__":
     os.umask(0o002)
     sb = SquishBox()
     sb.lcd_clear()
-    try: fp = FluidPatcher("fluidpatcher/conf/squishboxconf.yaml")
+    try: fp = FluidPatcher("SquishBox/squishboxconf.yaml")
     except Exception as e:
         sb.display_error(e, "bad config file: ")
     else:

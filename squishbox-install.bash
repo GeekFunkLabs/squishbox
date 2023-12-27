@@ -245,6 +245,7 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 sudo systemctl enable squishbox.service 
+sudo systemctl enable NetworkManager.service
 if [[ $installtype == 1 ]]; then
     if [[ $hw_version == 'v6' ]]; then
         pins1="LCD_RS = 2; LCD_EN = 3; LCD_DATA = 11, 5, 6, 13"
@@ -314,7 +315,6 @@ Restart=no
 WantedBy=sysinit.target
 EOF
     sudo systemctl enable lcdsplash.service
-    sudo systemctl enable NetworkManager.service
 elif [[ $installtype == 2 ]]; then
     sed -i "/^MIDI_CTRL/cMIDI_CTRL = $ctrls_channel" $installdir/squishbox.py
     sed -i "/^MIDI_DEC/cMIDI_DEC = $decpatch" $installdir/squishbox.py
@@ -328,7 +328,6 @@ if [[ $install_synth ]]; then
     sysupdate
     apt_pkg_install "python3-yaml"
     apt_pkg_install "python3-rpi.gpio"
-    apt_pkg_install "fluid-soundfont-gm" optional
     apt_pkg_install "ladspa-sdk" optional
     apt_pkg_install "swh-plugins" optional
     apt_pkg_install "tap-plugins" optional
@@ -338,20 +337,21 @@ if [[ $install_synth ]]; then
     inform "Installing/Updating FluidPatcher ..."
     wget -qO - https://github.com/GeekFunkLabs/fluidpatcher/tarball/master | tar -xzm
     fptemp=`ls -dt GeekFunkLabs-fluidpatcher-* | head -n1`
-    mkdir -p fluidpatcher
     cd $fptemp
+    mkdir -p fluidpatcher
     find fluidpatcher -type d -exec mkdir -p $installdir/fluidpatcher/{} \;
-    find fluidpatcher -type f -name "*.py" -exec cp -f {} $installdir/fluidpatcher/{} \;
-    find fluidpatcher -type f ! -name "*.py" -exec cp -n {} $installdir/fluidpatcher/{} \;
+    find fluidpatcher -type f -exec cp -f {} $installdir/fluidpatcher/{} \;
+    mkdir -p SquishBox
+    find scripts/config -type d -exec mkdir -p $installdir/SquishBox/{} \;
+    find scripts/config -type f -exec cp -n {} $installdir/SquishBox/{} \;
     gcc -shared bin/patchcord.c -o patchcord.so
     sudo mv -f patchcord.so /usr/lib/ladspa
     cd $installdir
     rm -rf $fptemp
-    sf2dir="$installdir/fluidpatcher/config/sf2"
-    ln -sf $sf2dir/liteGM.sf2 $sf2dir/defaultGM.sf2 > /dev/null
-    ln -sf $sf2dir/GeneralUserGS.sf2 $sf2dir/defaultGM.sf2 > /dev/null
-    ln -sf /usr/share/sounds/sf2/default-GM.sf2 $sf2dir/defaultGM.sf2 > /dev/null
-    ln -sf /usr/share/sounds/sf2/FluidR3_GM.sf2 $sf2dir/defaultGM.sf2 > /dev/null
+    sf2dir="$installdir/SquishBox/sf2"
+    wget -q https://archive.org/download/fluidr3-gm-gs/FluidR3_GM_GS.sf2
+    mv -f $sf2dir/defaultGM.sf2 $sf2dir/liteGM.sf2
+    mv FluidR3_GM_GS.sf2 $sf2dir/defaultGM.sf2
 
     # compile/install fluidsynth
     BUILD_VER='2.3.4'
@@ -386,17 +386,21 @@ fi
 # set up audio
 if (( $audiosetup > 0 )); then
     inform "Setting up audio..."
-    card=${AUDIOCARDS[$audiosetup-2]}
-    cat <<EOF $installdir/fluidpatcher/config/fluidpatcherconf.yaml
-soundfontdir: $installdir/fluidpatcher/config/sf2
-bankdir: $installdir/fluidpatcher/config/banks
-mfilesdir: $installdir/fluidpatcher/config/midi
+    if [[ $audiosetup == 1 ]]; then
+        card="default"
+    else
+        card="hw:${AUDIOCARDS[$audiosetup-2]}"
+    fi
+    cat <<EOF > $installdir/SquishBox/fluidpatcherconf.yaml
+soundfontdir: $installdir/SquishBox/sf2
+bankdir: $installdir/SquishBox/banks
+mfilesdir: $installdir/SquishBox/midi
 plugindir: /usr/lib/ladspa
 currentbank: bank1.yaml
 
 fluidsettings:
   audio.driver: alsa
-  audio.alsa.device: hw:$card
+  audio.alsa.device: $card
   audio.period-size: 64
   audio.periods: 3
   midi.autoconnect: 1
@@ -440,7 +444,7 @@ EOF
     sudo sed -i "/post_max_size/cpost_max_size = 999M" /etc/php/$phpver/fpm/php.ini
     # set permissions and umask to avoid permissions problems
     sudo usermod -a -G $USER www-data
-    sudo chmod -R g+rw $installdir/fluidpatcher/config
+    sudo chmod -R g+rw $installdir/SquishBox
     sudo sed -i "/UMask/d" /lib/systemd/system/php$phpver-fpm.service
     sudo sed -i "/\[Service\]/aUMask=0002" /lib/systemd/system/php$phpver-fpm.service
     # install and configure tinyfilemanager (https://tinyfilemanager.github.io)
@@ -449,7 +453,7 @@ EOF
     sed -i "/'admin' =>/d;/'user' =>/d" tinyfilemanager.php
     sed -i "/\$auth_users =/a\    '$fmgr_user' => '$fmgr_hash'" tinyfilemanager.php
     sed -i "/\$theme =/c\$theme = 'dark';" tinyfilemanager.php
-    sed -i "0,/root_path =/s|root_path = .*|root_path = '$installdir/fluidpatcher/config';|" tinyfilemanager.php
+    sed -i "0,/root_path =/s|root_path = .*|root_path = '$installdir/SquishBox';|" tinyfilemanager.php
     sed -i "0,/favicon_path =/s|favicon_path = .*|favicon_path = 'gfl_logo.png';|" tinyfilemanager.php
     sudo mv -f tinyfilemanager.php /var/www/html/index.php
     wget -q https://raw.githubusercontent.com/GeekFunkLabs/squishbox/master/images/gfl_logo.png
