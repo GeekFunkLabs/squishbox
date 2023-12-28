@@ -54,9 +54,9 @@ MIDI_DEC = None                                  # CC for patch/value decrement
 MIDI_INC = None                                  # CC for patch/value increment
 MIDI_BANK = None                                 # CC to load the next bank
 MIDI_PATCH = None                                # knob/slider CC for selecting patches
-MIDI_SHUTDOWN = None                             # CC to trigger shutdown when held
 MIDI_SELECT = None                               # CC for menu/select
 MIDI_ESCAPE = None                               # CC for escape/back
+MIDI_SHUTDOWN = None                             # CC to trigger shutdown when held
 
 # custom characters
 c = """\
@@ -771,9 +771,9 @@ class FluidBox:
                 if PIN_OUT[sig.setpin] == PIN_LED:
                     self.buttonstate = 1 if sig.val else 0
                 sb.gpio_set(PIN_OUT[sig.setpin], sig.val)
-            elif 'event' in sig:
+            elif 'event' in sig and sig.val > 0:
                 sb.nextevent = sig.event
-            elif 'bank' in sig:
+            elif 'bank' in sig and sig.val > 0:
                 banks = sorted([b.relative_to(fp.bankdir) for b in fp.bankdir.rglob('*.yaml')])
                 bno = (banks.index(fp.currentbank) + 1 ) % len(banks) if fp.currentbank in banks else 0
                 self.nextbank = banks[bno]
@@ -1090,18 +1090,18 @@ class FluidBox:
             fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_INC, par2='1-127', event=INC)
         if MIDI_BANK != None:
             fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_BANK, par2='1-127', bank=1)
+        if MIDI_PATCH != None:
+            selectspec =  f"0-127=1-{min(len(fp.patches), 128)}"
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_PATCH, par2=selectspec, patch='select')
+        if MIDI_SELECT != None:
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_SELECT, par2='1-127', event=SELECT)
+        if MIDI_ESCAPE != None:
+            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_ESCAPE, par2='1-127', event=ESCAPE)
         if MIDI_SHUTDOWN != None:
             fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_SHUTDOWN, shutdown=1)
         else:
             fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_DEC, shutdown=1)
             fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_INC, shutdown=1)
-        if MIDI_PATCH != None:
-            selectspec =  f"0-127=1-{min(len(fp.patches), 128)}"
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_PATCH, par2=selectspec, patch='select')
-        if MIDI_SELECT != None:
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_SELECT, event=SELECT)
-        if MIDI_ESCAPE != None:
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_ESCAPE, event=ESCAPE)
 
 
 if __name__ == "__main__":
@@ -1113,7 +1113,7 @@ if __name__ == "__main__":
     os.umask(0o002)
     sb = SquishBox()
     sb.lcd_clear()
-    try: fp = FluidPatcher("SquishBox/squishboxconf.yaml")
+    try: fp = FluidPatcher("SquishBox/fluidpatcherconf.yaml")
     except Exception as e:
         sb.display_error(e, "bad config file: ")
     else:
