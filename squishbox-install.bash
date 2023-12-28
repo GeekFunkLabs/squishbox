@@ -83,8 +83,6 @@ apt_pkg_install() {
 }
 
 
-sleep 1
-
 ## get options from user
 
 RED='\033[0;31m'
@@ -94,22 +92,16 @@ echo -e "
  ${YEL}           o
      o───┐  │  o
       ${RED}___${YEL}│${RED}__${YEL}│${RED}__${YEL}│${RED}___
-     /             \  ${YEL}o   ${NC}SquishBox/Headless Pi Synth Installer
+     /             \  ${YEL}o   ${NC}SquishBox Software Installer
  ${YEL}o───${RED}┤  ${NC}_________  ${RED}│  ${YEL}│     ${NC}by GEEK FUNK LABS
      ${RED}│ ${NC}│ █ │ █ █ │ ${RED}├${YEL}──┘     ${NC}geekfunklabs.com
      ${RED}│ ${NC}│ █ │ █ █ │ ${RED}│
      \_${NC}│_│_│_│_│_│${RED}_/${NC}
 "
-inform "This script installs/updates software and optional extras
-for the SquishBox or headless Raspberry Pi synth."
 warning "Always be careful when running scripts and commands copied
 from the internet. Ensure they are from a trusted source."
-echo "If you want to see what this script does before running it,
-hit ctrl-C and enter 'curl -L git.io/squishbox | more'
-View the full source code at
-https://github.com/GeekFunkLabs/fluidpatcher
-Report issues with this script at
-https://github.com/GeekFunkLabs/fluidpatcher/issues
+echo "View the code for this script and report issues at
+https://github.com/GeekFunkLabs/squishbox/issues
 
 Choose your install options. An empty response will use the [default option].
 Setup will begin after all questions are answered.
@@ -135,7 +127,7 @@ fi
 
 echo "What are you setting up?"
 echo "  1. SquishBox"
-echo "  2. Headless Raspberry Pi Synth"
+echo "  2. Naked Raspberry Pi Synth"
 query "Choose" "1"; installtype=$response
 AUDIOCARDS=(`cat /proc/asound/cards | sed -n 's/.*\[//;s/ *\].*//p'`)
 if [[ $installtype == 1 ]]; then
@@ -148,7 +140,7 @@ if [[ $installtype == 1 ]]; then
             else
                 sudo sed -i '$ a\dtoverlay=hifiberry-dac' /boot/config.txt
             fi
-            sync; sudo reboot
+            sync && sudo reboot
             exit 0
         fi
     fi
@@ -159,7 +151,7 @@ if [[ $installtype == 1 ]]; then
     echo "  v2 - Hackaday/perfboard build"
     query "Enter version code" "v6"; hw_version=$response
 elif [[ $installtype == 2 ]]; then
-    echo "Set up controls for Headless Pi Synth:"
+    echo "Set up controls for Naked Pi Synth:"
     query "    MIDI channel for controls" "1"; ctrls_channel=$response
     query "    Previous patch momentary CC#" "21"; decpatch=$response
     query "    Next patch momentary CC#" "22"; incpatch=$response
@@ -346,13 +338,13 @@ if [[ $install_synth ]]; then
     find scripts/config -type f -exec cp -n {} $installdir/SquishBox/{} \;
     gcc -shared bin/patchcord.c -o patchcord.so
     sudo mv -f patchcord.so /usr/lib/ladspa
+    cd $installdir/SquishBox/sf2
+    if ! test -e $sf2dir/FluidR3_GM_GS.sf2; then
+        wget -q https://archive.org/download/fluidr3-gm-gs/FluidR3_GM_GS.sf2; fi
+    if ! test -L defaultGM.sf2; then
+        mv defaultGM.sf2 liteGM.sf2; ln -s FluidR3_GM_GS.sf2 defaultGM.sf2; fi
     cd $installdir
     rm -rf $fptemp
-    cd $installdir/SquishBox/sf2
-    if test -e $sf2dir/FluidR3_GM_GS.sf2; then
-        wget -q https://archive.org/download/fluidr3-gm-gs/FluidR3_GM_GS.sf2; fi
-    if test -L defaultGM.sf2; then
-        mv defaultGM.sf2 liteGM.sf2; ln -s FluidR3_GM_GS.sf2 defaultGM.sf2; fi
 
 
     # compile/install fluidsynth
