@@ -348,10 +348,12 @@ if [[ $install_synth ]]; then
     sudo mv -f patchcord.so /usr/lib/ladspa
     cd $installdir
     rm -rf $fptemp
-    sf2dir="$installdir/SquishBox/sf2"
-    wget -q https://archive.org/download/fluidr3-gm-gs/FluidR3_GM_GS.sf2
-    mv -f $sf2dir/defaultGM.sf2 $sf2dir/liteGM.sf2
-    mv FluidR3_GM_GS.sf2 $sf2dir/defaultGM.sf2
+    cd $installdir/SquishBox/sf2
+    if test -e $sf2dir/FluidR3_GM_GS.sf2; then
+        wget -q https://archive.org/download/fluidr3-gm-gs/FluidR3_GM_GS.sf2; fi
+    if test -L defaultGM.sf2; then
+        mv defaultGM.sf2 liteGM.sf2; ln -s FluidR3_GM_GS.sf2 defaultGM.sf2; fi
+
 
     # compile/install fluidsynth
     BUILD_VER='2.3.4'
