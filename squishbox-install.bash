@@ -328,17 +328,12 @@ if [[ $install_synth ]]; then
     inform "Installing/Updating FluidPatcher ..."
     wget -qO - https://github.com/GeekFunkLabs/fluidpatcher/tarball/master | tar -xzm
     fptemp=`ls -dt GeekFunkLabs-fluidpatcher-* | head -n1`
-    mkdir -p fluidpatcher
-    find $fptemp/fluidpatcher -type d -exec mkdir -p fluidpatcher/{} \;
-    find $fptemp/fluidpatcher -type f -exec cp -f {} fluidpatcher/{} \;
-    mkdir -p SquishBox
-    find $fptemp/scripts/config -type d -exec mkdir -p SquishBox/{} \;
-    find $fptemp/scripts/config -type f -exec cp -n {} SquishBox/{} \;
-    gcc -shared $fptemp/bin/patchcord.c -o patchcord.so
-    sudo mv -f patchcord.so /usr/lib/ladspa
+	cp -rf $fptemp/fluidpatcher .
+	cp -rn $fptemp/scripts/config SquishBox
+    sudo gcc -shared $fptemp/bin/patchcord.c -o /usr/lib/ladspa/patchcord.so
     cd SquishBox/sf2
     if ! test -e $sf2dir/FluidR3_GM_GS.sf2; then
-        wget -q https://archive.org/download/fluidr3-gm-gs/FluidR3_GM_GS.sf2; fi
+        wget -q --show-progress https://archive.org/download/fluidr3-gm-gs/FluidR3_GM_GS.sf2; fi
     if ! test -L defaultGM.sf2; then
         mv defaultGM.sf2 liteGM.sf2; ln -s FluidR3_GM_GS.sf2 defaultGM.sf2; fi
     cd $installdir
