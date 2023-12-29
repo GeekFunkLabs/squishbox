@@ -100,7 +100,7 @@ echo -e "
 "
 echo "This script installs or updates software and optional extras
 for the SquishBox. View the code for this script and report issues at
-https://github.com/GeekFunkLabs/squishbox/issues
+https://github.com/GeekFunkLabs/squishbox
 "
 inform "Choose your install options. Default options are shown in brackets.
 Setup will begin after all questions are answered.
@@ -186,7 +186,7 @@ query "Choose" $defcard; audiosetup=$response
 
 if yesno "Install/update FluidPatcher synthesizer software?"; then
     install_synth=true
-    if noyes "Download and install ~400MB of additional soundfonts?"; then
+    if ! noyes "Download and install ~400MB of additional soundfonts?"; then
         soundfonts=true
     fi
 
