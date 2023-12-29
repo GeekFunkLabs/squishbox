@@ -260,27 +260,14 @@ if [[ $installtype == 1 ]]; then
     sed -i "/^ROT_L/c$pins2" $installdir/squishbox.py
     sed -i "/^BTN_SW/c$pins3" $installdir/squishbox.py
     sb_version=`sed -n '/^__version__/s|[^0-9\.]*||gp' $installdir/squishbox.py`
-    cat <<EOF | sudo tee /usr/local/bin/lcdsplash.py
-HW_VERSION = $hw_version
-SB_VERSION = $sb_version
+    cat <<EOF | sudo tee /usr/local/bin/lcdsplash
+#!/usr/bin/env python
+import time, RPi.GPIO as GPIO
 $pins1
-COLS, ROWS = 16, 2
 logobits = [[0, 0, 4, 11, 4, 0, 1, 2], [2, 5, 2, 18, 18, 18, 31, 0],
     [0, 0, 2, 5, 2, 2, 31, 0], [0, 0, 0, 0, 2, 5, 18, 10],
     [2, 10, 22, 10, 2, 2, 2, 1], [0, 31, 23, 23, 23, 18, 18, 31],
     [0, 31, 29, 29, 29, 9, 9, 31], [10, 10, 10, 14, 8, 8, 8, 16]]
-GPIO.setmode(GPIO.BCM)
-for ch in (LCD_RS, LCD_EN, *LCD_DATA): GPIO.setup(ch, GPIO.OUT)
-for val in (0x33, 0x32, 0x28, 0x0c, 0x06): lcd_send(val)
-for loc, bits in enumerate(logobits):
-    lcd_send(0x40 | loc << 3)
-    for row in bits: lcd_send(row, 1)
-lcd_send(0x01); time.sleep(2e-3)
-version_str = f"{HW_VERSION}/{SB_VERSION}".rjust(11)
-lcd_send(0x80)
-for c in " \x00\x01\x02\x03  SquishBox": lcd_send(ord(c), 1)
-lcd_send(0xc0)
-for c in f" \x04\x05\x06\x07{version_str}": lcd_send(ord(c), 1)
 def lcd_send(val, reg=0):
     GPIO.output(LCD_RS, reg)
     GPIO.output(LCD_EN, GPIO.LOW)
@@ -290,8 +277,20 @@ def lcd_send(val, reg=0):
         GPIO.output(LCD_EN, GPIO.HIGH)
         time.sleep(50e-6)
         GPIO.output(LCD_EN, GPIO.LOW)
+GPIO.setmode(GPIO.BCM)
+for ch in (LCD_RS, LCD_EN, *LCD_DATA): GPIO.setup(ch, GPIO.OUT)
+for val in (0x33, 0x32, 0x28, 0x0c, 0x06): lcd_send(val)
+for loc, bits in enumerate(logobits):
+    lcd_send(0x40 | loc << 3)
+    for row in bits: lcd_send(row, 1)
+lcd_send(0x01); time.sleep(2e-3)
+version_str = "$hw_version/$sb_version".rjust(11)
+lcd_send(0x80)
+for c in " \x00\x01\x02\x03  SquishBox": lcd_send(ord(c), 1)
+lcd_send(0xc0)
+for c in f" \x04\x05\x06\x07{version_str}": lcd_send(ord(c), 1)
 EOF
-    sudo chmod a+x /usr/local/bin/lcdsplash.py
+    sudo chmod a+x /usr/local/bin/lcdsplash
     cat <<EOF | sudo tee /etc/systemd/system/lcdsplash.service
 [Unit]
 Description=LCD Splashscreen
@@ -299,7 +298,7 @@ DefaultDependencies=false
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/lcdsplash.py
+ExecStart=/usr/local/bin/lcdsplash
 Restart=no
 
 [Install]
