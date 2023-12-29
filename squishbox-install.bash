@@ -98,12 +98,11 @@ echo -e "
      ${RED}│ ${NC}│ █ │ █ █ │ ${RED}│
      \_${NC}│_│_│_│_│_│${RED}_/${NC}
 "
-warning "Always be careful when running scripts and commands copied
-from the internet. Ensure they are from a trusted source."
-echo "View the code for this script and report issues at
+echo "This script installs or updates software and optional extras
+for the SquishBox. View the code for this script and report issues at
 https://github.com/GeekFunkLabs/squishbox/issues
-
-Choose your install options. An empty response will use the [default option].
+"
+inform "Choose your install options. Default options are shown in brackets.
 Setup will begin after all questions are answered.
 "
 
