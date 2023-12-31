@@ -98,8 +98,8 @@ echo -e "
      ${RED}│ ${NC}│ █ │ █ █ │ ${RED}│
      \_${NC}│_│_│_│_│_│${RED}_/${NC}
 "
-echo "This script installs or updates software and optional extras
-for the SquishBox. View the code for this script and report issues at
+echo "This script installs or updates software and optional extras for
+the SquishBox. View the code for this script and report issues at
 https://github.com/GeekFunkLabs/squishbox
 "
 inform "Choose your install options. Default options are shown in brackets.
@@ -260,6 +260,8 @@ if [[ $installtype == 1 ]]; then
     sed -i "/^ROT_L/c$pins2" $installdir/squishbox.py
     sed -i "/^BTN_SW/c$pins3" $installdir/squishbox.py
     sb_version=`sed -n '/^__version__/s|[^0-9\.]*||gp' $installdir/squishbox.py`
+	ver_info="$hw_version/$sb_version"
+	ver_pad=`printf "%-11s" ${ver_info::11}`
     cat <<EOF | sudo tee /usr/local/bin/lcdsplash
 #!/usr/bin/env python
 import time, RPi.GPIO as GPIO
@@ -284,11 +286,10 @@ for loc, bits in enumerate(logobits):
     lcd_send(0x40 | loc << 3)
     for row in bits: lcd_send(row, 1)
 lcd_send(0x01); time.sleep(2e-3)
-version_str = "$hw_version/$sb_version".rjust(11)
 lcd_send(0x80)
-for c in " \x00\x01\x02\x03  SquishBox": lcd_send(ord(c), 1)
+for c in "SquishBox  \x00\x01\x02\x03 ": lcd_send(ord(c), 1)
 lcd_send(0xc0)
-for c in f" \x04\x05\x06\x07{version_str}": lcd_send(ord(c), 1)
+for c in "$ver_pad\x04\x05\x06\x07 ": lcd_send(ord(c), 1)
 EOF
     sudo chmod a+x /usr/local/bin/lcdsplash
     cat <<EOF | sudo tee /etc/systemd/system/lcdsplash.service
