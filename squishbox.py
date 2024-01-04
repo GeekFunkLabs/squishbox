@@ -930,13 +930,10 @@ class FluidBox:
             return False
         sb.progresswheel_stop()
         fp.write_config()
-        if fp.currentbank != lastbank:
-            self.pno = 0
+        if fp.currentbank == lastbank and lastpatch in fp.patches:
+            self.pno = fp.patches.index(lastpatch)
         else:
-            if lastpatch in fp.patches:
-                self.pno = fp.patches.index(lastpatch)
-            elif self.pno >= len(fp.patches):
-                self.pno = 0
+            self.pno = 0
         return True
 
     def save_bank(self, bank=""):
