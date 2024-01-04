@@ -154,7 +154,7 @@ elif [[ $installtype == 2 ]]; then
     query "    MIDI channel for controls" "1"; ctrls_channel=$response
     query "    Previous patch momentary CC#" "21"; decpatch=$response
     query "    Next patch momentary CC#" "22"; incpatch=$response
-    query "    Bank advance momentary CC#" "23"; bankinc=$response
+    query "    Patch select knob/slider CC#" "23"; bankinc=$response
 else
     exit 1
 fi
@@ -310,7 +310,7 @@ elif [[ $installtype == 2 ]]; then
     sed -i "/^MIDI_CTRL/cMIDI_CTRL = $ctrls_channel" $installdir/squishbox.py
     sed -i "/^MIDI_DEC/cMIDI_DEC = $decpatch" $installdir/squishbox.py
     sed -i "/^MIDI_INC/cMIDI_INC = $incpatch" $installdir/squishbox.py
-    sed -i "/^MIDI_BANK/cMIDI_BANK = $bankinc" $installdir/squishbox.py
+    sed -i "/^MIDI_PATCH/cMIDI_PATCH = $selpatch" $installdir/squishbox.py
 fi
 
 if [[ $install_synth ]]; then
@@ -330,7 +330,7 @@ if [[ $install_synth ]]; then
     fptemp=`ls -dt GeekFunkLabs-fluidpatcher-* | head -n1`
 	cp -rf $fptemp/fluidpatcher .
 	cp -rn $fptemp/scripts/config SquishBox
-    sudo gcc -shared $fptemp/bin/patchcord.c -o /usr/lib/ladspa/patchcord.so
+    sudo gcc -shared $fptemp/src/patchcord.c -o /usr/lib/ladspa/patchcord.so
     cd SquishBox/sf2
     if ! test -e $sf2dir/FluidR3_GM_GS.sf2; then
         wget -q --show-progress https://archive.org/download/fluidr3-gm-gs/FluidR3_GM_GS.sf2; fi
@@ -338,7 +338,6 @@ if [[ $install_synth ]]; then
         mv defaultGM.sf2 liteGM.sf2; ln -s FluidR3_GM_GS.sf2 defaultGM.sf2; fi
     cd $installdir
     rm -rf $fptemp
-
 
     # compile/install fluidsynth
     BUILD_VER='2.3.4'

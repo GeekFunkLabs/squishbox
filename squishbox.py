@@ -49,10 +49,10 @@ EXEC_TIME = 50e-6                                # increase if LCD displays garb
 STOMP_CHAN = 16                                  # MIDI channel for stompswitch
 STOMP_MOMENT = 30                                # CC number for momentary message
 STOMP_TOGGLE = 31                                # CC number for toggle message
-MIDI_CTRL = None                                 # MIDI channel for controls below, disabled if None
+# FluidBox MIDI controls
+MIDI_CTRL = None                                 # MIDI channel for controls
 MIDI_DEC = None                                  # CC for patch/value decrement
 MIDI_INC = None                                  # CC for patch/value increment
-MIDI_BANK = None                                 # CC to load the next bank
 MIDI_PATCH = None                                # knob/slider CC for selecting patches
 MIDI_SELECT = None                               # CC for menu/select
 MIDI_ESCAPE = None                               # CC for escape/back
@@ -722,7 +722,6 @@ class FluidBox:
         """Creates the FluidBox"""
         self.pno = 0
         self.buttonstate = 0
-        self.nextbank = None
         self.shutdowntimer = 0
         fp.midi_callback = self.listener
         sb.buttoncallback = self.handle_buttonevent
@@ -773,10 +772,6 @@ class FluidBox:
                 sb.gpio_set(PIN_OUT[sig.setpin], sig.val)
             elif 'event' in sig and sig.val > 0:
                 sb.nextevent = sig.event
-            elif 'bank' in sig and sig.val > 0:
-                banks = sorted([b.relative_to(fp.bankdir) for b in fp.bankdir.rglob('*.yaml')])
-                bno = (banks.index(fp.currentbank) + 1 ) % len(banks) if fp.currentbank in banks else 0
-                self.nextbank = banks[bno]
             elif 'shutdown' in sig:
                 if sig.val > 0:
                     self.shutdowntimer = time.time()
@@ -811,10 +806,6 @@ class FluidBox:
             self.lcdwrite = None
             while True:
                 if pno != self.pno:
-                    return
-                if self.nextbank:
-                    self.load_bank(self.nextbank)
-                    self.nextbank = None
                     return
                 if self.shutdowntimer and time.time() - self.shutdowntimer > 5:
                     sb.lcd_write("Shutting down..", 0, mode='ljust')
@@ -1085,8 +1076,6 @@ class FluidBox:
             fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_DEC, par2='1-127', event=DEC)
         if MIDI_INC != None:
             fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_INC, par2='1-127', event=INC)
-        if MIDI_BANK != None:
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_BANK, par2='1-127', bank=1)
         if MIDI_PATCH != None:
             selectspec =  f"0-127=1-{min(len(fp.patches), 128)}"
             fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_PATCH, par2=selectspec, patch='select')
