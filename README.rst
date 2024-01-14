@@ -5,6 +5,6 @@ Software, design, and documentation files for the Squishbox, a Raspberry Pi soun
 
 	curl -sL geekfunklabs.com/squishbox | bash
 
-or download the install script and run it with
+or download the install script and run it with::
 
     bash squishbox-install.bash
