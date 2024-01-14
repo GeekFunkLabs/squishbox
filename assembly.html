@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Assembly &#8212; SquishBox 0.9 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=049aceee"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+    <link rel="prev" title="SquishBox Instructions" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="assembly">
+<h1>Assembly<a class="headerlink" href="#assembly" title="Link to this heading">¶</a></h1>
+<p>If you’ve purchased the kit, the “Components” section lists all the items you should have in your kit and “Tools” lists the tools you’ll need. The “Electronics” and “Hardware” sections describe how to solder everything together and how to mount everything in the standard 3D‑printable enclosure, available from www.thingiverse.com/thing:6188155.</p>
+<p>Once you’ve assembled your SquishBox and installed the software, you should be ready to plug in and play! If you need any further assistance visit geekfunklabs.com/support. We hope you enjoy making music with the SquishBox!</p>
+<section id="components">
+<h2>Components<a class="headerlink" href="#components" title="Link to this heading">¶</a></h2>
+<p>The components needed to build the electronics for the SquishBox are listed below, and referenced in the image. You will also need a Raspberry Pi computer with an SD card to install software, and a power supply. The SquishBox and your Pi can be powered with a 5 Volt/2 Amp power supply via the 5.5mm × 2.1mm DC barrel jack, or you can use your existing Pi power supply plugged directly into your Pi’s power port.</p>
+<ol class="upperalpha simple">
+<li><p>PCB with surface-mounted components</p></li>
+<li><p>LED blue 5mm</p></li>
+<li><p>10K potentiometer</p></li>
+<li><p>16x2 character LCD</p></li>
+<li><p>2x20 female header</p></li>
+<li><p>1x12 male header</p></li>
+<li><p>1x4 right-angle male header</p></li>
+<li><p>momentary stompswitch</p></li>
+<li><p>rotary pushbutton encoder</p></li>
+<li><p>decorative knob</p></li>
+<li><p>1/4” TRS audio jacks (2)</p></li>
+<li><p>5.5x2.1mm DC barrel jack</p></li>
+<li><p>26 AWG ribbon cable</p></li>
+</ol>
+<figure class="align-default" id="id1">
+<img alt="photo of kit components" src="_images/components.png" />
+<figcaption>
+<p><span class="caption-text">Components included in the deluxe SquishBox kit.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="tools">
+<h2>Tools<a class="headerlink" href="#tools" title="Link to this heading">¶</a></h2>
+<p>The following tools will be useful in assembling the SquishBox:</p>
+<ul class="simple">
+<li><p>Soldering Iron, Solder</p></li>
+<li><p>Flush Cutters</p></li>
+<li><p>Wire Strippers capable of stripping 26 AWG</p></li>
+<li><p>Needlenose pliers (optional but very helpful)</p></li>
+<li><p>Small screwdrivers, cross- and flat-head</p></li>
+<li><dl class="simple">
+<dt>A way to hold items steady while you solder</dt><dd><ul>
+<li><p>vise</p></li>
+<li><p>helping hands tool</p></li>
+<li><p>(my favorite) a wad of poster tack/putty</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<img alt="_images/tools.png" src="_images/tools.png" />
+</section>
+<section id="electronics">
+<h2>Electronics<a class="headerlink" href="#electronics" title="Link to this heading">¶</a></h2>
+<p>In the instructions below, the “top” side of the PCB is considered to be the side with the surface-mounted components. Make sure to do the steps in order and solder the LCD and 2x20 header on last, otherwise you won’t be able to reach some of the components.</p>
+<ol class="arabic simple">
+<li><p>The button, encoder, and jacks are connected to the PCB using strips of multicolored ribbon cable, which helps to keep things organized and makes the connections easier to track. Slice off a strip of 4 wires, a strip of 3 wires, and a strip of 2 wires. Cut the strip of 2 wires halfway along its length. Separate the wires at the ends of each strip as shown, and strip, twist, and tin (add a thin coat of solder to) the ends. This makes them stronger and easier to solder in place.</p></li>
+</ol>
+<img alt="_images/wires.png" src="_images/wires.png" />
+<ol class="arabic" start="2">
+<li><p>Insert your ribbon cable strips into the holes along the edge of the board as listed below. Bend the ends of the wires flat to hold them in place, then solder them and trim any excess away.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A strip of two wires for the DC input (<code class="docutils literal notranslate"><span class="pre">+DC-</span></code>)</p></li>
+<li><p>A strip of two wires for the momentary button (<code class="docutils literal notranslate"><span class="pre">SW</span></code>)</p></li>
+<li><p>A strip of four wires for the rotary encoder (<code class="docutils literal notranslate"><span class="pre">EL</span> <span class="pre">Eg</span> <span class="pre">ER</span> <span class="pre">EB</span></code>)</p></li>
+<li><p>A strip of three wires for the audio output (<code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">g</span> <span class="pre">R</span></code>)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ol>
+<img alt="_images/solder_wires.png" src="_images/solder_wires.png" />
+<ol class="arabic simple" start="3">
+<li><p>Insert the short ends of the right-angle header into the holes for the serial port (<code class="docutils literal notranslate"><span class="pre">5V</span> <span class="pre">TX</span> <span class="pre">RX</span> <span class="pre">g</span></code>) into the bottom side of the PCB as well and hold it in place with some putty. Solder one pin first and check that the long pins stick out parallel to the PCB before soldering the rest. Push the three legs of the 10K potentiometer through the PCB from the bottom side. The kinks in the legs require a bit of extra force, but once it pops through they will hold the component in place while you solder.</p></li>
+</ol>
+<img alt="_images/solder_pot.png" src="_images/solder_pot.png" />
+<ol class="arabic simple" start="4">
+<li><p>Insert just the ends of the LED into the holes marked <code class="docutils literal notranslate"><span class="pre">L-</span> <span class="pre">L+</span></code>. The longer leg is positive. Bend the legs so the LED is parallel to the plane of the PCB and solder the legs in place.</p></li>
+</ol>
+<img alt="_images/solder_led.png" src="_images/solder_led.png" />
+<ol class="arabic simple" start="5">
+<li><p>Break off two six-pin lengths of male header and solder them to the outside pins of the LCD as shown. The middle four pins D0-D3 are not used. Start with one pin on each header, and make sure they are fully seated and the pins all stick up parallel to each other and perpendicular to the board before soldering the rest of the pins.</p></li>
+</ol>
+<img alt="_images/prep_lcd.png" src="_images/prep_lcd.png" />
+<ol class="arabic simple" start="6">
+<li><p>Insert the LCD into the top side of the PCB, but only push the pins through just enough so you can solder them to the bottom side of the PCB as shown. This allows the LCD to fit over a Raspberry Pi’s USB ports and Ethernet jack. Solder one pin on each end first and check the fit, then do the rest after re-melting and adjusting if necessary.</p></li>
+</ol>
+<img alt="_images/solder_lcd.png" src="_images/solder_lcd.png" />
+<ol class="arabic simple" start="7">
+<li><p>Insert the 2×20 female header into the underside of the PCB. As with the other headers, solder two pins at either end, then check that the socket is flush against the board so you can re-melt and adjust if necessary before proceeding to solder all 40 pins in place.</p></li>
+</ol>
+<img alt="_images/solder_header.png" src="_images/solder_header.png" />
+<p>You have now soldered all the components that go into the PCB. You’ll solder all those floating wires to the button, encoder, and jacks after installing them in an enclosure. This makes it easier to keep them in one spot while you solder, and less likely you’ll rip wires when screwing things into the enclosure.</p>
+</section>
+<section id="hardware">
+<h2>Hardware<a class="headerlink" href="#hardware" title="Link to this heading">¶</a></h2>
+<p>The steps in this section describe how to mount all the components in your enclosure and solder wires to the jacks, button, and encoder. You can 3D-print the official PLA case shown below by downloading the model files from <a class="reference external" href="https://www.thingiverse.com/thing:6188155">https://www.thingiverse.com/thing:6188155</a>. The lid screws on with four #4 size screws.</p>
+<p>Similar to the last section, components can get in the way of your soldering if you install them in the wrong order, so you’ll have the easiest time if you do the steps as shown.</p>
+<ol class="arabic simple">
+<li><p>The enclosure has two clips that will hold the all the electronics in place. Viewing from bottom side of the PCB with the 2x20 header at the top, insert the right edge of the LCD in the opening and slide it underneath the right-hand clip. Bend the LED’s legs so it pokes through the hole in the enclosure. Now press down on the left side of the LCD with your thumb until it pops into place. It may help to use a screwdriver as a lever to flex the case a bit to get the LCD past the clip. If you mangle the clips doing this or just want some extra hold you can squirt some hot glue through the holes onto the mounting posts.</p></li>
+</ol>
+<img alt="_images/mount_electronics.png" src="_images/mount_electronics.png" />
+<ol class="arabic simple" start="2">
+<li><p>Bend the pins of the rotary encoder outwards and apply some solder to them. This makes it easier to solder the floating wires to them. Insert the encoder in the enclosure and secure it with the nut and washer. to them. Two of the pins need ground – solder a short wire between them as shown in the diagram. Connect the wires from the PCB to the encoder as shown in the diagram.</p></li>
+</ol>
+<img alt="_images/install_rotenc.png" src="_images/install_rotenc.png" />
+<ol class="arabic simple" start="3">
+<li><p>Next, install the DC jack. The nut for this component screws on from the inside of the enclosure, so you have to do it before you solder the wires on. The shorter lug connects to the center pin on your power supply, so if you are using a standard center-negative 9V effects pedal adapter you want to solder <code class="docutils literal notranslate"><span class="pre">DC-</span></code> to the short lug and <code class="docutils literal notranslate"><span class="pre">DC+</span></code> to the longer lug.</p></li>
+</ol>
+<img alt="_images/install_dcjack.png" src="_images/install_dcjack.png" />
+<ol class="arabic simple" start="4">
+<li><p>Screw the stompbutton into the enclosure, and solder the <code class="docutils literal notranslate"><span class="pre">SW</span></code> wires from the PCB to the stompbutton’s lugs – they can go either way. It can be helpful to bend the wire ends into hooks to get them to stay in the lugs while you solder.</p></li>
+</ol>
+<img alt="_images/install_button.png" src="_images/install_button.png" />
+<ol class="arabic simple" start="5">
+<li><p>Now wire up the audio jacks. Each jack has six pins, shown in the diagram below as they are laid out in the picture, which connect to the tip, ring, and sleeve of an audio jack. The “N” pins are normally connected, but when a plug is inserted the connections are broken, allowing audio to be routed depending on which jacks have plugs inserted. Apply some solder to the pins first. Use bits of wire or resistor legs to connect left <code class="docutils literal notranslate"><span class="pre">NT</span></code> to right <code class="docutils literal notranslate"><span class="pre">T</span></code>, left <code class="docutils literal notranslate"><span class="pre">R</span></code> to right <code class="docutils literal notranslate"><span class="pre">NT</span></code>, and left <code class="docutils literal notranslate"><span class="pre">S</span></code> to right <code class="docutils literal notranslate"><span class="pre">S</span></code> (as shown by the red lines in the diagram). Then connect the <code class="docutils literal notranslate"><span class="pre">R</span></code>, <code class="docutils literal notranslate"><span class="pre">g</span></code>, and <code class="docutils literal notranslate"><span class="pre">L</span></code> wires from the audio outputs on the PCB to the right jack’s <code class="docutils literal notranslate"><span class="pre">S</span></code> and <code class="docutils literal notranslate"><span class="pre">T</span></code> and the left jack’s <code class="docutils literal notranslate"><span class="pre">T</span></code>, respectively (shown by the blue lines in the diagram).</p></li>
+</ol>
+<img alt="_images/install_audiojacks.png" src="_images/install_audiojacks.png" />
+<p>At this point you have finished assembling your SquishBox. You will install the Raspberry Pi and set up software in the next sections.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">SquishBox</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Assembly</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#components">Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tools">Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#electronics">Electronics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hardware">Hardware</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html">Software</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">SquishBox Instructions</a></li>
+      <li>Next: <a href="installation.html" title="next chapter">Installation</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Bill Peterson.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/assembly.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
