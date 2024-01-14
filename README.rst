@@ -8,3 +8,5 @@ Software, design, and documentation files for the Squishbox, a Raspberry Pi soun
 or download the install script and run it with::
 
     bash squishbox-install.bash
+
+Full instructions for assembly and software installation are hosted at https://geekfunklabs.github.io/squishbox.
