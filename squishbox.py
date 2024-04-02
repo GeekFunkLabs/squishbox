@@ -852,7 +852,7 @@ class FluidBox:
                     elif k == 4:
                         if sfont := sb.choose_file(fp.sfdir, ext='.sf2'):
                             self.sfmode(sfont)                            
-                            sb.lcd_write("loading patches ", 1, mode='ljust', now=True)
+                            sb.lcd_write("loading bank ", 1, mode='ljust', now=True)
                             sb.progresswheel_start()
                             fp.load_bank()
                             sb.progresswheel_stop()
@@ -912,7 +912,7 @@ class FluidBox:
             bank = sb.choose_file(fp.bankdir, last, '.yaml')
             if bank == "": return False
         sb.lcd_write(bank.name, 0, mode='scroll', now=True)
-        sb.lcd_write("loading patches ", 1, mode='ljust', now=True)
+        sb.lcd_write("loading bank ", 1, mode='ljust', now=True)
         sb.progresswheel_start()
         try: fp.load_bank(bank)
         except Exception as e:
