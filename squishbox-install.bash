@@ -154,7 +154,7 @@ elif [[ $installtype == 2 ]]; then
     query "    MIDI channel for controls" "1"; ctrls_channel=$response
     query "    Previous patch momentary CC#" "21"; decpatch=$response
     query "    Next patch momentary CC#" "22"; incpatch=$response
-    query "    Patch select knob/slider CC#" "23"; bankinc=$response
+    query "    Patch select knob/slider CC#" "23"; selpatch=$response
 else
     exit 1
 fi
