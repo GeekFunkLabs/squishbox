@@ -736,7 +736,7 @@ class FluidBox:
         if val:
             self.buttonstate ^= 1
             fp.send_event(type='cc', chan=STOMP_CHAN, par1=STOMP_TOGGLE, par2=self.buttonstate)
-            sb.gpio_set(PIN_LED, self.buttonstate)
+            if PIN_LED: sb.gpio_set(PIN_LED, self.buttonstate)
 
     def listener(self, sig):
         """Handles MidiSignals from FluidPatcher
