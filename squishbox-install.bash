@@ -307,6 +307,10 @@ WantedBy=sysinit.target
 EOF
     sudo systemctl enable lcdsplash.service
 elif [[ $installtype == 2 ]]; then
+    sed -i "/^LCD_RS/cLCD_RS = 0; LCD_EN = 0; LCD_DATA = ()" $installdir/squishbox.py
+    sed -i "/^ROT_L/cROT_L = 0; ROT_R = 0; BTN_R = 0" $installdir/squishbox.py
+    sed -i "/^BTN_SW/cBTN_SW = 0; PIN_LED = 0" $installdir/squishbox.py
+    sed -i "/^PIN_OUT/cPIN_OUT = ()" $installdir/squishbox.py
     sed -i "/^MIDI_CTRL/cMIDI_CTRL = $ctrls_channel" $installdir/squishbox.py
     sed -i "/^MIDI_DEC/cMIDI_DEC = $decpatch" $installdir/squishbox.py
     sed -i "/^MIDI_INC/cMIDI_INC = $incpatch" $installdir/squishbox.py

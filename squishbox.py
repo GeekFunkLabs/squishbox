@@ -706,6 +706,7 @@ class SquishBox():
 
     @staticmethod
     def _lcd_send(val, reg=0):
+        if LCD_RS == 0: return
         GPIO.output(LCD_RS, reg)
         GPIO.output(LCD_EN, GPIO.LOW)
         for nib in (val >> 4, val):
