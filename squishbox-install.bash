@@ -322,7 +322,7 @@ if [[ $install_synth ]]; then
     inform "Installing/Updating supporting software..."
     sysupdate
     apt_pkg_install "python3-yaml"
-    apt_pkg_install "python3-rpi.gpio"
+    apt_pkg_install "python3-rpi.gpio" # figure out when to install python3-rpi-lgpio instead..
     apt_pkg_install "ladspa-sdk" optional
     apt_pkg_install "swh-plugins" optional
     apt_pkg_install "tap-plugins" optional
