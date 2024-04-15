@@ -172,7 +172,7 @@ class SquishBox():
         if event: return event
         for b in BTN_R, BTN_SW:
             if t - self.timer[b] > BOUNCE_TIME:
-                if GPIO.input(b) == ACTIVE:
+                if b and GPIO.input(b) == ACTIVE:
                     if self.state[b] == UP:
                         self.state[b] = DOWN
                         if b == BTN_SW and callback:
