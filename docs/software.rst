@@ -13,6 +13,7 @@ Log in, make sure your Pi is connected to the internet, and enter the following 
    curl -sL geekfunklabs.com/squishbox | bash
 
 This will download and run an install script that will query you for options, then do all the configuration and software installation automatically. The first time running the script you will see the message ::
+
    This script must reboot your computer to activate your sound card.
    Once this is complete, run this script again to continue setup.
    Reboot? ([y]/n)
