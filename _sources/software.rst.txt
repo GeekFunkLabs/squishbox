@@ -18,7 +18,7 @@ This will download and run an install script that will query you for options, th
    Once this is complete, run this script again to continue setup.
    Reboot? ([y]/n)
 
-Respond `y` to reboot, then enter the above command again. The script will now query you for install options. You can just press enter for each option to choose the defaults (enclosed in square brackets) to install everything, but here is an explanation of each of the options. ::
+Respond ``y`` to reboot, then enter the above command again. The script will now query you for install options. You can just press enter for each option to choose the defaults (enclosed in square brackets) to install everything, but here is an explanation of each of the options. ::
 
    What are you setting up?
    1. SquishBox
@@ -89,6 +89,7 @@ Some menus have specific interaction modes:
 * Some menus allow entering text character-by-character. The cursor appears as an underline for changing position and a blinking square for changing the current character. Holding the encoder switches between cursor modes. Holding the stompbutton exits editing, after which you will be asked to confirm or cancel your entry.
 
 Below is a list of the menu options, with short descriptions of what they do.
+
 * Load Bank – Load a bank file from the list of available banks. The current bank is displayed first. 
 * Save Bank – Save the current bank. Changing the name saves as a new bank. 
 * Save Patch – Saves the current state of the synthesizer (instrument settings, control change values) to the current patch. Modify the name to create a new patch. 

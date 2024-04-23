@@ -47,7 +47,7 @@ Once this is complete, run this script again to continue setup.
 Reboot? ([y]/n)
 </pre></div>
 </div>
-<p>Respond <cite>y</cite> to reboot, then enter the above command again. The script will now query you for install options. You can just press enter for each option to choose the defaults (enclosed in square brackets) to install everything, but here is an explanation of each of the options.</p>
+<p>Respond <code class="docutils literal notranslate"><span class="pre">y</span></code> to reboot, then enter the above command again. The script will now query you for install options. You can just press enter for each option to choose the defaults (enclosed in square brackets) to install everything, but here is an explanation of each of the options.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>What are you setting up?
 1. SquishBox
 2. Naked Raspberry Pi Synth
@@ -115,14 +115,15 @@ Some menus have specific interaction modes:</p>
 <li><p>Some menus allow changing a numerical setting. Rotating the encoder adjusts the value, and holding the encoder confirms it.</p></li>
 <li><p>Some menus allow entering text character-by-character. The cursor appears as an underline for changing position and a blinking square for changing the current character. Holding the encoder switches between cursor modes. Holding the stompbutton exits editing, after which you will be asked to confirm or cancel your entry.</p></li>
 </ul>
-<p>Below is a list of the menu options, with short descriptions of what they do.
-* Load Bank – Load a bank file from the list of available banks. The current bank is displayed first.
-* Save Bank – Save the current bank. Changing the name saves as a new bank.
-* Save Patch – Saves the current state of the synthesizer (instrument settings, control change values) to the current patch. Modify the name to create a new patch.
-* Delete Patch – Erases the current patch from the bank, after asking for confirmation.
-* Open Soundfont – Opens a single soundfont and switches to playing sounds from the soundfont’s presets instead of the patches in the current bank. Holding the encoder creates a new patch in the current bank that uses the selected preset on MIDI channel 1, after prompting you for a new for the new patch.
-* Effects.. – Opens a menu that allows you to modify the settings of the chorus and reverb effects units, and the gain (maximum output volume) of the SquishBox. Changes affect all patches in the bank – save the bank to make them permanent.
-* System Menu.. – Opens a menu with more system-related tasks:</p>
+<p>Below is a list of the menu options, with short descriptions of what they do.</p>
+<ul>
+<li><p>Load Bank – Load a bank file from the list of available banks. The current bank is displayed first.</p></li>
+<li><p>Save Bank – Save the current bank. Changing the name saves as a new bank.</p></li>
+<li><p>Save Patch – Saves the current state of the synthesizer (instrument settings, control change values) to the current patch. Modify the name to create a new patch.</p></li>
+<li><p>Delete Patch – Erases the current patch from the bank, after asking for confirmation.</p></li>
+<li><p>Open Soundfont – Opens a single soundfont and switches to playing sounds from the soundfont’s presets instead of the patches in the current bank. Holding the encoder creates a new patch in the current bank that uses the selected preset on MIDI channel 1, after prompting you for a new for the new patch.</p></li>
+<li><p>Effects.. – Opens a menu that allows you to modify the settings of the chorus and reverb effects units, and the gain (maximum output volume) of the SquishBox. Changes affect all patches in the bank – save the bank to make them permanent.</p></li>
+<li><p>System Menu.. – Opens a menu with more system-related tasks:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>Power Down – To protect the memory card of the SquishBox, this option should be used before unplugging. Allow 30 seconds for complete shutdown.</p></li>
@@ -131,6 +132,8 @@ Some menus have specific interaction modes:</p>
 <li><p>USB File Copy – Allows you to copy your banks, soundfonts, and config files back and forth between the SquishBox and a USB storage device. Files are copied to/from a SquishBox/ folder on the USB. The Sync with USB option will update the files to the newest available version on either device.</p></li>
 </ul>
 </div></blockquote>
+</li>
+</ul>
 <p>The SquishBox software and soundfonts collection include several banks with useful patches, and a large selection of soundfonts. However, a powerful feature of the SquishBox is the ability to configure it the way you need and create and your own patches. For information on how to edit the config and bank files for your squishbox refer to the README at:</p>
 <p>github.com/GeekFunkLabs/fluidpatcher/blob/master/patcher/file_formats.md</p>
 <p>There you can also find a link to a series of lesson videos on editing and creating patches, uploading new sounds, and configuring your SquishBox.</p>
