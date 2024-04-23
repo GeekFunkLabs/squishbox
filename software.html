@@ -9,7 +9,7 @@
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
     <script src="_static/documentation_options.js?v=049aceee"></script>
-    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -36,19 +36,21 @@
 <p>The FluidPatcher software for the SquishBox turns it into a customizable MIDI sound module. The software is installed on Raspberry Pi OS by running a script from the command line. This downloads the code that runs the synth and a few other software dependencies, and sets up the interface to run on startup. These changes aren’t drastic – you don’t have to sacrifice your Raspberry Pi computer or buy a new one to use exclusively with the SquishBox! You can install the software on a working OS without wiping anything, and you can easily pop the Pi out of the enclosure and use it for something else as you need. You can view the source code for FluidPatcher at <a class="reference external" href="https://github.com/GeekFunkLabs/fluidpatcher">https://github.com/GeekFunkLabs/fluidpatcher</a> and learn how it works if that interests you.</p>
 <section id="setup">
 <h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h2>
-<p>If you’re using a brand new Raspberry Pi or just want to start fresh you can get OS images and instructions on installing at <a class="reference external" href="https://raspberrypi.org/software">https://raspberrypi.org/software</a>, and information on how to set up your Pi at <a class="reference external" href="https://raspberrypi.org/documentation">https://raspberrypi.org/documentation</a>.
-Before running the install script, edit the <code class="docutils literal notranslate"><span class="pre">/boot/config.txt</span></code> file on your Raspberry Pi, add the line below at the end to enable the sound card, and reboot the Pi.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dtoverlay</span><span class="o">=</span><span class="n">hifiberry</span><span class="o">-</span><span class="n">dac</span>
-</pre></div>
-</div>
+<p>If you’re using a brand new Raspberry Pi or just want to start fresh you can get OS images and instructions on installing at <a class="reference external" href="https://raspberrypi.org/software">https://raspberrypi.org/software</a>, and information on how to set up your Pi at <a class="reference external" href="https://raspberrypi.org/documentation">https://raspberrypi.org/documentation</a>.</p>
 <p>Log in, make sure your Pi is connected to the internet, and enter the following command:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">L</span> <span class="n">git</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">squishbox</span> <span class="o">|</span> <span class="n">bash</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">sL</span> <span class="n">geekfunklabs</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">squishbox</span> <span class="o">|</span> <span class="n">bash</span>
 </pre></div>
 </div>
-<p>This will download and run an install script that will query you for options, then do all the configuration and software installation automatically. You can just press enter for each option to choose the defaults (enclosed in square brackets) to install everything, but here is an explanation of each of the options.</p>
+<p>This will download and run an install script that will query you for options, then do all the configuration and software installation automatically. The first time running the script you will see the message</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>This script must reboot your computer to activate your sound card.
+Once this is complete, run this script again to continue setup.
+Reboot? ([y]/n)
+</pre></div>
+</div>
+<p>Respond <cite>y</cite> to reboot, then enter the above command again. The script will now query you for install options. You can just press enter for each option to choose the defaults (enclosed in square brackets) to install everything, but here is an explanation of each of the options.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>What are you setting up?
 1. SquishBox
-2. Headless Raspberry Pi Synth
+2. Naked Raspberry Pi Synth
 </pre></div>
 </div>
 <p>This software can be installed on a bare Raspberry Pi without the SquishBox add-ons, but you should choose option 1 here. The script may need to reboot your Pi in order to set up the sound card, after which you should run the script again to continue.</p>
@@ -64,14 +66,6 @@ v2 - Hackaday/perfboard build
 </pre></div>
 </div>
 <p>The code installs in your home directory by default, but can be installed in any location where you have write privileges.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Install/update synthesizer software? ([y]/n)
-</pre></div>
-</div>
-<p>This installs the base code that runs the SquishBox. You can also use this script to reconfigure some of the later optional extras, so if you want to do that without changing your code, reply no here.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Update/upgrade your operating system? ([y]/n)
-</pre></div>
-</div>
-<p>Any time you install new software on the Raspberry Pi, it’s a good idea to make sure your other software is all up to date, so you should probably say yes here.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Which audio output would you like to use?
 0. No change
 1. Default
@@ -82,6 +76,10 @@ Choose [3]
 </pre></div>
 </div>
 <p>Choose sndrpihifiberry from the list.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Install/update synthesizer software? ([y]/n)
+</pre></div>
+</div>
+<p>This installs the base code that runs the SquishBox. You can also use this script to reconfigure some of the later optional extras, so if you want to do that without changing your code, reply no here.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Set up web-based file manager? ([y]/n)
 Please create a user name and password.
 username:
@@ -89,15 +87,22 @@ password:
 </pre></div>
 </div>
 <p>When the SquishBox is connected to a network, its web interface provides a convenient way of editing your patches, banks, and config files, as well as uploading soundfonts. Choose a good password to protect your SquishBox settings from other users on the same network. To log in to the file manager, connect a computer/tablet/phone to the same network as the SquishBox and point a web browser to the IP address of the SquishBox (see “WIFI Settings” below).</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Download and install ~400MB of additional soundfonts? ([y]/n)
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Download and install ~400MB of additional soundfonts? (y/[n])
 </pre></div>
 </div>
-<p>This downloads a collection of free but nice-sounding soundfonts that work in a variety of playing situations, plus an additional bank that uses them.</p>
+<p>Responding <cite>y</cite> downloads a collection of extra soundfonts in addition to the general MIDI soundfont that is downloaded by default.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Update/upgrade your operating system? ([y]/n)
+</pre></div>
+</div>
+<p>Any time you install new software on the Raspberry Pi, it’s a good idea to make sure your other software is all up to date, so you should probably say yes here.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Option selection complete. Proceed with installation? ([y]/n)
-This may take some time ... go make some coffee.
 </pre></div>
 </div>
-<p>The terminal will start producing a bunch of output as it installs and configures the necessary software. If something does go wrong, this output can often be helpful in identifying the problem when seeking support, which can be found at geekfunklabs.com/support. Once finished, the software will ask if you would like to reboot. If you haven’t installed the Pi in the SquishBox yet, you can reply no and then enter sudo poweroff to safely shut down.</p>
+<p>The terminal will start producing a bunch of output as it installs and configures the necessary software.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">This</span> <span class="n">may</span> <span class="n">take</span> <span class="n">some</span> <span class="n">time</span> <span class="o">...</span> <span class="n">go</span> <span class="n">make</span> <span class="n">some</span> <span class="n">coffee</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>If something does go wrong, this output can often be helpful in identifying the problem when seeking support, which can be found at geekfunklabs.com/support. Once finished, the software will ask if you would like to reboot. If you haven’t installed the Pi in the SquishBox yet, you can reply no and then enter sudo poweroff to safely shut down.</p>
 <p>If you want to use the Pi for something else, you can enter sudo systemctl disable squishbox at the command line to stop the synth from running on startup. If needed later, you can enter sudo systemctl enable squishbox to get it back again.</p>
 </section>
 <section id="usage">
@@ -173,7 +178,7 @@ Some menus have specific interaction modes:</p>
   </ul></li>
 </ul>
 </div>
-<div id="searchbox" style="display: none" role="search">
+<search id="searchbox" style="display: none" role="search">
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
@@ -181,7 +186,7 @@ Some menus have specific interaction modes:</p>
       <input type="submit" value="Go" />
     </form>
     </div>
-</div>
+</search>
 <script>document.getElementById('searchbox').style.display = "block"</script>
 
 
@@ -199,7 +204,7 @@ Some menus have specific interaction modes:</p>
       &#169;2024, Bill Peterson.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
       |

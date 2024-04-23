@@ -7,19 +7,22 @@ Setup
 ------------
 
 If you’re using a brand new Raspberry Pi or just want to start fresh you can get OS images and instructions on installing at https://raspberrypi.org/software, and information on how to set up your Pi at https://raspberrypi.org/documentation.
-Before running the install script, edit the ``/boot/config.txt`` file on your Raspberry Pi, add the line below at the end to enable the sound card, and reboot the Pi. ::
-
-   dtoverlay=hifiberry-dac
 
 Log in, make sure your Pi is connected to the internet, and enter the following command::
 
-   curl -L git.io/squishbox | bash
+   curl -sL geekfunklabs.com/squishbox | bash
 
-This will download and run an install script that will query you for options, then do all the configuration and software installation automatically. You can just press enter for each option to choose the defaults (enclosed in square brackets) to install everything, but here is an explanation of each of the options. ::
+This will download and run an install script that will query you for options, then do all the configuration and software installation automatically. The first time running the script you will see the message ::
+
+   This script must reboot your computer to activate your sound card.
+   Once this is complete, run this script again to continue setup.
+   Reboot? ([y]/n)
+
+Respond `y` to reboot, then enter the above command again. The script will now query you for install options. You can just press enter for each option to choose the defaults (enclosed in square brackets) to install everything, but here is an explanation of each of the options. ::
 
    What are you setting up?
    1. SquishBox
-   2. Headless Raspberry Pi Synth
+   2. Naked Raspberry Pi Synth
 
 This software can be installed on a bare Raspberry Pi without the SquishBox add-ons, but you should choose option 1 here. The script may need to reboot your Pi in order to set up the sound card, after which you should run the script again to continue. ::
 
@@ -35,14 +38,6 @@ Different versions of the PCB have slightly different wiring. The PCB used in th
 
 The code installs in your home directory by default, but can be installed in any location where you have write privileges. ::
 
-   Install/update synthesizer software? ([y]/n)
-
-This installs the base code that runs the SquishBox. You can also use this script to reconfigure some of the later optional extras, so if you want to do that without changing your code, reply no here. ::
-
-   Update/upgrade your operating system? ([y]/n)
-
-Any time you install new software on the Raspberry Pi, it’s a good idea to make sure your other software is all up to date, so you should probably say yes here. ::
-
    Which audio output would you like to use?
    0. No change
    1. Default
@@ -53,6 +48,10 @@ Any time you install new software on the Raspberry Pi, it’s a good idea to mak
    
 Choose sndrpihifiberry from the list. ::
 
+   Install/update synthesizer software? ([y]/n)
+
+This installs the base code that runs the SquishBox. You can also use this script to reconfigure some of the later optional extras, so if you want to do that without changing your code, reply no here. ::
+
    Set up web-based file manager? ([y]/n)
    Please create a user name and password.
    username:
@@ -60,14 +59,21 @@ Choose sndrpihifiberry from the list. ::
 
 When the SquishBox is connected to a network, its web interface provides a convenient way of editing your patches, banks, and config files, as well as uploading soundfonts. Choose a good password to protect your SquishBox settings from other users on the same network. To log in to the file manager, connect a computer/tablet/phone to the same network as the SquishBox and point a web browser to the IP address of the SquishBox (see “WIFI Settings” below). ::
 
-   Download and install ~400MB of additional soundfonts? ([y]/n)
+   Download and install ~400MB of additional soundfonts? (y/[n])
 
-This downloads a collection of free but nice-sounding soundfonts that work in a variety of playing situations, plus an additional bank that uses them. ::
+Responding `y` downloads a collection of extra soundfonts in addition to the general MIDI soundfont that is downloaded by default. ::
+
+   Update/upgrade your operating system? ([y]/n)
+
+Any time you install new software on the Raspberry Pi, it’s a good idea to make sure your other software is all up to date, so you should probably say yes here. ::
 
    Option selection complete. Proceed with installation? ([y]/n)
+
+The terminal will start producing a bunch of output as it installs and configures the necessary software. ::
+
    This may take some time ... go make some coffee.
 
-The terminal will start producing a bunch of output as it installs and configures the necessary software. If something does go wrong, this output can often be helpful in identifying the problem when seeking support, which can be found at geekfunklabs.com/support. Once finished, the software will ask if you would like to reboot. If you haven’t installed the Pi in the SquishBox yet, you can reply no and then enter sudo poweroff to safely shut down.
+If something does go wrong, this output can often be helpful in identifying the problem when seeking support, which can be found at geekfunklabs.com/support. Once finished, the software will ask if you would like to reboot. If you haven’t installed the Pi in the SquishBox yet, you can reply no and then enter sudo poweroff to safely shut down.
 
 If you want to use the Pi for something else, you can enter sudo systemctl disable squishbox at the command line to stop the synth from running on startup. If needed later, you can enter sudo systemctl enable squishbox to get it back again.
 
