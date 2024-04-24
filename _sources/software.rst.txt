@@ -112,4 +112,7 @@ There you can also find a link to a series of lesson videos on editing and creat
 API Reference
 -------------
 
-stuff and things
+.. autosummary::
+   :toctree: generated
+   
+   squishbox
