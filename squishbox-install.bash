@@ -260,8 +260,8 @@ if [[ $installtype == 1 ]]; then
     sed -i "/^ROT_L/c$pins2" $installdir/squishbox.py
     sed -i "/^BTN_SW/c$pins3" $installdir/squishbox.py
     sb_version=`sed -n '/^__version__/s|[^0-9\.]*||gp' $installdir/squishbox.py`
-	ver_info="$hw_version/$sb_version"
-	ver_pad=`printf "%-11s" ${ver_info::11}`
+    ver_info="$hw_version/$sb_version"
+    ver_pad=`printf "%-11s" ${ver_info::11}`
     cat <<EOF | sudo tee /usr/local/bin/lcdsplash
 #!/usr/bin/env python
 import time, RPi.GPIO as GPIO
@@ -322,7 +322,12 @@ if [[ $install_synth ]]; then
     inform "Installing/Updating supporting software..."
     sysupdate
     apt_pkg_install "python3-yaml"
-    apt_pkg_install "python3-rpi.gpio"
+    apt_pkg_install "python3-rpi.gpio" # figure out when to install python3-rpi-lgpio instead..
+    if apt-cache search python3-rpi-lgpio &> /dev/null; then
+        apt_pkg_install "python3-rpi-lgpio" # needed for gpiochip kernels
+    else
+        apt_pkg_install "python3-rpi.gpio"
+    fi
     apt_pkg_install "ladspa-sdk" optional
     apt_pkg_install "swh-plugins" optional
     apt_pkg_install "tap-plugins" optional
@@ -332,8 +337,8 @@ if [[ $install_synth ]]; then
     inform "Installing/Updating FluidPatcher ..."
     wget -qO - https://github.com/GeekFunkLabs/fluidpatcher/tarball/master | tar -xzm
     fptemp=`ls -dt GeekFunkLabs-fluidpatcher-* | head -n1`
-	cp -rf $fptemp/fluidpatcher .
-	cp -rn $fptemp/scripts/config SquishBox
+    cp -rf $fptemp/fluidpatcher .
+    cp -rn $fptemp/scripts/config SquishBox
     sudo gcc -shared $fptemp/src/patchcord.c -o /usr/lib/ladspa/patchcord.so
     cd SquishBox/sf2
     if ! test -e $sf2dir/FluidR3_GM_GS.sf2; then
