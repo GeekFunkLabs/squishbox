@@ -107,7 +107,7 @@ password:
 </section>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
-<p>When you plug in the SquishBox, the Pi will boot and start the synthesizer software. The FluidPatcher version is displayed while the last-used bank loads. The current patch name, number, and total patches available are displayed on the LCD. Rotating the encoder cycles through patches. The encoder can also be tapped to advance to the next patch. The stompbutton sends MIDI messages that can be routed in banks or patches to act as a pedal, effects control, or perform other actions. The messages sent are control change 30 with a value of 127 and 0 on press and release, and control change 31 toggling between 0 and 127 with each press.
+<p>When you plug in the SquishBox, the Pi will boot and start the synthesizer software. A splash screen will appear briefly with the squishbox software and hardware (PCB) versions. The current patch name, number, and total patches available are displayed on the LCD. Rotating the encoder cycles through patches. The encoder can also be tapped to advance to the next patch. The stompbutton sends MIDI messages that can be routed in banks or patches to act as a pedal, effects control, or perform other actions. The messages sent are control change 30 with a value of 127 and 0 on press and release, and control change 31 toggling between 0 and 127 with each press.
 Holding down the rotary encoder for one second opens the menu. In menus the stompbutton does not send MIDI messages. Instead, rotating the encoder scrolls through options, or tapping the encoder advances to the next option and tapping the stompbutton goes back. This makes it easier to use the SquishBox with feet if it’s placed on the floor. Holding the encoder for one second selects options, and holding the stompbutton for one second cancels or exits. Most menus will time out after a few seconds with no input.
 Some menus have specific interaction modes:</p>
 <ul class="simple">
@@ -138,10 +138,337 @@ Some menus have specific interaction modes:</p>
 </section>
 <section id="api-reference">
 <h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h2>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-</tbody>
-</table>
+<p>The code in squishbox.py can be modified or imported to create other applications for the SquishBox. All the functionality is contained in the <code class="docutils literal notranslate"><span class="pre">SquishBox</span></code> class.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="squishbox.SquishBox">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">squishbox.</span></span><span class="sig-name descname"><span class="pre">SquishBox</span></span><a class="headerlink" href="#squishbox.SquishBox" title="Link to this definition">¶</a></dt>
+<dd><p>An interface for RPi using character LCD and buttons</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="squishbox.SquishBox.buttoncallback">
+<span class="sig-name descname"><span class="pre">buttoncallback</span></span><a class="headerlink" href="#squishbox.SquishBox.buttoncallback" title="Link to this definition">¶</a></dt>
+<dd><p>When the state of a button connected to BTN_SW
+changes, this function is called with 1 if the button was
+pressed, 0 if it was released.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="squishbox.SquishBox.wifistatus">
+<span class="sig-name descname"><span class="pre">wifistatus</span></span><a class="headerlink" href="#squishbox.SquishBox.wifistatus" title="Link to this definition">¶</a></dt>
+<dd><p>contains either the WIFIUP or WIFIDOWN character
+depending on the last-known status of the wifi adapter</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.__init__" title="Link to this definition">¶</a></dt>
+<dd><p>Initializes the LCD and GPIO</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.char_input">
+<span class="sig-name descname"><span class="pre">char_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'</span> <span class="pre">'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'</span> <span class="pre">abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_./\x00'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.char_input" title="Link to this definition">¶</a></dt>
+<dd><p>Allows user to enter text with a rotary encoder and button</p>
+<p>There are two cursor modes, which are toggled using SELECT. The
+blinking square allows the current character to be changed using
+DEC/INC. The underline cursor changes position with DEC/INC. ESCAPE
+ends edit mode, and allows the user to confirm or cancel the input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – the initial text to be edited</p></li>
+<li><p><strong>row</strong> – the row in which to show the input</p></li>
+<li><p><strong>i</strong> – initial cursor position, from end if negative</p></li>
+<li><p><strong>timeout</strong> – seconds to wait before canceling, forever if -1</p></li>
+<li><p><strong>charset</strong> – the set of allowed characters</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns: the edited string, or empty string if canceled</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.choose_file">
+<span class="sig-name descname"><span class="pre">choose_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.choose_file" title="Link to this definition">¶</a></dt>
+<dd><p>Lets user browse and select a file on the system</p>
+<p>Finds files of a specified type on the file system and lets the
+user choose one using choose_opt(). Timeout is disabled and
+filenames can scroll. Can move up and down through the
+directory tree up to a specified limit. First two arguments must
+be pathlib.Path objects. Shows the current file on the bottom
+row and the current directory on the row above it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topdir</strong> – Path of the highest-level directory the user may see</p></li>
+<li><p><strong>last</strong> – Path of the file to show as the initial choice</p></li>
+<li><p><strong>ext</strong> – the file extensions to show, if None shows all files</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns: Path of the chosen file or empty string if canceled</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.choose_opt">
+<span class="sig-name descname"><span class="pre">choose_opt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'rjust'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.choose_opt" title="Link to this definition">¶</a></dt>
+<dd><p>Lets the user choose an option from a list</p>
+<p>Displays options from a list of choices. User can scroll through
+options with DEC/INC, choose with SELECT, or cancel with ESCAPE
+or timeout. Menu options can scroll.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – list of strings to display as the choices</p></li>
+<li><p><strong>row</strong> – the row on which to show the choices</p></li>
+<li><p><strong>i</strong> – index of the choice to display first</p></li>
+<li><p><strong>mode</strong> – ‘rjust’ by default - see lcd_write()</p></li>
+<li><p><strong>timeout</strong> – seconds to wait, if -1 wait forever</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns: index of option chosen, or -1 if canceled</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.choose_val">
+<span class="sig-name descname"><span class="pre">choose_val</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'&gt;16'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.choose_val" title="Link to this definition">¶</a></dt>
+<dd><p>Lets the user modify a numeric parameter</p>
+<p>Displays a number on the bottom row of the LCD and allows the user to
+scroll its value over a range by specified increment using DEC/INC.
+A function can be called with the current value after each increment
+to demonstrate the result. User can set value with SELECT, or
+cancel with ESCAPE or timeout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>val</strong> – the starting value</p></li>
+<li><p><strong>minval</strong> – the lower limit of the value</p></li>
+<li><p><strong>maxval</strong> – the upper limit of the value</p></li>
+<li><p><strong>inc</strong> – the step size to change when incrementing/decrementing the value</p></li>
+<li><p><strong>fmt</strong> – a format specifier for printing the value nicely</p></li>
+<li><p><strong>timeout</strong> – seconds to wait, if -1 forever</p></li>
+<li><p><strong>func</strong> – a function to call with the value every time it changes</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns: selected value, or None if time expired or ESCAPE</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.confirm_choice">
+<span class="sig-name descname"><span class="pre">confirm_choice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.confirm_choice" title="Link to this definition">¶</a></dt>
+<dd><p>Offers a yes/no choice</p>
+<p>Displays some text and lets the user toggle between a check mark
+and an X with DEC/INC and choose with SELECT.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – string to write</p></li>
+<li><p><strong>row</strong> – the row to display the choice</p></li>
+<li><p><strong>timeout</strong> – seconds to wait, if -1 wait forever</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns: 1 if check is selected, 0 if time expires or ESCAPE</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.display_error">
+<span class="sig-name descname"><span class="pre">display_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">etype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.display_error" title="Link to this definition">¶</a></dt>
+<dd><p>Displays Exception text on the LCD</p>
+<p>Reformats the text of an Exception so it can be displayed on one
+line and scrolls it across the bottom row of the LCD, and also prints
+information to stdout. Waits for the user to press a button, then
+returns if possible.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>err</strong> – the Exception</p></li>
+<li><p><strong>msg</strong> – an optional error message</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.gpio_set">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">gpio_set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.gpio_set" title="Link to this definition">¶</a></dt>
+<dd><p>Sets the state of a GPIO</p>
+<p>Sets a GPIO high or low, as long as it isn’t being used by something
+else. PIN_OUT can be modified to add outputs, as long as they don’t
+conflict with those defined above for the LCD, buttons, and GPIOs
+18, 19, and 21 (which are used by the DAC).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pin</strong> – pin number (BCM numbering)</p></li>
+<li><p><strong>state</strong> – True for high, False for low</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.lcd_blink">
+<span class="sig-name descname"><span class="pre">lcd_blink</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.lcd_blink" title="Link to this definition">¶</a></dt>
+<dd><p>Blink a character/message on the LCD</p>
+<p>Write text on the LCD that disappears after a delay. Text
+written by lcd_write() will reappear. Calling this with
+an empty string removes any current blinks. If a blink
+is already in progress when this is called, the new one
+is ignored.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – string to write, ‘’ to clear blinks</p></li>
+<li><p><strong>row</strong> – the row at which to place text</p></li>
+<li><p><strong>col</strong> – the column at which to place text</p></li>
+<li><p><strong>mode</strong> – if ‘ljust’ or ‘rjust’ pad with spaces,
+otherwise place text starting at row, col</p></li>
+<li><p><strong>delay</strong> – time to wait before removing text</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.lcd_clear">
+<span class="sig-name descname"><span class="pre">lcd_clear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.lcd_clear" title="Link to this definition">¶</a></dt>
+<dd><p>Clear the LCD</p>
+<p>Sends a clear command to the LCD and clears the
+text and blink buffers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>now</strong> – if False just clear buffers to reduce flickering,
+but requires an update to take effect</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.lcd_write">
+<span class="sig-name descname"><span class="pre">lcd_write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.lcd_write" title="Link to this definition">¶</a></dt>
+<dd><p>Writes text to the LCD</p>
+<p>Writes text to the LCD starting at row, col. Characters are
+stored in a buffer until the user calls update(). Can be
+called with now=True if the LCD needs to be updated now,
+usually because another process would delay updates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – string to write</p></li>
+<li><p><strong>row</strong> – the row at which to start writing</p></li>
+<li><p><strong>col</strong> – the column at which to start writing</p></li>
+<li><p><strong>mode</strong> – if ‘ljust’ or ‘rjust’ pad with spaces, ‘scroll’ scrolls
+text to the right if it is long enough, otherwise place text
+starting at row, col</p></li>
+<li><p><strong>now</strong> – if True update LCD now</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.progresswheel_start">
+<span class="sig-name descname"><span class="pre">progresswheel_start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.progresswheel_start" title="Link to this definition">¶</a></dt>
+<dd><p>Shows an animation while another process runs</p>
+<p>Displays a spinning character in the lower right corner of the
+LCD that runs in a thread after this function returns, to give
+the user some feedback while a long-running process completes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.progresswheel_stop">
+<span class="sig-name descname"><span class="pre">progresswheel_stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.progresswheel_stop" title="Link to this definition">¶</a></dt>
+<dd><p>Removes the spinning character</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.shell_cmd">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shell_cmd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.shell_cmd" title="Link to this definition">¶</a></dt>
+<dd><p>Executes a shell command and returns the output</p>
+<p>Uses subprocess.run to execute a shell command and returns the output
+as ascii with trailing newlines removed. Blocks until shell command
+has returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – text of the command line to execute</p></li>
+<li><p><strong>kwargs</strong> – additional keyword arguments passed to subprocess.run</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns: the stripped ascii STDOUT of the command</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.update" title="Link to this definition">¶</a></dt>
+<dd><p>Polls buttons and updates LCD</p>
+<p>Call in the main loop of a program to poll the buttons and rotary
+encoder, and update the LCD if necessary. Sleeps for a small amount
+of time before returning so other processes can run.
+Returns an event code based on the state of the buttons. If
+buttoncallback is set and callback=True, the stompswitch calls
+that function instead of sending an event.</p>
+<ul class="simple">
+<li><p>NULL (0) - no event</p></li>
+<li><p>DEC (1) - encoder step counter-clockwise or stompswitch tap</p></li>
+<li><p>INC (2) - encoder step clockwise or encoder button tap</p></li>
+<li><p>SELECT (3) - encoder button held for HOLD_TIME seconds</p></li>
+<li><p>ESCAPE (4) - stompswitch held for HOLD_TIME seconds</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idle</strong> – number of seconds to sleep before returning</p></li>
+<li><p><strong>callback</strong> – if False ignores buttoncallback</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns: an integer event code</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.waitfortap">
+<span class="sig-name descname"><span class="pre">waitfortap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.waitfortap" title="Link to this definition">¶</a></dt>
+<dd><p>Waits until a button is pressed or some time has passed</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>t</strong> – seconds to wait, if 0 wait forever</p>
+</dd>
+</dl>
+<p>Returns: True if button was pressed, False if time expired</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.wifi_settings">
+<span class="sig-name descname"><span class="pre">wifi_settings</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.wifi_settings" title="Link to this definition">¶</a></dt>
+<dd><p>Displays a wifi settings menu</p>
+<p>Shows the connection status and current IP address(es) of the Pi
+and a list of any available wifi networks. Allows the user to
+enable/disable wifi and enter passkeys for visible networks
+in order to connect.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.SquishBox.wifi_state">
+<span class="sig-name descname"><span class="pre">wifi_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#squishbox.SquishBox.wifi_state" title="Link to this definition">¶</a></dt>
+<dd><p>Checks or sets the state of the wifi adapter</p>
+<p>Turns the wifi adapter on or off, or simply returns its current
+state. Does not determine whether it has connected to a network,
+only that it is enabled or disabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>setstate</strong> – ‘on’ or ‘off’ to set the state, empty string just
+checks the current state</p>
+</dd>
+</dl>
+<p>Returns: ‘on’ or ‘off’</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 

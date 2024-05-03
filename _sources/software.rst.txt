@@ -80,7 +80,7 @@ If you want to use the Pi for something else, you can enter sudo systemctl disab
 Usage
 -----
 
-When you plug in the SquishBox, the Pi will boot and start the synthesizer software. The FluidPatcher version is displayed while the last-used bank loads. The current patch name, number, and total patches available are displayed on the LCD. Rotating the encoder cycles through patches. The encoder can also be tapped to advance to the next patch. The stompbutton sends MIDI messages that can be routed in banks or patches to act as a pedal, effects control, or perform other actions. The messages sent are control change 30 with a value of 127 and 0 on press and release, and control change 31 toggling between 0 and 127 with each press.
+When you plug in the SquishBox, the Pi will boot and start the synthesizer software. A splash screen will appear briefly with the squishbox software and hardware (PCB) versions. The current patch name, number, and total patches available are displayed on the LCD. Rotating the encoder cycles through patches. The encoder can also be tapped to advance to the next patch. The stompbutton sends MIDI messages that can be routed in banks or patches to act as a pedal, effects control, or perform other actions. The messages sent are control change 30 with a value of 127 and 0 on press and release, and control change 31 toggling between 0 and 127 with each press.
 Holding down the rotary encoder for one second opens the menu. In menus the stompbutton does not send MIDI messages. Instead, rotating the encoder scrolls through options, or tapping the encoder advances to the next option and tapping the stompbutton goes back. This makes it easier to use the SquishBox with feet if it’s placed on the floor. Holding the encoder for one second selects options, and holding the stompbutton for one second cancels or exits. Most menus will time out after a few seconds with no input.
 Some menus have specific interaction modes:
 
@@ -112,7 +112,8 @@ There you can also find a link to a series of lesson videos on editing and creat
 API Reference
 -------------
 
-.. autosummary::
-   :toctree: generated
-   
-   squishbox
+The code in squishbox.py can be modified or imported to create other applications for the SquishBox. All the functionality is contained in the ``SquishBox`` class.
+
+.. autoclass:: squishbox.SquishBox
+   :members:
+   :special-members: __init__
