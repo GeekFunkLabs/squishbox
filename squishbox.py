@@ -80,18 +80,18 @@ NULL = 0; DEC = 1; INC = 2; SELECT = 3; ESCAPE = 4
 
 
 class SquishBox():
-    """An interface for RPi using character LCD and buttons"""
+    """An interface for RPi using character LCD and buttons
+
+    Attributes:
+      buttoncallback: When the state of a button connected to BTN_SW
+        changes, this function is called with 1 if the button was
+        pressed, 0 if it was released.
+      wifistatus: contains either the WIFIUP or WIFIDOWN character
+        depending on the last-known status of the wifi adapter
+    """
 
     def __init__(self):
-        """Initializes the LCD and GPIO
-        
-        Attributes:
-          buttoncallback: When the state of a button connected to BTN_SW
-            changes, this function is called with 1 if the button was
-            pressed, 0 if it was released.
-          wifistatus: contains either the WIFIUP or WIFIDOWN character
-            depending on the last-known status of the wifi adapter
-        """
+        """Initializes the LCD and GPIO"""
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         for chan in (ROT_R, ROT_L, BTN_R, BTN_SW):
