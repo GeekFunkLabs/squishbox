@@ -159,14 +159,14 @@ else
     exit 1
 fi
 
-query "Enter install location" $HOME; installdir=$response
-if ! [[ -d $installdir ]]; then
+while ! [[ -d $installdir ]]; do
+	query "Enter install location" $HOME; installdir=$response
     if noyes "'$installdir' does not exist. Create it and proceed?"; then
         exit 1
     else
         mkdir -p $installdir
     fi
-fi
+done
 
 defcard=0
 echo "Select your audio output device:"
@@ -439,9 +439,10 @@ EOF
     sudo sed -i "/^http {/aclient_max_body_size 900M;" /etc/nginx/nginx.conf
     sudo sed -i "/upload_max_filesize/cupload_max_filesize = 900M" /etc/php/$phpver/fpm/php.ini
     sudo sed -i "/post_max_size/cpost_max_size = 999M" /etc/php/$phpver/fpm/php.ini
-    # set permissions and umask to avoid permissions problems
+    # set permissions to allow tinyfilemanager to access SquishBox/
     sudo usermod -a -G $USER www-data
-    sudo chmod -R g+rw $installdir/SquishBox
+    sudo chmod -R g+rwX $installdir/SquishBox
+    d=$installdir; while [ "$d" != "" ]; do chown $USER $d; do chmod g+x $d; d=${d%/*}; done
     sudo sed -i "/UMask/d" /lib/systemd/system/php$phpver-fpm.service
     sudo sed -i "/\[Service\]/aUMask=0002" /lib/systemd/system/php$phpver-fpm.service
     # install and configure tinyfilemanager (https://tinyfilemanager.github.io)
