@@ -231,6 +231,8 @@ ExecStart=$installdir/squishbox.py
 User=$USER
 WorkingDirectory=$installdir
 Restart=on-failure
+LimitMEMLOCK=infinity
+LimitRTPRIO=90
 
 [Install]
 WantedBy=multi-user.target
