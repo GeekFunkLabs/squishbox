@@ -442,7 +442,7 @@ EOF
     # set permissions to allow tinyfilemanager to access SquishBox/
     sudo usermod -a -G $USER www-data
     sudo chmod -R g+rwX $installdir/SquishBox
-    d=$installdir; while [ "$d" != "" ]; do chown $USER $d; do chmod g+x $d; d=${d%/*}; done
+    d=$installdir; while [ "$d" != "" ]; do chown -f $USER $d; chmod -f g+x $d; d=${d%/*}; done
     sudo sed -i "/UMask/d" /lib/systemd/system/php$phpver-fpm.service
     sudo sed -i "/\[Service\]/aUMask=0002" /lib/systemd/system/php$phpver-fpm.service
     # install and configure tinyfilemanager (https://tinyfilemanager.github.io)
