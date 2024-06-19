@@ -128,7 +128,7 @@ echo "What are you setting up?"
 echo "  1. SquishBox"
 echo "  2. Naked Raspberry Pi Synth"
 query "Choose" "1"; installtype=$response
-AUDIOCARDS=(`cat /proc/asound/cards | sed -n 's/.*\[//;s/ *\].*//p'`)
+AUDIOCARDS=$(cat /proc/asound/cards | sed -n 's/.*\[//;s/ *\].*//p')
 if [[ $installtype == 1 ]]; then
     if [[ ! " ${AUDIOCARDS[*]} " =~ " sndrpihifiberry " ]]; then
         inform "This script must reboot your computer to activate your sound card."
@@ -159,14 +159,10 @@ else
     exit 1
 fi
 
-while ! [[ -d $installdir ]]; do
-	query "Enter install location" $HOME; installdir=$response
-    if noyes "'$installdir' does not exist. Create it and proceed?"; then
-        exit 1
-    else
-        mkdir -p $installdir
-    fi
-done
+query "Enter install location" $HOME; installdir=$response
+if ! [[ -d $installdir ]]; then
+    mkdir -p $installdir
+fi
 
 defcard=0
 echo "Select your audio output device:"
@@ -213,7 +209,7 @@ warning "\nThis may take some time ... go make some coffee.\n"
 
 umask 002 # friendly file permissions for web file manager
 sudo sed -i "/^#deb-src/s|#||" /etc/apt/sources.list # allow apt-get build-dep
-startdir=`pwd`
+startdir=$(pwd)
 cd $installdir
 wget -q https://raw.githubusercontent.com/GeekFunkLabs/squishbox/master/squishbox.py
 chmod a+x squishbox.py
@@ -261,9 +257,9 @@ if [[ $installtype == 1 ]]; then
     sed -i "/^LCD_RS/c$pins1" $installdir/squishbox.py
     sed -i "/^ROT_L/c$pins2" $installdir/squishbox.py
     sed -i "/^BTN_SW/c$pins3" $installdir/squishbox.py
-    sb_version=`sed -n '/^__version__/s|[^0-9\.]*||gp' $installdir/squishbox.py`
+    sb_version=$(sed -n '/^__version__/s|[^0-9\.]*||gp' $installdir/squishbox.py)
     ver_info="$hw_version/$sb_version"
-    ver_pad=`printf "%-11s" ${ver_info::11}`
+    ver_pad=$(printf "%-11s" ${ver_info::11})
     cat <<EOF | sudo tee /usr/local/bin/lcdsplash
 #!/usr/bin/env python
 import time, RPi.GPIO as GPIO
@@ -324,8 +320,7 @@ if [[ $install_synth ]]; then
     inform "Installing/Updating supporting software..."
     sysupdate
     apt_pkg_install "python3-yaml"
-    apt_pkg_install "python3-rpi.gpio" # figure out when to install python3-rpi-lgpio instead..
-    if apt-cache search python3-rpi-lgpio &> /dev/null; then
+    if [[ $(apt-cache search python3-rpi-lgpio) ]]; then
         apt_pkg_install "python3-rpi-lgpio" # needed for gpiochip kernels
     else
         apt_pkg_install "python3-rpi.gpio"
@@ -338,7 +333,7 @@ if [[ $install_synth ]]; then
     # install/update fluidpatcher
     inform "Installing/Updating FluidPatcher ..."
     wget -qO - https://github.com/GeekFunkLabs/fluidpatcher/tarball/master | tar -xzm
-    fptemp=`ls -dt GeekFunkLabs-fluidpatcher-* | head -n1`
+    fptemp=$(ls -dt GeekFunkLabs-fluidpatcher-* | head -n1)
     cp -rf $fptemp/fluidpatcher .
     cp -rn $fptemp/scripts/config SquishBox
     sudo gcc -shared $fptemp/src/patchcord.c -o /usr/lib/ladspa/patchcord.so
@@ -352,7 +347,7 @@ if [[ $install_synth ]]; then
 
     # compile/install fluidsynth
     BUILD_VER='2.3.4'
-    CUR_FS_VER=`fluidsynth --version 2> /dev/null | sed -n '/runtime version/s|[^0-9\.]*||gp'`
+    CUR_FS_VER=$(fluidsynth --version 2> /dev/null | sed -n '/runtime version/s|[^0-9\.]*||gp')
     if [[ ! $CUR_FS_VER == $BUILD_VER ]]; then
         inform "Compiling latest FluidSynth from source..."
         echo "Getting build dependencies..."
@@ -362,7 +357,7 @@ if [[ $install_synth ]]; then
             warning "Couldn't get all dependencies!"
         fi
         wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v$BUILD_VER.tar.gz | tar -xzm
-        fstemp=`ls -dt fluidsynth-* | head -n1`
+        fstemp=$(ls -dt fluidsynth-* | head -n1)
         mkdir $fstemp/build
         cd $fstemp/build
         echo "Configuring..."
@@ -415,8 +410,8 @@ if [[ $filemgr ]]; then
     sysupdate
     apt_pkg_install "nginx"
     apt_pkg_install "php-fpm"
-    phpver=`ls -t /etc/php | head -n1`
-    fmgr_hash=`php -r "print password_hash('$fmgr_pass', PASSWORD_DEFAULT);"`
+    phpver=$(ls -t /etc/php | head -n1)
+    fmgr_hash=$(php -r "print password_hash('$fmgr_pass', PASSWORD_DEFAULT);")
     # enable php in nginx
     cat <<EOF | sudo tee /etc/nginx/sites-available/default
 server {
