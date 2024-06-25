@@ -277,6 +277,7 @@ def lcd_send(val, reg=0):
         GPIO.output(LCD_EN, GPIO.HIGH)
         time.sleep(50e-6)
         GPIO.output(LCD_EN, GPIO.LOW)
+GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 for ch in (LCD_RS, LCD_EN, *LCD_DATA): GPIO.setup(ch, GPIO.OUT)
 for val in (0x33, 0x32, 0x28, 0x0c, 0x06): lcd_send(val)
