@@ -921,7 +921,7 @@ class FluidBox:
             sb.display_error(e, "bank load error: ")
             return False
         sb.progresswheel_stop()
-        fp.write_config()
+        fp.update_config()
         if fp.currentbank == lastbank and lastpatch in fp.patches:
             self.pno = fp.patches.index(lastpatch)
         else:
@@ -940,7 +940,7 @@ class FluidBox:
         except Exception as e:
             sb.display_error(e, "bank save error: ")
         else:
-            fp.write_config()
+            fp.update_config()
             sb.lcd_write("bank saved", 1, mode='ljust')
             sb.waitfortap(2)
 
@@ -1005,7 +1005,7 @@ class FluidBox:
             if op < 0: return
             if 'midiconnections' not in fp.cfg: fp.cfg['midiconnections'] = []
             fp.cfg['midiconnections'].append({rnames[p]: re.sub('(FLUID Synth) \(.*', '\\1', wnames[op])})
-            fp.write_config()
+            fp.update_config()
             try: sb.shell_cmd(f"aconnect {rports[p]} {wports[op]}")
             except subprocess.CalledProcessError: pass
         elif p == len(rports):
