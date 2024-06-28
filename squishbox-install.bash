@@ -128,7 +128,7 @@ echo "What are you setting up?"
 echo "  1. SquishBox"
 echo "  2. Naked Raspberry Pi Synth"
 query "Choose" "1"; installtype=$response
-AUDIOCARDS=$(cat /proc/asound/cards | sed -n 's/.*\[//;s/ *\].*//p')
+readarray -t AUDIOCARDS <<< $(cat /proc/asound/cards | sed -n 's/.*\[//;s/ *\].*//p')
 if [[ $installtype == 1 ]]; then
     if [[ ! " ${AUDIOCARDS[*]} " =~ " sndrpihifiberry " ]]; then
         inform "This script must reboot your computer to activate your sound card."
