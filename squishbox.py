@@ -1,44 +1,58 @@
 #!/usr/bin/env python3
 """SquishBox Raspberry Pi interface
 
-This script provides an interface for
-`Fluidpatcher <https://github.com/GeekFunkLabs/fluidpatcher>`_,
-a performance-oriented patch-based wrapper around the
-FluidSynth <https://fluidsynth.org>`_ software synthesizer,
-on a headlesss (i.e. lacking monitor and keyboard) Raspberry Pi,
-using a character LCD, a momentary button/stompswitch, and a
-pushbutton rotary encoder.
-
-This script can also be imported as a module to create other applications
-for the `SquishBox <https://www.geekfunklabs.com/products/squishbox>`_
-The `SquishBox` class initializes the character LCD and sets up GPIO pins for
-for the encoder, stompswitch, and output pins (including LED). It provides
-convenience methods for writing to the LCD, polling inputs/updating the
-display, standard menu and input functions, and a few utilities such as
-shell command access and wifi control.
+This module provides classes and functions for creating python applications
+for the `SquishBox <https://www.geekfunklabs.com/products/squishbox>`_ ,
+a Raspberry Pi add-on that provides an LCD, pushbutton rotary encoder,
+PCM5102-based sound card, and MIDI minijacks. Running this module as a
+script starts a shell application that lets the user run other applications
+and change system-wide settings.
 
 Requires:
-- RPi.GPIO
-- fluidpatcher
+- gpiod
+- yaml
 """
 
-__version__ = '0.8.5'
+__version__ = '0.9.0'
 
+from datetime import timedelta
+from pathlib import Path
 import re
 import subprocess
 import sys
-import threading
+from threading import Thread
 import time
 import traceback
 
-import RPi.GPIO as GPIO
+import gpiod
+import yaml
+
+""" SquishBox P1 pinout
+1  5V
+2  3.3V
+3  GPIO4
+4  1k - GND
+5  GPIO2 I2C SDA
+6  GPIO3 I2C SCL
+7  1k - GND
+8  GPIO23
+9  GPIO24
+10 GPIO10
+11 GPIO25
+12 GPIO9
+13 GPIO11
+14 GND
+"""
 
 # user-adjustable settings
-LCD_RS = 2; LCD_EN = 3; LCD_DATA = 11, 5, 6, 13  # LCD pins
-ROT_L = 22; ROT_R = 10; BTN_R = 9                # rotary encoder R/L pins + button
-BTN_SW = 27; PIN_LED = 17                        # stompbutton and LED
-ACTIVE = GPIO.LOW                                # voltage level for pressed buttons
-PIN_OUT = PIN_LED, 12, 16, 26                    # free pins - see gpio_set()
+LCD_RS = 7; LCD_EN = 16; LCD_DATA = 26, 6, 5, 8  # LCD pins
+ROT_L = 22; ROT_R = 27; ROT_BTN = 17             # rotary encoder R/L pins + button
+CONTRAST = 12; BACKLIGHT = 13                    # contrast and backlight PWM pins
+PULL_UP = True                         # bias for inputs
+ACTIVE_HIGH = True                               # active level for outputs
+
+BTN_L = 9; BTN_R = 11                            # pushbutton pins
+LED_L = 4; LED_R = 23                            # led pins
 COLS, ROWS = 16, 2                               # LCD display size
 SCROLL_TIME = 0.4; SCROLL_PAUSE = 4              # scrolling text options
 HOLD_TIME = 1.0; MENU_TIMEOUT = 5.0              # menu timimng options
@@ -46,379 +60,426 @@ BLINK_TIME = 0.1                                 # default text blink time
 POLL_TIME = 0.01                                 # default button polling interval
 BOUNCE_TIME = 0.02                               # button debounce time
 EXEC_TIME = 50e-6                                # increase if LCD displays garbage
-STOMP_CHAN = 16                                  # MIDI channel for stompswitch
-STOMP_MOMENT = 30                                # CC number for momentary message
-STOMP_TOGGLE = 31                                # CC number for toggle message
-# FluidBox MIDI controls
-MIDI_CTRL = None                                 # MIDI channel for controls
-MIDI_DEC = None                                  # CC for patch/value decrement
-MIDI_INC = None                                  # CC for patch/value increment
-MIDI_PATCH = None                                # knob/slider CC for selecting patches
-MIDI_SELECT = None                               # CC for menu/select
-MIDI_ESCAPE = None                               # CC for escape/back
-MIDI_SHUTDOWN = None                             # CC to trigger shutdown when held
+SCRIPTS = Path('')
+CHIP_PATH = '/dev/gpiochip4'
 
-# custom characters
-c = """\
-     |     |     |     |     | ### | # # |  #  \
-#    |     |    #|## ##|     |#   #|  #  |  ## \
- #   |     |   ##| ### |##   |  #  | # # |  # #\
-  #  | ## #|# ## |  #  |# ###| # # |     |  # #\
-   # |#  # |###  | ### |#   #|     |  #  |  #  \
-    #|     | #   |## ##|#   #|  #  |     |###  \
-     |     |     |     |#####|     |  #  |###  \
-     |     |     |     |     |     |     |     \
-""".replace('|', '').replace('#', '1').replace(' ', '0')
-charbits = [[int(c[i:i + 5], 2) for i in range(j, 320, 40)] for j in range(0, 40, 5)]
-BACKSLASH, TILDE, CHECK, XMARK, SUBDIR, WIFIUP, WIFIDOWN, MIDIACT = [chr(i) for i in range(8)]
-FNCHARS = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_./" + BACKSLASH
-USCHARS = """ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*|/_?.,;:'"`-+=<>()[]{}""" + BACKSLASH + TILDE
-# button states
-UP = 0; DOWN = 1; HELD = 2
-# events
-NULL = 0; DEC = 1; INC = 2; SELECT = 3; ESCAPE = 4
+FNGLYPHS = """abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_./!""" + chr(0) + chr(1) + ' '
+
+# search for config file
+cfg = {}
+cfgfile = [*sys.argv, ''][1] or 'squishboxconf.yaml'
+for d in (Path(cfgfile).parent,
+          Path('.'),
+          Path('./config'),
+          Path.home() / '.config'):
+    if (d / cfgfile).exists():
+        cfg = yaml.safe_load((d / cfgfile).read_text())
+        break
+if cfg:
+    for var, val in cfg['globals'].items():
+        globals()[var] = val
 
 
-class SquishBox():
-    """An interface for RPi using character LCD and buttons
+class _SquishBoxControl:
 
-    Attributes:
-      buttoncallback: When the state of a button connected to BTN_SW
-        changes, this function is called with 1 if the button was
-        pressed, 0 if it was released.
-      wifistatus: contains either the WIFIUP or WIFIDOWN character
-        depending on the last-known status of the wifi adapter
+    def __getitem__(self, val):
+        return self._actions.get(val, lambda: None)
+
+    def bind(self, event, func):
+        if func == None and event in self._actions:
+            del self._actions[event]
+        else:
+            self._actions[event] = func
+
+    def clear_binds(self):
+        self._actions = {}
+
+
+class SquishBoxButton(_SquishBoxControl):
+
+    UP, DOWN, HELD = 0, 1, 2
+
+    def __init__(self, pin, pull_up=PULL_UP):
+        if pull_up:
+            bias = gpiod.line.Bias.PULL_UP
+        else:
+            bias = gpiod.line.Bias.PULL_DOWN
+        line = gpiod.request_lines(
+            CHIP_PATH,
+            consumer="squishbox",
+            config={
+                pin: gpiod.LineSettings(
+                    direction=gpiod.line.Direction.INPUT,
+                    edge_detection=gpiod.line.Edge.BOTH,
+                    bias=bias,
+                    debounce_period=timedelta(seconds=BOUNCE_TIME),
+                )
+            }
+        )
+        self._state = self.UP
+        self._actions = {}
+        self._watching = True
+        t = Thread(
+            target=lambda: self._watch(line, pin, pull_up),
+            daemon=True
+        )
+        t.start()
+
+    def _watch(self, line, pin, pull_up):
+        if pull_up:
+            connect = gpiod.EdgeEvent.Type.FALLING_EDGE
+            disconnect = gpiod.EdgeEvent.Type.RISING_EDGE
+        else:
+            connect = gpiod.EdgeEvent.Type.RISING_EDGE
+            disconnect = gpiod.EdgeEvent.Type.FALLING_EDGE
+        while self._watching:
+            for event in line.read_edge_events():
+                if event.event_type is connect:
+                    self._state = self.DOWN
+                    self['down']()
+                    if not line.wait_edge_events(HOLD_TIME):
+                        self._state = self.HELD
+                        self['hold']()
+                elif event.event_type is disconnect:
+                    self['up']()
+                    if self._state == self.DOWN:
+                        self['tap']()
+                    self._state = self.UP
+
+
+class SquishBoxRotEnc(_SquishBoxControl):
+    
+    def __init__(self, pin1, pin2, pull_up=PULL_UP):
+        if pull_up:
+            bias = gpiod.line.Bias.PULL_UP
+        else:
+            bias = gpiod.line.Bias.PULL_DOWN
+        lines = gpiod.request_lines(
+            CHIP_PATH,
+            consumer="squishbox",
+            config={
+                (pin1, pin2): gpiod.LineSettings(
+                    direction=gpiod.line.Direction.INPUT,
+                    edge_detection=gpiod.line.Edge.BOTH,
+                    bias=bias,
+                )
+            }
+        )
+        self._edges = (0, 0)
+        self._actions = {}
+        self._watching = True
+        t = Thread(
+            target=lambda: self._watch(lines, pin1, pin2, pull_up),
+            daemon=True
+        )
+        t.start()
+
+    def _watch(self, lines, pin1, pin2, pull_up):
+        s = int(pull_up)
+        while self._watching:
+            for event in lines.read_edge_events():
+                if event.event_type is event.Type.RISING_EDGE:
+                    self._edges = (self._edges[-1], event.line_offset)
+                elif event.event_type is event.Type.FALLING_EDGE:
+                    self._edges = (self._edges[-1], -event.line_offset)
+                if self._edges == (s * pin1, s * pin2):
+                    self['left']()
+                elif self._edges == (s * pin2, s * pin1):
+                    self['right']()
+
+
+class SquishBoxOutput:
+
+    def __init__(self, pin, on=0):
+        self._pin = pin
+        if on:
+            val = gpiod.line.Value.ACTIVE
+        else:
+            val = gpiod.line.Value.INACTIVE
+        self._line = gpiod.request_lines(
+            CHIP_PATH,
+            consumer="squishbox",
+            config={
+                pin: gpiod.LineSettings(
+                    direction=gpiod.line.Direction.OUTPUT,
+                    output_value=val
+                )
+            }
+        )
+
+    def on(self):
+        self._line.set_value(self._pin, gpiod.line.Value.ACTIVE)
+        
+    def off(self):
+        self._line.set_value(self._pin, gpiod.line.Value.INACTIVE)
+
+
+class SquishBoxPWM:
+
+    def __init__(self, pin, freq=2000, level=0):
+        self.freq = freq
+        self.level = level
+        self._line = gpiod.request_lines(
+            CHIP_PATH,
+            consumer="squishbox",
+            config={
+                pin: gpiod.LineSettings(
+                    direction=gpiod.line.Direction.OUTPUT,
+                )
+            }
+        )
+        self._active = True
+        t = Thread(target=lambda: self._pwm(pin), daemon=True)
+        t.start()
+
+    def _pwm(self, pin):
+        while self._active:
+            period = 1 / self.freq
+            t_on = period * self.level / 100
+            self._line.set_value(pin, gpiod.line.Value.ACTIVE)
+            time.sleep(t_on)
+            self._line.set_value(pin, gpiod.line.Value.INACTIVE)
+            time.sleep(period - t_on)
+
+
+class SquishBox:
+    """object representation of the SquishBox hardware
+    methods for controlling
+    - LCD
+    - buttons/inputs, 
+    also some methods for controlling RPi
+    - wifi
+    - shell commands (via subprocess)
     """
 
     def __init__(self):
-        """Initializes the LCD and GPIO"""
-        GPIO.setwarnings(False)
-        GPIO.setmode(GPIO.BCM)
-        for chan in (ROT_R, ROT_L, BTN_R, BTN_SW):
-            if chan:
-                pud = GPIO.PUD_UP if ACTIVE == GPIO.LOW else GPIO.PUD_DOWN
-                GPIO.setup(chan, GPIO.IN, pull_up_down=pud)
-        for chan in (LCD_RS, LCD_EN, *LCD_DATA, *PIN_OUT):
-            if chan:
-                GPIO.setup(chan, GPIO.OUT)
-        for btn in (BTN_R, BTN_SW):
-            if btn:
-                GPIO.add_event_detect(btn, GPIO.BOTH, callback=self._button_event)
-        for enc in (ROT_L, ROT_R):
-            if enc:
-                GPIO.add_event_detect(enc, GPIO.BOTH, callback=self._encoder_event)
-        self.state = {BTN_R: UP, BTN_SW: UP}
-        self.timer = {BTN_R: 0, BTN_SW: 0}
-        self.encstate = 0b000000
-        self.encvalue = 0
-        self.buttoncallback = None
-        self.nextevent = NULL
+        """Initializes LCD, encoder, and related GPIO
+        """
+        self._actions = []
+        self._buffered = False
+        self._controls = {}
+        self._wifienabled = self.shell_cmd("nmcli radio wifi") == 'enabled'
+        # set up LCD GPIO
+        self._lines = gpiod.request_lines(
+            CHIP_PATH,
+            consumer="squishbox",
+            config={
+                (LCD_RS, LCD_EN, *LCD_DATA):
+                    gpiod.LineSettings(direction=gpiod.line.Direction.OUTPUT)
+            }
+        )
+        # initialize LCD
         for val in (0x33, 0x32, 0x28, 0x0c, 0x06):
             self._lcd_send(val)
         self.lcd_clear()
-        for loc, bits in enumerate(charbits):
-            self._lcd_send(0x40 | loc << 3)
-            for row in bits:
-                self._lcd_send(row, 1)
-        self.wifi_state()
-        sys.excepthook = lambda etype, err, tb: self.display_error(err, etype=etype, tb=tb)
+        self.backlight = SquishBoxPWM(BACKLIGHT, level=100)
+        self.contrast = SquishBoxPWM(CONTRAST, level=0)
+        self.define_custom_glyphs()
+        sys.excepthook = lambda t, e, tb: self.display_error(e, t, tb)
 
-    def update(self, idle=POLL_TIME, callback=True):
-        """Polls buttons and updates LCD
+    def __setitem__(self, item, val):
+        self._controls[item] = val
         
-        Call in the main loop of a program to poll the buttons and rotary
-        encoder, and update the LCD if necessary. Sleeps for a small amount
-        of time before returning so other processes can run.
-        Returns an event code based on the state of the buttons. If
-        buttoncallback is set and callback=True, the stompswitch calls
-        that function instead of sending an event.
-
-        * NULL (0) - no event
-        * DEC (1) - encoder step counter-clockwise or stompswitch tap
-        * INC (2) - encoder step clockwise or encoder button tap
-        * SELECT (3) - encoder button held for HOLD_TIME seconds
-        * ESCAPE (4) - stompswitch held for HOLD_TIME seconds
-
-        Args:
-          idle: number of seconds to sleep before returning
-          callback: if False ignores buttoncallback
-
-        Returns: an integer event code
-        """
-        callback = self.buttoncallback if callback else None
-        t = time.time()
-        for r in range(ROWS):
-            text = list(self.buffer[r])
-            if len(text) > COLS:
-                if t > self.scrolltimer:
-                    self.scrollpos[r] += 1
-                    if self.scrollpos[r] > len(text) - COLS + SCROLL_PAUSE:
-                        self.scrollpos[r] = -SCROLL_PAUSE
-                i = max(0, self.scrollpos[r])
-                i = min(i, len(text) - COLS)
-                text = text[i : i+COLS]
-            if self.blinktimer > 0:
-                for i, c in enumerate(self.blinked[r]):
-                    if c:
-                        text[i] = c
-            self._lcd_putchars(text, r, 0)
-        if t > self.scrolltimer:
-            self.scrolltimer = time.time() + SCROLL_TIME
-        if t > self.blinktimer:
-            self.blinked = [[""] * COLS for _ in range(ROWS)]
-            self.blinktimer = 0
-        event = self.nextevent
-        self.nextevent = NULL
-        if event: return event
-        for b in BTN_R, BTN_SW:
-            if t - self.timer[b] > BOUNCE_TIME:
-                if b and GPIO.input(b) == ACTIVE:
-                    if self.state[b] == UP:
-                        self.state[b] = DOWN
-                        if b == BTN_SW and callback:
-                            callback(1)
-                    elif self.state[b] == DOWN and t - self.timer[b] >= HOLD_TIME:
-                        self.state[b] = HELD
-                        if b == BTN_R: event = SELECT
-                        elif b == BTN_SW and not callback: event = ESCAPE
-                else:
-                    if self.state[b] != UP and b == BTN_SW and callback:
-                        callback(0)
-                    if self.state[b] == DOWN:
-                        if b == BTN_R: event = INC
-                        elif b == BTN_SW and not callback: event = DEC
-                    self.state[b] = UP
-        if self.encvalue > 0: event = INC
-        elif self.encvalue < 0: event = DEC
-        self.encvalue = 0
-        time.sleep(idle)
-        return event
+    def __getitem__(self, item):
+        return self._controls[item]
         
-    def lcd_clear(self, now=True):
+    def __delitem__(self, item):
+        del self._controls[item]
+
+    def lcd_clear(self, rows=[]):
         """Clear the LCD
         
-        Sends a clear command to the LCD and clears the
-        text and blink buffers. 
+        self._layers:
+        0 - scrolled text
+        1 - static text
+        2 - blinking text
+        3 - scroll buffer
+        4 - LCD contents
         
         Args:
-          now: if False just clear buffers to reduce flickering,
-            but requires an update to take effect
+          rows: list of rows to clear, empty list clears everything
         """
-        if now:
+        if not self._buffered and not rows:
             self._lcd_send(0x01)
             self._lcd_setcursorpos(0, 0)
-            time.sleep(2e-3)
-        self.buffer = [" " * COLS for _ in range(ROWS)]
-        self.written = [[""] * COLS for _ in range(ROWS)]
-        self.blinked = [[""] * COLS for _ in range(ROWS)]
-        self.scrollpos = [0] * ROWS
-        self.scrolltimer = 0
-        self.blinktimer = 0
+            time.sleep(40 * EXEC_TIME)
+            self._layers = [[[""] * COLS for _ in range(ROWS)] for _ in range(5)]
+            self._blinktimer = [[0] * COLS for _ in range(ROWS)]
+            self._scrollpos = [0] * ROWS
+            self._scrolltimer = time.time()
+        else:
+            for r in rows if rows else range(ROWS):
+                self._lcd_putchars([" "] * COLS, r, 0)
+                for i in range(4):
+                    self._layers[i][r] = [""] * COLS
+                self._blinktimer = [[0] * COLS for _ in range(ROWS)]
+                self._scrollpos[r] = 0
 
-    def lcd_write(self, text, row, col=0, mode='', now=False):
+    def lcd_write(self, text, row, col=0, align=''):
         """Writes text to the LCD
         
-        Writes text to the LCD starting at row, col. Characters are
-        stored in a buffer until the user calls update(). Can be
-        called with now=True if the LCD needs to be updated now,
-        usually because another process would delay updates.
+        Writes text to the LCD starting at row, col. Text wider than
+        the LCD will be scrolled.
 
         Args:
           text: string to write
           row: the row at which to start writing
           col: the column at which to start writing
-          mode: if 'ljust' or 'rjust' pad with spaces, 'scroll' scrolls
-            text to the right if it is long enough, otherwise place text
-            starting at row, col
-          now: if True update LCD now
+          align: place text against 'left' or 'right' edge of LCD
         """
-        if mode == 'scroll':
-            if len(text) > COLS:
-                self.buffer[row] = text
-                self.scrollpos[row] = -SCROLL_PAUSE
+        if len(text) > COLS:
+            self._layers[3][row] = list(text)
+            if align == 'right':
+                self._scrollpos[row] = len(text) - COLS
             else:
-                mode = 'ljust'
-        if mode == 'ljust':
-            self.buffer[row] = text[:COLS].ljust(COLS)
-        elif mode == 'rjust':
-            self.buffer[row] = text[-COLS:].rjust(COLS)
-        elif mode != 'scroll':
-            self.buffer[row] = (self.buffer[row][:col]
-                                + text[: COLS-col]
-                                + self.buffer[row][col+len(text) :])[:COLS]
-        if now: self.update(idle=0)
+                self._scrollpos[row] = -SCROLL_PAUSE
+        else:
+            if align == 'left':
+                self._layers[1][row][:len(text)] = list(text)
+            elif align == 'right':
+                self._layers[1][row][COLS - len(text):] = list(text)
+            else:
+                n = min(len(text), COLS - col)
+                self._layers[1][row][col:col + n] = list(text[:n])
+        if not self._buffered:
+            self.update_lcd()
 
-    def lcd_blink(self, text, row=0, col=0, mode='', delay=BLINK_TIME):
-        """Blink a character/message on the LCD
-        
-        Write text on the LCD that disappears after a delay. Text
-        written by lcd_write() will reappear. Calling this with
-        an empty string removes any current blinks. If a blink
-        is already in progress when this is called, the new one
-        is ignored.
+    def lcd_blink(self, text, row, col=0, align='',
+                  delay=BLINK_TIME, override=False):
+        """Blinks a character/message on the LCD
+
+        Overwrites text on the LCD that disappears after a delay,
+        restoring what was there before. Blinked text won't
+        overwrite characters that are already blinking,
+        unless override=True
         
         Args:
-          text: string to write, '' to clear blinks
-          row: the row at which to place text
-          col: the column at which to place text
-          mode: if 'ljust' or 'rjust' pad with spaces,
-            otherwise place text starting at row, col
+          text: string to write
+          row: the row at which to start writing
+          col: the column at which to start writing
+          align: place text against 'left' or 'right' edge of LCD
           delay: time to wait before removing text
+          override: overwrite currently blinked characters
         """
-        if text == '':
-            self.blinked = [[""] * COLS for _ in range(ROWS)]
-            self.blinktimer = 0
-        elif self.blinktimer == 0:
-            if mode == 'ljust':
-                text = text[: COLS-col].ljust(COLS-col)
-            elif mode == 'rjust':
-                text = text[col-COLS :].rjust(COLS-col)
-            for i, c in enumerate(text[: COLS-col]):
-                self.blinked[row][col + i] = c
-            self.blinktimer = time.time() + delay
+        if align == 'left':
+            text = text[:COLS]
+            col = 0
+        if align == 'right':
+            text = text[-COLS:]
+            col = COLS - len(text)
+        else:
+            text = text[:COLS - cols]
+        for i, char in enumerate(text):
+            if self._blinktimer[row][col + i] == 0 or override:
+                self._blinktimer[row][col + i] = time.time() + delay
+                self._layer[2][row][col + i] = char
 
-    def progresswheel_start(self):
-        """Shows an animation while another process runs
+    def update_lcd(self):
+        """Updates the LCD
         
-        Displays a spinning character in the lower right corner of the
-        LCD that runs in a thread after this function returns, to give
-        the user some feedback while a long-running process completes.
+        User shouldn't need to call this - it is already called
+        in the menu_* functions. May be helpful if designing custom
+        menus or displays
         """
-        self.spinning = True
-        self.spin = threading.Thread(target=self._progresswheel_spin)
-        self.spin.start()
-    
-    def progresswheel_stop(self):
-        """Removes the spinning character"""
-        self.spinning = False
-        self.spin.join()
+        t = time.time()
+        for row in range(ROWS):
+            if any(self._layers[3][row]):
+                scrollmax = len(self._layers[3][row]) - COLS
+                if t > self._scrolltimer:
+                    self._scrollpos[row] += 1
+                    if self._scrollpos[row] > scrollmax + SCROLL_PAUSE:
+                        self._scrollpos[row] = -SCROLL_PAUSE
+                i = min(max(0, self._scrollpos[row]), scrollmax)
+                self._layers[0][row] = self._layers[3][row][i:i + COLS]
+            if any(self._layers[2][row]):
+                for col, btime in enumerate(self._blinktimer[row]):
+                    if btime and t > btime:
+                        self._layers[2][row][col] = ""
+            chars = [""] * COLS
+            for i in range(3):
+#                print(self._layers[i][row])
+                for col in range(COLS):
+                    if self._layers[i][row][col] != "":
+                        chars[col] = self._layers[i][row][col]
+#            print()
+            self._lcd_putchars(chars, row, 0)
+        if t > self._scrolltimer:
+            self._scrolltimer += SCROLL_TIME
 
-    def waitfortap(self, t=0):
-        """Waits until a button is pressed or some time has passed
-        
-        Args:
-          t: seconds to wait, if 0 wait forever
-
-        Returns: True if button was pressed, False if time expired
-        """
-        tstop = time.time() + t
-        while True:
-            if t and time.time() > tstop:
-                return False
-            if self.update(callback=False) != NULL:
-                return True
-
-    def choose_opt(self, opts, row, i=0, mode='rjust', timeout=MENU_TIMEOUT):
-        """Lets the user choose an option from a list
-        
-        Displays options from a list of choices. User can scroll through
-        options with DEC/INC, choose with SELECT, or cancel with ESCAPE
-        or timeout. Menu options can scroll.
+    def menu_choose(self, opts, row=ROWS-1, align='right', i=0, wrap=True,
+                    timeout=MENU_TIMEOUT, func=lambda i: None):
+        """Simple LCD menu presenting a list of options
         
         Args:
           opts: list of strings to display as the choices
           row: the row on which to show the choices
+          align: place text against 'left' or 'right' edge of LCD
           i: index of the choice to display first
-          mode: 'rjust' by default - see lcd_write()
+          wrap: cyclic vs. bounded option selection
           timeout: seconds to wait, if -1 wait forever
+          func: function to call on choice inc/dec
 
-        Returns: index of option chosen, or -1 if canceled
+        Returns: (index, text) tuple of the chosen option,
+          or (-1, '') if canceled or timed out
         """
         i = i % len(opts)
         while True:
-            self.lcd_write(opts[i], row, mode=mode)
-            t = time.time()
-            while timeout == -1 or time.time() - t < timeout:
-                event = self.update(callback=False)
-                if event == INC:
+            self.lcd_clear([row])
+            self.lcd_write(opts[i], row, align=align)
+            match self.get_action(timeout=timeout):
+                case 'inc' if wrap:
                     i = (i + 1) % len(opts)
-                    break
-                elif event == DEC:
+                    func(i)
+                case 'dec' if wrap:
                     i = (i - 1) % len(opts)
-                    break
-                elif event == SELECT:
-                    self._lcd_flash(opts[i], row, mode)
-                    return i
-                elif event == ESCAPE:
-                    timeout = 0
-            else:
-                # self.lcd_write(" " * COLS, row)
-                return -1
+                    func(i)
+                case 'inc':
+                    i = min(i + 1, len(opts) - 1)
+                    func(i)
+                case 'dec':
+                    i = max(i - 1, 0)
+                    func(i)
+                case 'do':
+                    text = list(self._layers[4][row])
+                    for _ in range(3):
+                        self._lcd_putchars([" "] * COLS, row, 0)
+                        time.sleep(BLINK_TIME)
+                        self._lcd_putchars(text, row, 0)
+                        time.sleep(BLINK_TIME)
+                    return i, opts[i]
+                case _:
+                    return -1, ''
 
-    def choose_val(self, val, minval, maxval, inc, fmt=f'>{COLS}', timeout=MENU_TIMEOUT, func=None):
-        """Lets the user modify a numeric parameter
-
-        Displays a number on the bottom row of the LCD and allows the user to
-        scroll its value over a range by specified increment using DEC/INC.
-        A function can be called with the current value after each increment
-        to demonstrate the result. User can set value with SELECT, or
-        cancel with ESCAPE or timeout. 
-        
-        Args:
-          val: the starting value
-          minval: the lower limit of the value
-          maxval: the upper limit of the value
-          inc: the step size to change when incrementing/decrementing the value
-          fmt: a format specifier for printing the value nicely
-          timeout: seconds to wait, if -1 forever
-          func: a function to call with the value every time it changes
-
-        Returns: selected value, or None if time expired or ESCAPE
-        """
-        while True:
-            self.lcd_write(format(val, fmt), ROWS - 1, mode='rjust')
-            t = time.time()
-            while timeout == -1 or time.time() - t < timeout:
-                event = self.update(callback=False)
-                if event == INC:
-                    val = min(val + inc, maxval)
-                    if func: func(val)
-                    break
-                elif event == DEC:
-                    val = max(val - inc, minval)
-                    if func: func(val)
-                    break
-                elif event == SELECT:
-                    self._lcd_flash(format(val, fmt), ROWS - 1, mode='rjust')
-                    return val
-                elif event == ESCAPE:
-                    timeout = 0
-            else:
-                return None
-
-    def confirm_choice(self, text='', row=ROWS-1, timeout=MENU_TIMEOUT):
+    def menu_confirm(self, text='', row=ROWS-1, timeout=MENU_TIMEOUT):
         """Offers a yes/no choice
-        
-        Displays some text and lets the user toggle between a check mark
-        and an X with DEC/INC and choose with SELECT.
-        
+
         Args:
           text: string to write
           row: the row to display the choice
           timeout: seconds to wait, if -1 wait forever
 
-        Returns: 1 if check is selected, 0 if time expires or ESCAPE
+        Returns: True if check is selected, else False
         """
-        self.lcd_write(text[:COLS - 1], row)
+        self.lcd_write(f"{text:COLS + 1}", row)
         c = 1
         while True:
-            self.lcd_write([XMARK, CHECK][c], row, COLS - 1)
-            t = time.time()
-            while timeout == -1 or time.time() - t < timeout:
-                event = self.update(callback=False)
-                if event in (DEC, INC):
+            self.lcd_write([self.XMARK, self.CHECK][c], row, COLS - 1)
+            match self.get_action(timeout=timeout):
+                case 'inc' | 'dec':
                     c ^= 1
-                    break
-                elif event == SELECT:
-                    if c: self._lcd_flash(text[:COLS], row, mode='ljust')
-                    return c
-                elif event == ESCAPE:
-                    timeout = 0
-            else:
-                return 0
+                case 'do':
+                    if c:
+                        for _ in range(3):
+                            self._lcd_putchars(" ", row, COLS - 1)
+                            time.sleep(BLINK_TIME)
+                            self._lcd_putchars(self.CHECK, row, COLS - 1)
+                            time.sleep(BLINK_TIME)
+                    return bool(c)
+                case _:
+                    return False
 
-    def char_input(self, text=' ', row=ROWS-1, i=-1,
-                   timeout=MENU_TIMEOUT, charset=FNCHARS):
+    def menu_entertext(self, text=' ', row=ROWS-1, i=-1,
+                   timeout=MENU_TIMEOUT, charset=FNGLYPHS):
         """Allows user to enter text with a rotary encoder and button
 
         There are two cursor modes, which are toggled using SELECT. The
@@ -435,55 +496,50 @@ class SquishBox():
 
         Returns: the edited string, or empty string if canceled
         """
-        if i < 0: i = len(text) + i
+        text = list(text)
+        i %= len(text)
         c = charset.find(text[i])
         mode = 'blink'
         self._lcd_setcursormode(mode)
         while True:
             if mode == 'blink':
-                self.lcd_write(text[max(0, i+1-COLS) : max(COLS, i+1)],
-                               row, mode='ljust', now=True)
+                self.lcd_write(text[max(0, i + 1 - COLS):max(COLS, i + 1)], row)
             else:
-                self.lcd_write(charset[c], row, min(i, COLS-1), now=True)
-            self._lcd_setcursorpos(row, min(i, COLS-1))
-            t = time.time()
-            while timeout == -1 or time.time() - t < timeout:
-                event = self.update(callback=False)
-                if event == NULL: continue
-                if event == INC:
-                    if mode == 'blink':
-                        i = min(i + 1, len(text)) 
-                        if i == len(text): text += ' '
-                        c = charset.find(text[i])
-                    else:
-                        c = (c + 1) % len(charset)
-                        text = text[0:i] + charset[c] + text[i+1 :]
-                elif event == DEC:
-                    if mode == 'blink':
-                        i = max(i - 1, 0)
-                        c = charset.find(text[i])
-                    else:
-                        c = (c - 1) % len(charset)
-                        text = text[0:i] + charset[c] + text[i+1 :]
-                elif event == SELECT:
+                self.lcd_write(charset[c], row, min(i, COLS - 1))
+            self._lcd_setcursorpos(row, min(i, COLS - 1))
+            match self.get_action(timeout=timeout), mode:
+                case 'inc', 'blink':
+                    i = min(i + 1, len(text)) 
+                    if i == len(text):
+                        text.append(' ')
+                    c = charset.find(text[i])
+                case 'dec' , 'blink':
+                    i = max(i - 1, 0)
+                    c = charset.find(text[i])
+                case 'inc', 'line':
+                    c = (c + 1) % len(charset)
+                    text[i] = charset[c]
+                case 'dec', 'line':
+                    c = (c - 1) % len(charset)
+                    text[i] = charset[c]
+                case 'do', _:
                     mode = 'blink' if mode == 'line' else 'line'
                     self._lcd_setcursormode(mode)
-                elif event == ESCAPE:
+                case _:
                     self._lcd_setcursormode('hide')
-                    if self.confirm_choice(text.strip()[1-COLS :], row=row):
-                        return text.strip().replace(BACKSLASH, '\\').replace(TILDE, '~')
+                    text = ''.join(text).strip()
+                    for glyph, char in self.GLYPH2CHAR:
+                        text = text.replace(glyph, char)
+                    if self.menu_confirm(text[1 - COLS:], row=row):
+                        return text
                     else:
                         return ''
-                break
-            else:
-                self._lcd_setcursormode('hide')
-                return ''
 
-    def choose_file(self, topdir, last='', ext=None):
-        """Lets user browse and select a file on the system
+    def menu_choosefile(self, topdir, startfile='', ext=None, row=ROWS-2):
+        """Browse and select a file on the system
         
         Finds files of a specified type on the file system and lets the
-        user choose one using choose_opt(). Timeout is disabled and
+        user choose one using menu_choose(). Timeout is disabled and
         filenames can scroll. Can move up and down through the
         directory tree up to a specified limit. First two arguments must
         be pathlib.Path objects. Shows the current file on the bottom
@@ -491,35 +547,158 @@ class SquishBox():
 
         Args:
           topdir: Path of the highest-level directory the user may see
-          last: Path of the file to show as the initial choice
+          startfile: Path of the file to show as the initial choice
           ext: the file extensions to show, if None shows all files
 
         Returns: Path of the chosen file or empty string if canceled
         """
-        cdir = topdir if last == '' else (last.parent if last.parent > topdir else topdir)
+        curdir = topdir if startfile == '' else (
+                startfile.parent if startfile.parent > topdir else topdir)
         while True:
-            self.lcd_write(f"{str(cdir.relative_to(topdir.parent))}/:", ROWS - 2, mode='scroll')
-            x = sorted([p for p in cdir.glob('*') if p.is_dir() or p.suffix == ext or ext == None])
-            y = [f"{SUBDIR}{p.name}/" if p.is_dir() else p.name for p in x]
-            i = x.index(last) if last in x else 0
-            if cdir != topdir:
-                x.append(cdir.parent)
-                y.append("../")
-            j = self.choose_opt(y, ROWS - 1, i, mode='scroll', timeout=-1)
-            if j < 0: return ''
-            if x[j].is_dir():
-                last = cdir
-                cdir = x[j]
+            self.lcd_write(f"{curdir.relative_to(topdir.parent)}/:", row)
+            files = sorted([p for p in curdir.glob('*')
+                            if p.is_dir() or p.suffix in ext or ext == None])
+            names = [f"{self.FOLDER}{p.name}/"
+                     if p.is_dir() else p.name for p in x]
+            if curdir != topdir:
+                files.append(curdir.parent)
+                names.append("../")
+            i = files.index(startfile) if startfile in files else 0
+            i = self.menu_choose(names, row + 1, i, timeout=0)[0]
+            if i == -1:
+                return
+            file = files[i]
+            if file.is_dir():
+                startfile = curdir
+                curdir = file
             else:
-                return x[j]
+                return file
+
+    def menu_lcdsettings(self):
+        """Menu for setting backlight and contrast levels"""
+        d = 10
+        slider = [chr(255) * int(i * COLS / 100) for i in range(0, 101, d)]
+        while True:
+            self.lcd_write("Contrast".ljust(COLS), ROWS - 2)
+            ival = int(self.contrast.level / d)
+            if self.menu_choose(slider, ROWS - 1, align='left', i=ival, wrap=False,
+                    func=lambda i: setattr(self.contrast, 'level', i * d)
+                    )[0] == -1:
+                return
+            self.lcd_write("Brightness".ljust(COLS), ROWS - 2)
+            ival = int(self.backlight.level / d)
+            if self.menu_choose(slider, ROWS - 1, align='left', i=ival, wrap=False,
+                    func=lambda i: setattr(self.backlight, 'level', i * d)
+                    )[0] == -1:
+                return
+
+    @property
+    def wifienabled(self):
+        return self._wifienabled
+
+    @wifienabled.setter
+    def wifienabled(self, enable):
+        if enable:
+            self.shell_cmd("sudo nmcli radio wifi enabled")
+        else:
+            self.shell_cmd("sudo nmcli radio wifi disabled")
+        self._wifienabled = self.shell_cmd("nmcli radio wifi") == 'enabled'
+
+    def menu_wifisettings(self):
+        """Displays a wifi settings menu
+        
+        A series of menus that provides a unified interface for
+        adjusting wifi settings. Can be used to turn
+        wifi on/off, scan for networks, connect/disconnect, and
+        enter passwords. Uses NetworkManager's 'nmcli' command
+        to control system-wide network settings.
+        """
+        while True:
+            self.lcd_clear()
+            # show connection status on first line
+            if ip := sb.shell_cmd("hostname -I"):
+                self.lcd_write(f"Connected as {ip}", ROWS - 2, align='right')
+            else:
+                self.lcd_write("Not connected".ljust(ROWS), ROWS - 2)
+            # check that wifi adapter is actually enabled
+            self._wifienabled = self.shell_cmd("nmcli radio wifi") == 'enabled'
+            if not self.wifienabled:
+                if self.menu_choose(["Enable WiFi"], row=ROWS - 1)[0] == 0:
+                    self.wifienabled = True
+                return
+            else:
+                # show list of networks
+                nw = sb.shell_cmd("nmcli -g IN-USE,SSID dev wifi").splitlines()
+                ssid = [x[0].replace('*', self.CHECK) + x[2:] for x in nw if x[2:]]
+                opts = ssid + ["Scan", "Disable WiFi"]
+                i = max(''.join(s[0] for s in ssid).find(self.CHECK), 0)
+                match self.menu_choose(opts, ROWS - 1, i, timeout=0)[1]:
+                    case '':
+                        return
+                    case "Disable WiFi":
+                        self.wifienabled = False
+                        return
+                    case "Scan":
+                        pass
+                    case ssid if ssid[0] == self.CHECK:
+                        self.lcd_write(opts[j][1:COLS + 1], ROWS - 2)
+                        self.lcd_write("disconnecting ", ROWS - 1, align='right')
+                        self.progresswheel_start()
+                        sb.shell_cmd(f"sudo nmcli con down {opts[j][1:]}")
+                        self.progresswheel_stop()
+                    case ssid:
+                        self.lcd_write(opts[j][1:COLS + 1], ROWS - 2)
+                        self.lcd_write("connecting ", ROWS - 1, align='right')
+                        self.progresswheel_start()
+                        try:
+                            x = sb.shell_cmd(f"sudo nmcli con up {opts[j][1:]}")
+                        except subprocess.CalledProcessError:
+                            x = -1                        
+                        self.progresswheel_stop()
+                        if x == -1:
+                            # get password from user
+                            self.lcd_write("Password:", ROWS - 2)
+                            psk = self.menu_entertext(charset = USCHARS)
+                            if psk == '':
+                                continue
+                            self.lcd_write("connecting ", ROWS - 1, align='right')
+                            self.progresswheel_start()
+                            try:
+                                x = sb.shell_cmd(f"sudo nmcli dev wifi connect {opts[j][1:]} password {psk}")
+                            except subprocess.CalledProcessError:
+                                x = -1
+                            self.progresswheel_stop()
+                        if x == -1:
+                            self.lcd_write("connection fail", ROWS - 1, align='right')
+                            self.get_action(timeout=MENU_TIMEOUT)
+            # scan for new networks and repeat the loop
+            self.lcd_write("scanning ", ROWS - 1, align='right')
+            self.progresswheel_start()
+            sb.shell_cmd("sudo nmcli -g IN-USE,SSID dev wifi")
+            self.progresswheel_stop()
+
+    def progresswheel_start(self):
+        """Shows an animation while another process runs
+        
+        Displays a spinning character in the lower right corner of the
+        LCD that runs in a thread after this function returns, to give
+        the user some feedback while a long-running process completes.
+        """
+        self._spinning = True
+        self._spin = Thread(target=self._progresswheel_spin)
+        self._spin.start()
+    
+    def progresswheel_stop(self):
+        """Removes the spinning character"""
+        self._spinning = False
+        self._spin.join()
 
     def display_error(self, err, msg="", etype=None, tb=None):
         """Displays Exception text on the LCD
         
         Reformats the text of an Exception so it can be displayed on one
         line and scrolls it across the bottom row of the LCD, and also prints
-        information to stdout. Waits for the user to press a button, then
-        returns if possible.
+        information to stdout for debugging.
 
         Args:
           err: the Exception
@@ -528,13 +707,159 @@ class SquishBox():
         if etype == KeyboardInterrupt:
             sys.exit()
         err_oneline = msg + re.sub(' {2,}', ' ', re.sub('\n|\^', ' ', str(err)))
-        self.lcd_write(err_oneline, ROWS - 1, mode='scroll')
+        for glyph, char in self.GLYPH2CHAR:
+            err_oneline.replace(char, glyph)
+        self.lcd_write(err_oneline, ROWS - 1)
         if msg: print(msg)
         if tb:
             traceback.print_exception(etype, err, tb)
         else:
             print(err)
-        self.waitfortap()
+        self.get_action()
+
+    def action_inc(self):
+        """Bind target - increment a value/choice
+        """
+        self._actions.append('inc')
+
+    def action_dec(self):
+        """Bind target - decrement a value/choice
+        """
+        self._actions.append('dec')
+
+    def action_do(self):
+        """Bind target - open/choose/enter/confirm things
+        """
+        self._actions.append('do')
+
+    def action_back(self):
+        """Bind target - cancel/escape/go back
+        """
+        self._actions.append('back')
+
+    def get_action(self, idle=POLL_TIME, timeout=0):
+        """Block and update the display until an action occurs
+        
+        Args:
+          idle: delay between polling controls so other threads can work
+          timeout: return after this many seconds. If 0 wait forever
+        Returns: The action name, or None if timed out
+        """
+        t0 = time.time()
+        self._buffered = True
+        while not self._actions:
+            self.update_lcd()
+            time.sleep(idle)
+            if timeout and time.time() - t0 > timeout:
+                self._buffered = False
+                return None
+        self._buffered = False
+        return self._actions.pop(0)
+
+    def clear_actions(self):
+        """Clear any actions that have accumulated on the stack
+        """
+        self._actions = []
+        
+    def draw_glyph(self, loc, text):
+        """Instate a custom LCD glyph from ascii art
+        
+        Args:
+          loc: the memory location for the glyph (0-7)
+          text: a string representing the 40 pixels of the glyph
+            (8 rows times 5 columns) with hash marks (#) and dots (.)
+            Spaces and newlines are ignored, so this can be a
+            multiline string
+            
+        Returns:
+          a character that can be used to write the glyph on the LCD
+        """
+        bits = text.replace(' ', '').replace('\n', '').replace('.', '0').replace('#', '1')
+        glyphbytes = [int(bits[i:i + 5], 2) for i in range(0, 40, 5)]
+        self._lcd_send(0x40 | loc << 3)
+        for b in glyphbytes:
+            self._lcd_send(b, gpiod.line.Value.ACTIVE)
+        return chr(loc)
+
+    def define_custom_glyphs(self):
+        """Re-initialize standard SquishBox custom glyphs
+        """
+        self.BACKSLASH = self.draw_glyph(0, """.....
+                                               #....
+                                               .#...
+                                               ..#..
+                                               ...#.
+                                               ....#
+                                               .....
+                                               .....""")
+
+        self.TILDE = self.draw_glyph(1, """.....
+                                           .....
+                                           .....
+                                           .##.#
+                                           #..#.
+                                           .....
+                                           .....
+                                           .....""")
+
+        self.CHECK = self.draw_glyph(2, """.....
+                                           ....#
+                                           ...##
+                                           #.##.
+                                           ###..
+                                           .#...
+                                           .....
+                                           .....""")
+
+        self.XMARK = self.draw_glyph(3, """.....
+                                           ##.##
+                                           .###.
+                                           ..#..
+                                           .###.
+                                           ##.##
+                                           .....
+                                           .....""")
+
+        self.FOLDER = self.draw_glyph(4, """.....
+                                            .....
+                                            ##...
+                                            #.###
+                                            #...#
+                                            #...#
+                                            #####
+                                            .....""")
+
+        self.WIFION = self.draw_glyph(5, """.###.
+                                            #...#
+                                            ..#..
+                                            .#.#.
+                                            .....
+                                            ..#..
+                                            .....
+                                            .....""")
+
+        self.WIFIOFF = self.draw_glyph(6, """.#.#.
+                                             ..#..
+                                             .#.#.
+                                             .....
+                                             ..#..
+                                             .....
+                                             ..#..
+                                             .....""")
+
+        self.NOTEICON = self.draw_glyph(7, """..#..
+                                              ..##.
+                                              ..#.#
+                                              ..#.#
+                                              ..#..
+                                              ###..
+                                              ###..
+                                              .....""")
+
+        printable = """abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_./!@#$%^&*|?,;:'"`+=<>()[]{}"""
+        self.GLYPHS = printable + self.BACKSLASH + self.TILDE + ' '
+        self.FNGLYPHS = printable[:67] + self.BACKSLASH + ' ' # allowable filename characters
+        self.GLYPH2CHAR = ((self.BACKSLASH, '\\'), (self.TILDE, '~'))
 
     @staticmethod
     def shell_cmd(cmd, **kwargs):
@@ -553,561 +878,165 @@ class SquishBox():
         return subprocess.run(cmd, check=True, stdout=subprocess.PIPE, shell=True,
                               encoding='ascii', **kwargs).stdout.rstrip('\n')
 
-    @staticmethod
-    def gpio_set(pin, state):
-        """Sets the state of a GPIO
-
-        Sets a GPIO high or low, as long as it isn't being used by something
-        else. PIN_OUT can be modified to add outputs, as long as they don't
-        conflict with those defined above for the LCD, buttons, and GPIOs
-        18, 19, and 21 (which are used by the DAC).
-
-        Args:
-          pin: pin number (BCM numbering)
-          state: True for high, False for low
-        """
-        if pin in PIN_OUT:
-            if state: GPIO.output(pin, GPIO.HIGH)
-            else: GPIO.output(pin, GPIO.LOW)
-
-    def wifi_state(self, state=''):
-        """Checks or sets the state of the wifi adapter
-        
-        Turns the wifi adapter on or off, or simply returns its current
-        state. Does not determine whether it has connected to a network,
-        only that it is enabled or disabled.
-
-        Args:
-          setstate: 'on' or 'off' to set the state, empty string just
-            checks the current state
-
-        Returns: 'on' or 'off'
-        """
-        if state:
-            self.shell_cmd(f"sudo nmcli radio wifi {state}")
-        else:
-            state = 'on' if self.shell_cmd("nmcli radio wifi") == 'enabled' else 'off'
-        self.wifistatus = WIFIDOWN if state == 'off' else WIFIUP
-        return state
-
-    def wifi_settings(self):
-        """Displays a wifi settings menu
-        
-        Shows the connection status and current IP address(es) of the Pi
-        and a list of any available wifi networks. Allows the user to
-        enable/disable wifi and enter passkeys for visible networks
-        in order to connect.
-        """
-        while True:
-            self.lcd_clear()
-            if ip := sb.shell_cmd("hostname -I"):
-                self.lcd_write(f"Connected as {ip}", ROWS - 2, mode='scroll')
-            else:
-                self.lcd_write("Not connected", ROWS - 2, mode='ljust')
-            if self.wifi_state() == 'off':
-                if self.choose_opt(["Enable WiFi"], row=ROWS - 1) == 0:
-                    self.wifi_state('on')
-                break
-            else:
-                nw = sb.shell_cmd("nmcli -g IN-USE,SSID dev wifi").split('\n')
-                ssid = [x[0].replace('*', CHECK) + x[2:] for x in nw if x[2:]]
-                opts = ssid + ["Scan", "Disable WiFi"]
-                i = max(''.join(s[0] for s in ssid).find(CHECK), 0)
-                j = self.choose_opt(opts, ROWS - 1, i, 'scroll', timeout=-1)
-                if j < 0: break
-                elif opts[j] == "Disable WiFi":
-                    self.wifi_state('off')
-                    break
-                elif opts[j] == "Scan":
-                    pass
-                elif opts[j][0] == CHECK:
-                    self.lcd_write(opts[j][1:], ROWS - 2, mode='ljust')
-                    self.lcd_write("disconnecting ", ROWS - 1, mode='rjust', now=True)
-                    self.progresswheel_start()
-                    sb.shell_cmd(f"sudo nmcli con down {opts[j][1:]}")
-                    self.progresswheel_stop()
-                    continue
-                else:
-                    self.lcd_write(opts[j][1:], ROWS - 2, mode='ljust')
-                    self.lcd_write("connecting ", ROWS - 1, mode='rjust', now=True)
-                    self.progresswheel_start()
-                    try: x = sb.shell_cmd(f"sudo nmcli con up {opts[j][1:]}")
-                    except subprocess.CalledProcessError: x = -1                        
-                    self.progresswheel_stop()
-                    if x == -1:
-                        self.lcd_write("Password:", ROWS - 2, mode='ljust')
-                        psk = self.char_input(charset = USCHARS)
-                        if psk == '': continue
-                        self.lcd_write("connecting ", ROWS - 1, mode='rjust', now=True)
-                        self.progresswheel_start()
-                        try: x = sb.shell_cmd(f"sudo nmcli dev wifi connect {opts[j][1:]} password {psk}")
-                        except subprocess.CalledProcessError: x = -1
-                        self.progresswheel_stop()
-                    if x == -1:
-                        self.lcd_write("connection fail", ROWS - 1, mode='rjust')
-                        self.waitfortap(MENU_TIMEOUT)
-                    continue
-            self.lcd_write("scanning ", ROWS - 1, mode='rjust', now=True)
-            self.progresswheel_start()
-            sb.shell_cmd("sudo nmcli -g IN-USE,SSID dev wifi")
-            self.progresswheel_stop()
-
-    def _button_event(self, button):
-        t = time.time()
-        self.timer[button] = t
-
-    def _encoder_event(self, channel):
-        for channel in ROT_L, ROT_R:
-            self.encstate = (self.encstate << 1) % 64
-            self.encstate += 1 if GPIO.input(channel) == ACTIVE else 0
-        if self.encstate == 0b111000:
-            self.encvalue += 1
-        elif self.encstate == 0b110100:
-            self.encvalue -= 1
-
     def _progresswheel_spin(self):
+        c = self._layers[4][ROWS - 1][COLS - 1]
         while True:
-            for x in BACKSLASH + '|/-':
-                if not self.spinning: return
-                self._lcd_putchars(x, ROWS - 1, COLS - 1)
+            for s in self.BACKSLASH + '|/-':
+                self._lcd_putchars(s, ROWS - 1, COLS - 1)
+                if not self._spinning:
+                    self._lcd_putchars(c, ROWS - 1, COLS - 1)
+                    return
                 time.sleep(BLINK_TIME)
-                
-    def _lcd_flash(self, text, row, mode='', n=3):
-        text = text[:COLS].rjust(COLS) if mode == 'rjust' else text[:COLS].ljust(COLS)
-        for _ in range(n):
-            self._lcd_putchars(' ' * COLS, row, 0)
-            time.sleep(BLINK_TIME)
-            self._lcd_putchars(text, row, 0)
-            time.sleep(BLINK_TIME)
 
     def _lcd_putchars(self, chars, row, col):
         lastcol = -2
         for c in chars:
-            if self.written[row][col] != c:
+            if c and self._layers[4][row][col] != c:
                 if lastcol != col - 1:
                     self._lcd_setcursorpos(row, col)
-                self._lcd_send(ord(c), 1)
-                self.written[row][col] = c
+                self._lcd_send(ord(c), gpiod.line.Value.ACTIVE)
+                self._layers[4][row][col] = c
                 lastcol = col
             col += 1
 
     def _lcd_setcursorpos(self, row, col):
         if row < ROWS and col < COLS:
-            offset = [0x00, 0x40, COLS, 0x40 + COLS]
+            offset = (0x00, 0x40, COLS, 0x40 + COLS)
             self._lcd_send(0x80 | offset[row] + col)
 
     def _lcd_setcursormode(self, mode):
         if mode == 'hide':
-            self._lcd_send(0x0c | 0x00)
+            #self._lcd_send(0x0c | 0x00)
+            self._lcd_send(0x0c)
         elif mode == 'blink':
             self._lcd_send(0x0d)
-        elif mode == 'line':
+        elif mode == 'line':    
             self._lcd_send(0x0e)
 
-    @staticmethod
-    def _lcd_send(val, reg=0):
-        if LCD_RS == 0: return
-        GPIO.output(LCD_RS, reg)
-        GPIO.output(LCD_EN, GPIO.LOW)
+    def _lcd_send(self, val, reg=gpiod.line.Value.INACTIVE):
+        if LCD_RS == 0:
+            return
+        self._lines.set_value(LCD_RS, reg)
+        self._lines.set_value(LCD_EN, gpiod.line.Value.INACTIVE)
         for nib in (val >> 4, val):
+            line_vals = {}
             for i in range(4):
-                GPIO.output(LCD_DATA[i], (nib >> i) & 0x01)
-            GPIO.output(LCD_EN, GPIO.HIGH)
+                if nib >> i & 1:
+                    line_vals[LCD_DATA[i]] = gpiod.line.Value.ACTIVE
+                else:
+                    line_vals[LCD_DATA[i]] = gpiod.line.Value.INACTIVE
+            self._lines.set_values(line_vals)
+            self._lines.set_value(LCD_EN, gpiod.line.Value.ACTIVE)
             time.sleep(EXEC_TIME)
-            GPIO.output(LCD_EN, GPIO.LOW)
+            self._lines.set_value(LCD_EN, gpiod.line.Value.INACTIVE)
 
-class FluidBox:
-    """Manages a SquishBox interface to FluidPatcher"""
+def run(sb):
+    from importlib import import_module
 
-    def __init__(self):
-        """Creates the FluidBox"""
-        self.pno = 0
-        self.buttonstate = 0
-        self.shutdowntimer = 0
-        fp.midi_callback = self.listener
-        sb.buttoncallback = self.handle_buttonevent
+    sys.path.append(str(SCRIPTS))
+    scripts = []
+    for p in SCRIPTS.iterdir():
+        if p.suffix == '.py' and p.name != 'squishbox.py':
+            scripts.append(p.name)
+        elif p.is_dir() and (p / '__init__.py').exists():
+            scripts.append(p.name)
 
-    def handle_buttonevent(self, val):
-        """Handles callback events when the stompbutton state changes
-        
-        Sends a momentary and toggling MIDI message, and toggles sets the LED
-        to match the state of the toggle.
-        """
-        fp.send_event(type='cc', chan=STOMP_CHAN, par1=STOMP_MOMENT, par2=val)
-        if val:
-            self.buttonstate ^= 1
-            fp.send_event(type='cc', chan=STOMP_CHAN, par1=STOMP_TOGGLE, par2=self.buttonstate)
-            if PIN_LED: sb.gpio_set(PIN_LED, self.buttonstate)
+    sb['knob1'].bind('left', sb.action_dec)
+    sb['knob1'].bind('right', sb.action_inc)
+    sb['knob1button'].bind('tap', sb.action_do)
+    sb['knob1button'].bind('hold', sb.action_back)
 
-    def listener(self, sig):
-        """Handles MidiSignals from FluidPatcher
-        
-        Receives MidiSignal instances in response to incoming MIDI events
-        or custom events triggered by router rules. MidiSignals for custom
-        events have a `val` parameter that is the result of parameter
-        routing, and additional parameters corresponding to the rule
-        parameters. The following custom rules are handled:
-
-        - `patch`: a patch name or index to be selected. If `patch` has a '+' or '-'
-            suffix, increment the current patch index instead.
-        - `lcdwrite`: a string to be written to the LCD, right-justified. If `format`
-            is provided, the formatted `val` parameter is appended
-        - `setpin`: the *index* of the pin in PIN_OUT to set using `val`. If the LED
-            is set, set the state of the button toggle to match
-        """
-        if 'val' in sig:
-            if 'patch' in sig:
-                if sig.patch == -1:
-                    self.pno = (self.pno + sig.val) % len(fp.patches)
-                else:
-                    self.pno = sig.patch
-            elif 'lcdwrite' in sig:
-                if 'format' in sig:
-                    val = format(sig.val, sig.format)
-                    self.lcdwrite = f"{sig.lcdwrite} {val}"
-                else:
-                    self.lcdwrite = sig.lcdwrite
-            elif 'setpin' in sig:
-                if PIN_OUT[sig.setpin] == PIN_LED:
-                    self.buttonstate = 1 if sig.val else 0
-                sb.gpio_set(PIN_OUT[sig.setpin], sig.val)
-            elif 'event' in sig and sig.val > 0:
-                sb.nextevent = sig.event
-            elif 'shutdown' in sig:
-                if sig.val > 0:
-                    self.shutdowntimer = time.time()
-                else:
-                    self.shutdowntimer = 0
+    STATES = {'leftled': False, 'rightled': False}
+    
+    def left_down():
+        if STATES['leftled']:
+            STATES['leftled'] = False
+            sb['leftled'].state = not ACTIVE
         else:
-            self.lastsig = sig
+            STATES['leftled'] = True
+            sb['leftled'].state = ACTIVE
 
-    def patchmode(self):
-        """Applies a patch and displays the main screen"""
-        if fp.patches: warn = fp.apply_patch(self.pno)
-        else: warn = fp.apply_patch('')
-        if MIDI_CTRL: self.add_midicontrols()
-        pno = self.pno
-        sb.lcd_clear(now=False)
-        while True:
-            if fp.patches:
-                sb.lcd_write(fp.patches[self.pno], 0, mode='scroll')
-                if warn:
-                    sb.lcd_write('; '.join(warn), 1, mode='scroll')
-                    sb.waitfortap()
-                sb.lcd_write(f"patch: {self.pno + 1}/{len(fp.patches)}", 1, mode='rjust')
-            else:
-                sb.lcd_write("No patches", 0, mode='ljust')
-                if warn:
-                    sb.lcd_write('; '.join(warn), 1, mode='scroll')
-                    sb.waitfortap()
-                sb.lcd_write("patch 0/0", 1, mode='rjust')
-            sb.lcd_write(sb.wifistatus, 1, 0)
-            warn = []
-            self.lastsig = None
-            self.lcdwrite = None
-            while True:
-                if pno != self.pno:
-                    return
-                if self.shutdowntimer and time.time() - self.shutdowntimer > 5:
-                    sb.lcd_write("Shutting down..", 0, mode='ljust')
-                    sb.lcd_write("Wait 15s, unplug", 1, mode='ljust', now=True)
-                    sb.shell_cmd("sudo poweroff")
-                    sys.exit()
-                if self.lastsig:
-                    sb.lcd_blink(MIDIACT, 1, 1)
-                    self.lastsig = None
-                if self.lcdwrite:
-                    sb.lcd_blink('')
-                    sb.lcd_blink(self.lcdwrite, 1, mode='rjust', delay=MENU_TIMEOUT)
-                    self.lcdwrite = None
-                event = sb.update()
-                if event == NULL:
-                    continue
-                if event == INC and fp.patches:
-                    self.pno = (self.pno + 1) % len(fp.patches)
-                    return
-                elif event == DEC and fp.patches:
-                    self.pno = (self.pno - 1) % len(fp.patches)
-                    return
-                elif event == SELECT:
-                    k = sb.choose_opt(['Load Bank', 'Save Bank', 'Save Patch', 'Delete Patch',
-                                       'Open Soundfont', 'Effects..', 'System Menu..'], row=1)
-                    if k == 0:
-                        if self.load_bank():
-                            return
-                    elif k == 1:
-                        self.save_bank()
-                    elif k == 2:
-                        sb.lcd_write("Save patch:", 0, mode='ljust')
-                        newname = sb.char_input(fp.patches[self.pno])
-                        if newname != '':
-                            if newname != fp.patches[self.pno]:
-                                fp.add_patch(newname, addlike=self.pno)
-                            fp.update_patch(newname)
-                            self.pno = fp.patches.index(newname)
-                    elif k == 3:
-                        if sb.confirm_choice('Delete', row=1):
-                            fp.delete_patch(self.pno)
-                            self.pno = min(self.pno, len(fp.patches) - 1)
-                            return
-                    elif k == 4:
-                        if sfont := sb.choose_file(fp.sfdir, ext='.sf2'):
-                            self.sfmode(sfont)                            
-                            sb.lcd_write("loading bank ", 1, mode='ljust', now=True)
-                            sb.progresswheel_start()
-                            fp.load_bank()
-                            sb.progresswheel_stop()
-                            return
-                    elif k == 5:
-                        self.effects_menu()
-                    elif k == 6:
-                        self.system_menu()
-                    break
+    def right_down():
+        self.STATES['rightled'] = True
+        sb['rightled'].state = ACTIVE
 
-    def sfmode(self, sfont):
-        """Soundfont preset chooser"""
-        sb.lcd_write(sfont.name, 0, mode='scroll', now=True)
-        sb.lcd_write("loading presets ", 1, mode='rjust', now=True)
-        sb.progresswheel_start()
-        if not (presets := fp.solo_soundfont(sfont)):
-            sb.progresswheel_stop()
-            sb.lcd_write(f"Unable to load presets from {str(sfont)}", 1, mode='scroll')
-            sb.waitfortap()
-            return
-        sb.progresswheel_stop()
-        i = 0
-        warn = fp.select_sfpreset(sfont, *presets[i])
-        while True:
-            bank, prog, name = presets[i]
-            sb.lcd_write(name, 0, mode='scroll')
-            if warn:
-                sb.lcd_write('; '.join(warn), 1, mode='scroll')
-                sb.waitfortap()
-                warn = []
-            sb.lcd_write(f"preset {bank:03}:{prog:03}", 1, mode='rjust')
-            while True:
-                event = sb.update(callback=False)
-                if event == INC:
-                    i = (i + 1) % len(presets)
-                    warn = fp.select_sfpreset(sfont, *presets[i])
-                    break
-                elif event == DEC:
-                    i = (i - 1) % len(presets)
-                    warn = fp.select_sfpreset(sfont, *presets[i])
-                    break
-                elif event == SELECT:
-                    sb.lcd_write("Add as Patch:", 0, mode='ljust')
-                    newname = sb.char_input(name)
-                    if newname:
-                        self.pno = fp.add_patch(newname)
-                        fp.update_patch(newname)
-                    break
-                elif event == ESCAPE: return
+    def right_up():
+        self.STATES['rightled'] = False
+        sb['rightled'].state = not ACTIVE
 
-    def load_bank(self, bank=""):
-        """Bank loading menu"""
-        lastbank = fp.currentbank
-        lastpatch = fp.patches[self.pno] if fp.patches else ""
-        if bank == "":
-            last = fp.bankdir / fp.currentbank if fp.currentbank else ""
-            bank = sb.choose_file(fp.bankdir, last, '.yaml')
-            if bank == "": return False
-        sb.lcd_write(bank.name, 0, mode='scroll', now=True)
-        sb.lcd_write("loading bank ", 1, mode='ljust', now=True)
-        sb.progresswheel_start()
-        try: fp.load_bank(bank)
-        except Exception as e:
-            sb.progresswheel_stop()
-            sb.display_error(e, "bank load error: ")
-            return False
-        sb.progresswheel_stop()
-        fp.update_config()
-        if fp.currentbank == lastbank and lastpatch in fp.patches:
-            self.pno = fp.patches.index(lastpatch)
-        else:
-            self.pno = 0
-        return True
+    sb['leftbutton'].bind('down', left_down)
+    sb['rightbutton'].bind('down', right_down)
+    sb['rightbutton'].bind('up', right_up)
 
-    def save_bank(self, bank=""):
-        """Bank saving menu"""
-        if bank == "":
-            bank = sb.choose_file(fp.bankdir, fp.bankdir / fp.currentbank, '.yaml')
-            if bank == "": return
-            name = sb.char_input(bank.name)
-            if name == "": return
-            bank = bank.parent / name
-        try: fp.save_bank(bank.with_suffix('.yaml'))
-        except Exception as e:
-            sb.display_error(e, "bank save error: ")
-        else:
-            fp.update_config()
-            sb.lcd_write("bank saved", 1, mode='ljust')
-            sb.waitfortap(2)
+    while True:
+        sb.lcd_write(f"SquishBox {__version__}".ljust(COLS), row=0)
+        match sb.menu_choose([*scripts,
+                              "LCD Settings",
+                              "Wifi Settings",
+                              "Quit"
+                             ], row=1, timeout=0)[1]:
+            case "LCD Settings":
+                sb.menu_lcdsettings()
+            case "Wifi Settings":
+                sb.menu_wifisettings()
+            case "Quit":
+                match sb.menu_choose(["Shutdown", "Reboot"])[1]:
+                    case "Shutdown":
+                        sb.lcd_clear()
+                        sb.lcd_write("Shutting down..", row=0)
+                        sb.lcd_write("Wait 15s, unplug", row=0)
+                        sb.shell_cmd("sudo poweroff")
+                        sys.exit()
+                    case "Reboot":
+                        sb.lcd_clear()
+                        sb.lcd_write("Rebooting")
+                        sb.shell_cmd("sudo reboot")
+                        sys.exit()
+            case script if script != '':
+                sb.lcd_write(script.ljust(COLS), row=0)
+                sb.lcd_write("starting ".rjust(COLS), row=1)
+                sb.progresswheel_start()
+                time.sleep(3)
+                sb.progresswheel_stop()
+                # remove any non-squishbox binds for the app
+                sb['leftbutton'].clear_binds()
+                sb['rightbutton'].clear_binds()
+                
+                script = import_module(script + '.py')
+                script.run(sb)
 
-    def effects_menu(self):
-        """FluidSynth effects setting menu"""
-        i=0
-        fxmenu_info = (
-            # Name             fluidsetting              min    max   inc   format
-            ('Reverb Size',   'synth.reverb.room-size',  0.0,   1.0,  0.1, '4.1f'),
-            ('Reverb Damp',   'synth.reverb.damp',       0.0,   1.0,  0.1, '4.1f'),
-            ('Rev. Width',    'synth.reverb.width',      0.0, 100.0,  0.5, '5.1f'),
-            ('Rev. Level',    'synth.reverb.level',     0.00,  1.00, 0.01, '5.2f'),
-            ('Chorus Voices', 'synth.chorus.nr',           0,    99,    1, '2d'),
-            ('Chor. Level',   'synth.chorus.level',      0.0,  10.0,  0.1, '4.1f'),
-            ('Chor. Speed',   'synth.chorus.speed',      0.1,  21.0,  0.1, '4.1f'),
-            ('Chorus Depth',  'synth.chorus.depth',      0.3,   5.0,  0.1, '3.1f'),
-            ('Gain',          'synth.gain',              0.0,   5.0,  0.1, '11.1f'))
-        vals = [fp.fluidsetting_get(info[1]) for info in fxmenu_info]
-        fxopts = [fxmenu_info[i][0] + ':' + format(vals[i], fxmenu_info[i][5]) for i in range(len(fxmenu_info))]
-        while True:
-            sb.lcd_write("Effects:", 0, mode='ljust')
-            i = sb.choose_opt(fxopts, 1, i)
-            if i < 0:
-                break
-            sb.lcd_write(fxopts[i], 0, mode='ljust')
-            newval = sb.choose_val(vals[i], *fxmenu_info[i][2:], func=lambda x: fp.fluidsetting_set(fxmenu_info[i][1], x))
-            if newval != None:
-                fp.fluidsetting_set(fxmenu_info[i][1], newval, patch=self.pno)
-                vals[i] = newval
-                fxopts[i] = fxmenu_info[i][0] + ':' + format(newval, fxmenu_info[i][5])
-            else:
-                fp.fluidsetting_set(fxmenu_info[i][1], vals[i])
-
-    def system_menu(self):
-        """System functions and settings menu"""
-        sb.lcd_write("System Menu:", 0, mode='ljust')
-        k = sb.choose_opt(['Power Down', 'MIDI Devices', 'Wifi Settings', 'USB File Copy'], row=1)
-        if k == 0:
-            sb.lcd_write("Shutting down..", 0, mode='ljust')
-            sb.lcd_write("Wait 15s, unplug", 1, mode='ljust', now=True)
-            sb.shell_cmd("sudo poweroff")
-            sys.exit()
-        elif k == 1:
-            self.midi_devices()
-        elif k == 2:
-            sb.wifi_settings()
-        elif k == 3:
-            self.usb_filecopy()
-
-    def midi_devices(self):
-        """Menu for connecting MIDI devices and monitoring"""
-        sb.lcd_write("MIDI Devices:", 0, mode='ljust')
-        readable = re.findall(" (\d+): '([^\n]*)'", sb.shell_cmd("aconnect -i"))
-        rports, rnames = list(zip(*readable))
-        p = sb.choose_opt([*rnames, "MIDI monitor.."], row=1, mode='scroll', timeout=-1)
-        if p < 0: return
-        if 0 <= p < len(rports):
-            sb.lcd_write("Connect to:", 0, mode='ljust')
-            writable = re.findall(" (\d+): '([^\n]*)'", sb.shell_cmd("aconnect -o"))
-            wports, wnames = list(zip(*writable))
-            op = sb.choose_opt(wnames, row=1, mode='scroll', timeout=-1)
-            if op < 0: return
-            if 'midiconnections' not in fp.cfg: fp.cfg['midiconnections'] = []
-            fp.cfg['midiconnections'].append({rnames[p]: re.sub('(FLUID Synth) \(.*', '\\1', wnames[op])})
-            fp.update_config()
-            try: sb.shell_cmd(f"aconnect {rports[p]} {wports[op]}")
-            except subprocess.CalledProcessError: pass
-        elif p == len(rports):
-            sb.lcd_clear()
-            sb.lcd_write("MIDI monitor:", 0, mode='ljust')
-            msg = self.lastsig
-            while not sb.waitfortap(0.1):
-                if self.lastsig == msg or self.lastsig == None: continue
-                msg = self.lastsig
-                if msg.type not in ('note', 'noteoff', 'cc', 'kpress', 'prog', 'pbend', 'cpress'): continue
-                t = ('note', 'noteoff', 'cc', 'kpress', 'prog', 'pbend', 'cpress').index(msg.type)
-                x = ("note", "noff", "  cc", "keyp", " prog", "pbend", "press")[t]
-                if t < 4:
-                    sb.lcd_write(f"ch{msg.chan:<3}{x}{msg.par1:3}={msg.par2:<3}", 1)
-                else:
-                    sb.lcd_write(f"ch{msg.chan:<3}{x}={msg.par1:<5}", 1)
-
-    @staticmethod
-    def midi_connect():
-        """Make MIDI connections as enumerated in config"""
-        devs = {client: port for port, client in re.findall(" (\d+): '([^\n]*)'", sb.shell_cmd("aconnect -io"))}
-        for link in fp.cfg.get('midiconnections', []):
-            mfrom, mto = list(link.items())[0]
-            for client in devs:
-                if re.search(mfrom.split(':')[0], client):
-                    mfrom = re.sub(mfrom.split(':')[0], devs[client], mfrom, count=1)
-                if re.search(mto.split(':')[0], client):
-                    mto = re.sub(mto.split(':')[0], devs[client], mto, count=1)
-            try: sb.shell_cmd(f"aconnect {mfrom} {mto}")
-            except subprocess.CalledProcessError: pass 
-
-    @staticmethod
-    def usb_filecopy():
-        """Menu for bulk copying files to/from USB drive"""
-        sb.lcd_clear()
-        sb.lcd_write("USB File Copy:", 0, mode='ljust')
-        usb = re.search('/dev/sd[a-z]\d*', sb.shell_cmd("sudo blkid"))
-        if not usb:
-            sb.lcd_write("USB not found", 1, mode='ljust')
-            sb.waitfortap(2)
-            return
-        opts = ['USB -> SquishBox', 'SquishBox -> USB', 'Sync with USB']
-        j = sb.choose_opt(opts, row=1)
-        if j < 0: return
-        sb.lcd_write(opts[j], row=0, mode='ljust')
-        sb.lcd_write("copying files ", 1, mode='rjust', now=True)
-        sb.progresswheel_start()
-        try:
-            sb.shell_cmd("sudo mkdir -p /mnt/usbdrv")
-            sb.shell_cmd(f"sudo mount -o owner,fmask=0000,dmask=0000 {usb[0]} /mnt/usbdrv/")
-            if j == 0:
-                sb.shell_cmd("rsync -rtL /mnt/usbdrv/SquishBox/ SquishBox/")
-            elif j == 1:
-                sb.shell_cmd("rsync -rtL SquishBox/ /mnt/usbdrv/SquishBox/")
-            elif j == 2:
-                sb.shell_cmd("rsync -rtLu /mnt/usbdrv/SquishBox/ SquishBox/")
-                sb.shell_cmd("rsync -rtLu SquishBox/ /mnt/usbdrv/SquishBox/")
-            sb.shell_cmd("sudo umount /mnt/usbdrv")
-        except Exception as e:
-            sb.progresswheel_stop()
-            sb.display_error(e, "halted - errors: ")
-        else:
-            sb.progresswheel_stop()
-
-    @staticmethod
-    def add_midicontrols():
-        """creates rules for controlling the interface with MIDI"""
-        if MIDI_DEC != None:
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_DEC, par2='1-127', event=DEC)
-        if MIDI_INC != None:
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_INC, par2='1-127', event=INC)
-        if MIDI_PATCH != None:
-            selectspec =  f"0-127=1-{min(len(fp.patches), 128)}"
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_PATCH, par2=selectspec, patch='select')
-        if MIDI_SELECT != None:
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_SELECT, par2='1-127', event=SELECT)
-        if MIDI_ESCAPE != None:
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_ESCAPE, par2='1-127', event=ESCAPE)
-        if MIDI_SHUTDOWN != None:
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_SHUTDOWN, shutdown=1)
-        else:
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_DEC, shutdown=1)
-            fp.add_router_rule(type='cc', chan=MIDI_CTRL, par1=MIDI_INC, shutdown=1)
-
+                # reset non-squishbox binds for this app
+                sb['leftbutton'].bind('down', left_down)
+                sb['rightbutton'].bind('down', right_down)
+                sb['rightbutton'].bind('up', right_up)
 
 if __name__ == "__main__":
+    """squishbox shell
+    pick script to run (and whether to run it automatically)
+    settings menu
+      shutdown/reboot
+      wifi
+      lcd backlight/contrast
+      midi connections
+      alsamixer volume
 
-    import os
+    other scripts
+    fluidpatcher classic
+    fluidpatcher with layer control
+    fluidpatcher basic (soundfont browser - maybe can create as a bank file instead?)
+    audio player
+    LCD fun - character browsing/creating
+    text editor
+    command shell
+    """
 
-    from fluidpatcher import FluidPatcher
-    
-    os.umask(0o002)
     sb = SquishBox()
-    sb.lcd_clear()
-    try: fp = FluidPatcher("SquishBox/fluidpatcherconf.yaml")
-    except Exception as e:
-        sb.display_error(e, "bad config file: ")
-    else:
-        mainapp = FluidBox()
-        mainapp.midi_connect()
-        mainapp.load_bank(fp.currentbank)
-        while not fp.currentbank:
-            mainapp.load_bank()
-        while True:
-            mainapp.patchmode()
+    sb['knob1'] = SquishBoxRotEnc(ROT_L, ROT_R)
+    sb['knob1button'] = SquishBoxButton(ROT_BTN)
+    sb['leftbutton'] = SquishBoxButton(BTN_L)
+    sb['rightbutton'] = SquishBoxButton(BTN_R)
+    sb['leftled'] = SquishBoxOutput(LED_L)
+    sb['rightled'] = SquishBoxOutput(LED_R)
+
+    run(sb)
+
