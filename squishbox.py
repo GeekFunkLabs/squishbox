@@ -27,57 +27,24 @@ import traceback
 import gpiod
 import yaml
 
-""" SquishBox P1 pinout
-1  5V
-2  3.3V
-3  GPIO4
-4  1k - GND
-5  GPIO2 I2C SDA
-6  GPIO3 I2C SCL
-7  1k - GND
-8  GPIO23
-9  GPIO24
-10 GPIO10
-11 GPIO25
-12 GPIO9
-13 GPIO11
-14 GND
-"""
-
-# user-adjustable settings
+# hardware-related settings
 LCD_RS = 7; LCD_EN = 16; LCD_DATA = 26, 6, 5, 8  # LCD pins
-ROT_L = 22; ROT_R = 27; ROT_BTN = 17             # rotary encoder R/L pins + button
-CONTRAST = 12; BACKLIGHT = 13                    # contrast and backlight PWM pins
-PULL_UP = True                         # bias for inputs
-ACTIVE_HIGH = True                               # active level for outputs
-
-BTN_L = 9; BTN_R = 11                            # pushbutton pins
-LED_L = 4; LED_R = 23                            # led pins
 COLS, ROWS = 16, 2                               # LCD display size
+BACK_PIN = 13; BACKLIGHT = 100                   # backlight PWM pin and initial value
+CONT_PIN = 12; CONTRAST = 100                    # contrast PWM pin and initial value
+ROT_L = 22; ROT_R = 27; ROT_BTN = 17             # rotary encoder R/L pins + button
+PULL_UP = True                                   # bias for inputs
+ACTIVE_HIGH = True                               # active level for outputs
+GPIO_CHIP = '/dev/gpiochip4'                     # path to gpio character device
+SCRIPTS = Path('')                               # location for squishbox scripts
+# UI settings
+HOLD_TIME = 1.0                                  # button hold time
 SCROLL_TIME = 0.4; SCROLL_PAUSE = 4              # scrolling text options
-HOLD_TIME = 1.0; MENU_TIMEOUT = 5.0              # menu timimng options
+MENU_TIMEOUT = 5.0                               # menu timeout delay
 BLINK_TIME = 0.1                                 # default text blink time
 POLL_TIME = 0.01                                 # default button polling interval
 BOUNCE_TIME = 0.02                               # button debounce time
 EXEC_TIME = 50e-6                                # increase if LCD displays garbage
-SCRIPTS = Path('')
-CHIP_PATH = '/dev/gpiochip4'
-
-FNGLYPHS = """abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_./!""" + chr(0) + chr(1) + ' '
-
-# search for config file
-cfg = {}
-cfgfile = [*sys.argv, ''][1] or 'squishboxconf.yaml'
-for d in (Path(cfgfile).parent,
-          Path('.'),
-          Path('./config'),
-          Path.home() / '.config'):
-    if (d / cfgfile).exists():
-        cfg = yaml.safe_load((d / cfgfile).read_text())
-        break
-if cfg:
-    for var, val in cfg['globals'].items():
-        globals()[var] = val
 
 
 class _SquishBoxControl:
@@ -105,7 +72,7 @@ class SquishBoxButton(_SquishBoxControl):
         else:
             bias = gpiod.line.Bias.PULL_DOWN
         line = gpiod.request_lines(
-            CHIP_PATH,
+            GPIO_CHIP,
             consumer="squishbox",
             config={
                 pin: gpiod.LineSettings(
@@ -155,7 +122,7 @@ class SquishBoxRotEnc(_SquishBoxControl):
         else:
             bias = gpiod.line.Bias.PULL_DOWN
         lines = gpiod.request_lines(
-            CHIP_PATH,
+            GPIO_CHIP,
             consumer="squishbox",
             config={
                 (pin1, pin2): gpiod.LineSettings(
@@ -197,7 +164,7 @@ class SquishBoxOutput:
         else:
             val = gpiod.line.Value.INACTIVE
         self._line = gpiod.request_lines(
-            CHIP_PATH,
+            GPIO_CHIP,
             consumer="squishbox",
             config={
                 pin: gpiod.LineSettings(
@@ -220,7 +187,7 @@ class SquishBoxPWM:
         self.freq = freq
         self.level = level
         self._line = gpiod.request_lines(
-            CHIP_PATH,
+            GPIO_CHIP,
             consumer="squishbox",
             config={
                 pin: gpiod.LineSettings(
@@ -257,11 +224,10 @@ class SquishBox:
         """
         self._actions = []
         self._buffered = False
-        self._controls = {}
         self._wifienabled = self.shell_cmd("nmcli radio wifi") == 'enabled'
         # set up LCD GPIO
         self._lines = gpiod.request_lines(
-            CHIP_PATH,
+            GPIO_CHIP,
             consumer="squishbox",
             config={
                 (LCD_RS, LCD_EN, *LCD_DATA):
@@ -272,48 +238,23 @@ class SquishBox:
         for val in (0x33, 0x32, 0x28, 0x0c, 0x06):
             self._lcd_send(val)
         self.lcd_clear()
-        self.backlight = SquishBoxPWM(BACKLIGHT, level=100)
-        self.contrast = SquishBoxPWM(CONTRAST, level=0)
+        self.backlight = SquishBoxPWM(BACK_PIN, level=BACKLIGHT)
+        self.contrast = SquishBoxPWM(CONT_PIN, level=CONTRAST)
         self.define_custom_glyphs()
-        sys.excepthook = lambda t, e, tb: self.display_error(e, t, tb)
+        sys.excepthook = lambda t, e, tb: self.display_error(e, etype=t, tb=tb)
+        # add encoder/pushbutton controls
+        self.knob1 = SquishBoxRotEnc(ROT_L, ROT_R)
+        self.button1 = SquishBoxButton(ROT_BTN)
 
-    def __setitem__(self, item, val):
-        self._controls[item] = val
-        
-    def __getitem__(self, item):
-        return self._controls[item]
-        
-    def __delitem__(self, item):
-        del self._controls[item]
-
-    def lcd_clear(self, rows=[]):
-        """Clear the LCD
-        
-        self._layers:
-        0 - scrolled text
-        1 - static text
-        2 - blinking text
-        3 - scroll buffer
-        4 - LCD contents
-        
-        Args:
-          rows: list of rows to clear, empty list clears everything
-        """
-        if not self._buffered and not rows:
-            self._lcd_send(0x01)
-            self._lcd_setcursorpos(0, 0)
-            time.sleep(40 * EXEC_TIME)
-            self._layers = [[[""] * COLS for _ in range(ROWS)] for _ in range(5)]
-            self._blinktimer = [[0] * COLS for _ in range(ROWS)]
-            self._scrollpos = [0] * ROWS
-            self._scrolltimer = time.time()
-        else:
-            for r in rows if rows else range(ROWS):
-                self._lcd_putchars([" "] * COLS, r, 0)
-                for i in range(4):
-                    self._layers[i][r] = [""] * COLS
-                self._blinktimer = [[0] * COLS for _ in range(ROWS)]
-                self._scrollpos[r] = 0
+    def lcd_clear(self):
+        """Clear the LCD, initialize layers"""
+        self._lcd_send(0x01)
+        self._lcd_setcursorpos(0, 0)
+        time.sleep(40 * EXEC_TIME)
+        self._layers = [[[""] * COLS for _ in range(ROWS)] for _ in range(5)]
+        self._blinktimer = [[0] * COLS for _ in range(ROWS)]
+        self._scrollpos = [0] * ROWS
+        self._scrolltimer = time.time()
 
     def lcd_write(self, text, row, col=0, align=''):
         """Writes text to the LCD
@@ -329,6 +270,8 @@ class SquishBox:
         """
         if len(text) > COLS:
             self._layers[3][row] = list(text)
+            self._layers[2][row] = [""] * COLS
+            self._layers[1][row] = [""] * COLS
             if align == 'right':
                 self._scrollpos[row] = len(text) - COLS
             else:
@@ -336,11 +279,14 @@ class SquishBox:
         else:
             if align == 'left':
                 self._layers[1][row][:len(text)] = list(text)
+                self._layers[2][row][:len(text)] = [""] * len(text)
             elif align == 'right':
                 self._layers[1][row][COLS - len(text):] = list(text)
+                self._layers[2][row][COLS - len(text):] = [""] * len(text)
             else:
                 n = min(len(text), COLS - col)
                 self._layers[1][row][col:col + n] = list(text[:n])
+                self._layers[2][row][col:col + n] = [""] * n
         if not self._buffered:
             self.update_lcd()
 
@@ -378,8 +324,15 @@ class SquishBox:
         """Updates the LCD
         
         User shouldn't need to call this - it is already called
-        in the menu_* functions. May be helpful if designing custom
-        menus or displays
+        by get_action, which is called in all the menu_* functions.
+        May be helpful if designing custom menus or displays
+        
+        self._layers:
+        0 - scrolled text
+        1 - static text
+        2 - blinking text
+        3 - scroll buffer
+        4 - LCD contents
         """
         t = time.time()
         for row in range(ROWS):
@@ -397,11 +350,9 @@ class SquishBox:
                         self._layers[2][row][col] = ""
             chars = [""] * COLS
             for i in range(3):
-#                print(self._layers[i][row])
                 for col in range(COLS):
                     if self._layers[i][row][col] != "":
                         chars[col] = self._layers[i][row][col]
-#            print()
             self._lcd_putchars(chars, row, 0)
         if t > self._scrolltimer:
             self._scrolltimer += SCROLL_TIME
@@ -424,8 +375,10 @@ class SquishBox:
         """
         i = i % len(opts)
         while True:
-            self.lcd_clear([row])
-            self.lcd_write(opts[i], row, align=align)
+            if align == 'left':
+                self.lcd_write(opts[i].ljust(COLS), row)
+            else:
+                self.lcd_write(opts[i].rjust(COLS), row)
             match self.get_action(timeout=timeout):
                 case 'inc' if wrap:
                     i = (i + 1) % len(opts)
@@ -442,12 +395,14 @@ class SquishBox:
                 case 'do':
                     text = list(self._layers[4][row])
                     for _ in range(3):
-                        self._lcd_putchars([" "] * COLS, row, 0)
+                        self.lcd_write(" " * COLS, row)
                         time.sleep(BLINK_TIME)
-                        self._lcd_putchars(text, row, 0)
+                        self.lcd_write(text, row)
                         time.sleep(BLINK_TIME)
+                    self.lcd_write(" " * COLS, row)
                     return i, opts[i]
                 case _:
+                    self.lcd_write(" " * COLS, row)
                     return -1, ''
 
     def menu_confirm(self, text='', row=ROWS-1, timeout=MENU_TIMEOUT):
@@ -460,26 +415,27 @@ class SquishBox:
 
         Returns: True if check is selected, else False
         """
-        self.lcd_write(f"{text:COLS + 1}", row)
+        self.lcd_write((text + " ").ljust(COLS), row)
         c = 1
         while True:
             self.lcd_write([self.XMARK, self.CHECK][c], row, COLS - 1)
             match self.get_action(timeout=timeout):
                 case 'inc' | 'dec':
                     c ^= 1
-                case 'do':
-                    if c:
-                        for _ in range(3):
-                            self._lcd_putchars(" ", row, COLS - 1)
-                            time.sleep(BLINK_TIME)
-                            self._lcd_putchars(self.CHECK, row, COLS - 1)
-                            time.sleep(BLINK_TIME)
-                    return bool(c)
+                case 'do' if c:
+                    for _ in range(3):
+                        self.lcd_write(" ", row, COLS - 1)
+                        time.sleep(BLINK_TIME)
+                        self.lcd_write(self.CHECK, row, COLS - 1)
+                        time.sleep(BLINK_TIME)
+                    self.lcd_write(" "  * COLS, row)
+                    return True
                 case _:
+                    self.lcd_write(" "  * COLS, row)
                     return False
 
     def menu_entertext(self, text=' ', row=ROWS-1, i=-1,
-                   timeout=MENU_TIMEOUT, charset=FNGLYPHS):
+                   timeout=MENU_TIMEOUT, charset=""):
         """Allows user to enter text with a rotary encoder and button
 
         There are two cursor modes, which are toggled using SELECT. The
@@ -496,14 +452,17 @@ class SquishBox:
 
         Returns: the edited string, or empty string if canceled
         """
-        text = list(text)
+        if charset == "":
+            charset = self.FNGLYPHS
         i %= len(text)
+        text = list(text.ljust(COLS))
         c = charset.find(text[i])
         mode = 'blink'
         self._lcd_setcursormode(mode)
         while True:
             if mode == 'blink':
-                self.lcd_write(text[max(0, i + 1 - COLS):max(COLS, i + 1)], row)
+                w = text[max(0, i + 1 - COLS):max(COLS, i + 1)]
+                self.lcd_write(w, row)
             else:
                 self.lcd_write(charset[c], row, min(i, COLS - 1))
             self._lcd_setcursorpos(row, min(i, COLS - 1))
@@ -535,7 +494,7 @@ class SquishBox:
                     else:
                         return ''
 
-    def menu_choosefile(self, topdir, startfile='', ext=None, row=ROWS-2):
+    def menu_choosefile(self, topdir, startfile='', ext=None, row=ROWS - 2):
         """Browse and select a file on the system
         
         Finds files of a specified type on the file system and lets the
@@ -566,31 +525,41 @@ class SquishBox:
             i = files.index(startfile) if startfile in files else 0
             i = self.menu_choose(names, row + 1, i, timeout=0)[0]
             if i == -1:
+                self.lcd_write(" "  * COLS, row)
                 return
             file = files[i]
             if file.is_dir():
                 startfile = curdir
                 curdir = file
             else:
+                self.lcd_write(" "  * COLS, row)
                 return file
 
-    def menu_lcdsettings(self):
+    def menu_lcdsettings(self, row=ROWS - 2):
         """Menu for setting backlight and contrast levels"""
         d = 10
         slider = [chr(255) * int(i * COLS / 100) for i in range(0, 101, d)]
         while True:
-            self.lcd_write("Contrast".ljust(COLS), ROWS - 2)
+            self.lcd_write("Contrast".ljust(COLS), row)
             ival = int(self.contrast.level / d)
-            if self.menu_choose(slider, ROWS - 1, align='left', i=ival, wrap=False,
+            if self.menu_choose(slider, row + 1, align='left', i=ival, wrap=False,
                     func=lambda i: setattr(self.contrast, 'level', i * d)
                     )[0] == -1:
-                return
-            self.lcd_write("Brightness".ljust(COLS), ROWS - 2)
+                break
+            self.lcd_write("Brightness".ljust(COLS), row)
             ival = int(self.backlight.level / d)
-            if self.menu_choose(slider, ROWS - 1, align='left', i=ival, wrap=False,
+            if self.menu_choose(slider, row + 1, align='left', i=ival, wrap=False,
                     func=lambda i: setattr(self.backlight, 'level', i * d)
                     )[0] == -1:
-                return
+                break
+        self.lcd_write(" "  * COLS, row)
+        if squishbox_cfgpath != None:
+            if 'globals' not in squishbox_cfg:
+                squishbox_cfg['globals'] = {}
+            squishbox_cfg['globals']['CONTRAST'] = self.contrast.level
+            squishbox_cfg['globals']['BACKLIGHT'] = self.backlight.level
+            squishbox_cfgpath.write_text(yaml.safe_dump(squishbox_cfg))
+            
 
     @property
     def wifienabled(self):
@@ -599,12 +568,12 @@ class SquishBox:
     @wifienabled.setter
     def wifienabled(self, enable):
         if enable:
-            self.shell_cmd("sudo nmcli radio wifi enabled")
+            self.shell_cmd("sudo nmcli radio wifi on")
         else:
-            self.shell_cmd("sudo nmcli radio wifi disabled")
+            self.shell_cmd("sudo nmcli radio wifi off")
         self._wifienabled = self.shell_cmd("nmcli radio wifi") == 'enabled'
 
-    def menu_wifisettings(self):
+    def menu_wifisettings(self, row=ROWS - 2):
         """Displays a wifi settings menu
         
         A series of menus that provides a unified interface for
@@ -613,69 +582,68 @@ class SquishBox:
         enter passwords. Uses NetworkManager's 'nmcli' command
         to control system-wide network settings.
         """
+        self._wifienabled = self.shell_cmd("nmcli radio wifi") == 'enabled'
+        nw = self.shell_cmd("nmcli -g IN-USE,SSID dev wifi").splitlines()
         while True:
-            self.lcd_clear()
             # show connection status on first line
-            if ip := sb.shell_cmd("hostname -I"):
-                self.lcd_write(f"Connected as {ip}", ROWS - 2, align='right')
+            if ip := self.shell_cmd("hostname -I").strip():
+                self.lcd_write(f"Connected as {ip}".ljust(COLS), row, align='right')
             else:
-                self.lcd_write("Not connected".ljust(ROWS), ROWS - 2)
-            # check that wifi adapter is actually enabled
-            self._wifienabled = self.shell_cmd("nmcli radio wifi") == 'enabled'
-            if not self.wifienabled:
-                if self.menu_choose(["Enable WiFi"], row=ROWS - 1)[0] == 0:
-                    self.wifienabled = True
-                return
-            else:
-                # show list of networks
-                nw = sb.shell_cmd("nmcli -g IN-USE,SSID dev wifi").splitlines()
+                self.lcd_write("Not connected".ljust(COLS), row)
+            if self.wifienabled:
                 ssid = [x[0].replace('*', self.CHECK) + x[2:] for x in nw if x[2:]]
                 opts = ssid + ["Scan", "Disable WiFi"]
                 i = max(''.join(s[0] for s in ssid).find(self.CHECK), 0)
-                match self.menu_choose(opts, ROWS - 1, i, timeout=0)[1]:
+                match self.menu_choose(opts, row + 1, i, timeout=0)[1]:
                     case '':
-                        return
-                    case "Disable WiFi":
-                        self.wifienabled = False
+                        self.lcd_write(" " * COLS, row)
                         return
                     case "Scan":
-                        pass
-                    case ssid if ssid[0] == self.CHECK:
-                        self.lcd_write(opts[j][1:COLS + 1], ROWS - 2)
-                        self.lcd_write("disconnecting ", ROWS - 1, align='right')
+                        self.lcd_write("scanning ".rjust(COLS), row + 1)
                         self.progresswheel_start()
-                        sb.shell_cmd(f"sudo nmcli con down {opts[j][1:]}")
+                        nw = self.shell_cmd("sudo nmcli -g IN-USE,SSID dev wifi").splitlines()
+                        self.progresswheel_stop()
+                    case "Disable WiFi":
+                        self.wifienabled = False
+                        self.lcd_write(" " * COLS, row)
+                        return
+                    case ssid if ssid[0] == self.CHECK:
+                        self.lcd_write(ssid[1:COLS + 1].ljust(COLS), row)
+                        self.lcd_write("disconnecting ".rjust(COLS), row + 1)
+                        self.progresswheel_start()
+                        self.shell_cmd(f"sudo nmcli con down {ssid[1:]}")
                         self.progresswheel_stop()
                     case ssid:
-                        self.lcd_write(opts[j][1:COLS + 1], ROWS - 2)
-                        self.lcd_write("connecting ", ROWS - 1, align='right')
+                        self.lcd_write(ssid[1:COLS + 1].ljust(COLS), row)
+                        self.lcd_write("connecting ".rjust(COLS), row + 1)
                         self.progresswheel_start()
                         try:
-                            x = sb.shell_cmd(f"sudo nmcli con up {opts[j][1:]}")
+                            self.shell_cmd(f"sudo nmcli con up {ssid[1:]}")
                         except subprocess.CalledProcessError:
-                            x = -1                        
-                        self.progresswheel_stop()
-                        if x == -1:
-                            # get password from user
-                            self.lcd_write("Password:", ROWS - 2)
-                            psk = self.menu_entertext(charset = USCHARS)
-                            if psk == '':
+                            self.progresswheel_stop()
+                            self.lcd_write("Password:".ljust(COLS), row)
+                            if not (psk := self.menu_entertext(charset=self.GLYPHS, timeout=0)):
                                 continue
-                            self.lcd_write("connecting ", ROWS - 1, align='right')
+                            self.lcd_write(ssid[1:COLS + 1].ljust(COLS), row)
+                            self.lcd_write("connecting ".rjust(COLS), row + 1)
                             self.progresswheel_start()
                             try:
-                                x = sb.shell_cmd(f"sudo nmcli dev wifi connect {opts[j][1:]} password {psk}")
+                                cmd = ["sudo", "nmcli", "dev", "wifi", "connect"]
+                                self.shell_cmd([*cmd, ssid[1:], 'password', psk], shell=False)
                             except subprocess.CalledProcessError:
-                                x = -1
+                                self.progresswheel_stop()
+                                self.lcd_write("connection fail".rjust(COLS), row + 1)
+                                self.get_action(timeout=MENU_TIMEOUT)
+                            else:
+                                self.progresswheel_stop()
+                        else:
                             self.progresswheel_stop()
-                        if x == -1:
-                            self.lcd_write("connection fail", ROWS - 1, align='right')
-                            self.get_action(timeout=MENU_TIMEOUT)
-            # scan for new networks and repeat the loop
-            self.lcd_write("scanning ", ROWS - 1, align='right')
-            self.progresswheel_start()
-            sb.shell_cmd("sudo nmcli -g IN-USE,SSID dev wifi")
-            self.progresswheel_stop()
+            else:
+                if self.menu_choose(["Enable WiFi"], row + 1)[0] == 0:
+                    self.wifienabled = True
+                else:
+                    self.lcd_write(" " * COLS, row)
+                    return
 
     def progresswheel_start(self):
         """Shows an animation while another process runs
@@ -693,7 +661,7 @@ class SquishBox:
         self._spinning = False
         self._spin.join()
 
-    def display_error(self, err, msg="", etype=None, tb=None):
+    def display_error(self, err, msg="", etype=None, tb=None, row=ROWS - 1):
         """Displays Exception text on the LCD
         
         Reformats the text of an Exception so it can be displayed on one
@@ -706,16 +674,18 @@ class SquishBox:
         """
         if etype == KeyboardInterrupt:
             sys.exit()
+        # remove newlines + carets and compress spaces
         err_oneline = msg + re.sub(' {2,}', ' ', re.sub('\n|\^', ' ', str(err)))
         for glyph, char in self.GLYPH2CHAR:
             err_oneline.replace(char, glyph)
-        self.lcd_write(err_oneline, ROWS - 1)
+        self.lcd_write(err_oneline, row)
         if msg: print(msg)
         if tb:
             traceback.print_exception(etype, err, tb)
         else:
             print(err)
         self.get_action()
+        self.lcd_write(" " * COLS, row)
 
     def action_inc(self):
         """Bind target - increment a value/choice
@@ -862,7 +832,7 @@ class SquishBox:
         self.GLYPH2CHAR = ((self.BACKSLASH, '\\'), (self.TILDE, '~'))
 
     @staticmethod
-    def shell_cmd(cmd, **kwargs):
+    def shell_cmd(cmd, shell=True, **kwargs):
         """Executes a shell command and returns the output
         
         Uses subprocess.run to execute a shell command and returns the output
@@ -875,18 +845,18 @@ class SquishBox:
 
         Returns: the stripped ascii STDOUT of the command
         """
-        return subprocess.run(cmd, check=True, stdout=subprocess.PIPE, shell=True,
+        return subprocess.run(cmd, check=True, stdout=subprocess.PIPE, shell=shell,
                               encoding='ascii', **kwargs).stdout.rstrip('\n')
 
     def _progresswheel_spin(self):
         c = self._layers[4][ROWS - 1][COLS - 1]
-        while True:
-            for s in self.BACKSLASH + '|/-':
-                self._lcd_putchars(s, ROWS - 1, COLS - 1)
-                if not self._spinning:
-                    self._lcd_putchars(c, ROWS - 1, COLS - 1)
-                    return
-                time.sleep(BLINK_TIME)
+        i = 0
+        while self._spinning:
+            s = (self.BACKSLASH + '|/-')[i]
+            self._lcd_putchars(s, ROWS - 1, COLS - 1)
+            time.sleep(BLINK_TIME)
+            i = (i + 1) % 4
+        self._lcd_putchars(c, ROWS - 1, COLS - 1)
 
     def _lcd_putchars(self, chars, row, col):
         lastcol = -2
@@ -930,85 +900,25 @@ class SquishBox:
             time.sleep(EXEC_TIME)
             self._lines.set_value(LCD_EN, gpiod.line.Value.INACTIVE)
 
-def run(sb):
-    from importlib import import_module
 
-    sys.path.append(str(SCRIPTS))
-    scripts = []
-    for p in SCRIPTS.iterdir():
-        if p.suffix == '.py' and p.name != 'squishbox.py':
-            scripts.append(p.name)
-        elif p.is_dir() and (p / '__init__.py').exists():
-            scripts.append(p.name)
+# search for config file
+squishbox_cfg = {}
+cfgfile = [*sys.argv, ''][1] or 'squishboxconf.yaml'
+for d in (Path(cfgfile).parent,
+          Path('.'),
+          Path('./config'),
+          Path.home() / '.config'):
+    squishbox_cfgpath = d / cfgfile
+          
+    if squishbox_cfgpath.exists():
+        squishbox_cfg = yaml.safe_load(squishbox_cfgpath.read_text())
+        break
 
-    sb['knob1'].bind('left', sb.action_dec)
-    sb['knob1'].bind('right', sb.action_inc)
-    sb['knob1button'].bind('tap', sb.action_do)
-    sb['knob1button'].bind('hold', sb.action_back)
+if 'globals' in squishbox_cfg:
+    for var, val in squishbox_cfg['globals'].items():
+        globals()[var] = val
 
-    STATES = {'leftled': False, 'rightled': False}
-    
-    def left_down():
-        if STATES['leftled']:
-            STATES['leftled'] = False
-            sb['leftled'].state = not ACTIVE
-        else:
-            STATES['leftled'] = True
-            sb['leftled'].state = ACTIVE
-
-    def right_down():
-        self.STATES['rightled'] = True
-        sb['rightled'].state = ACTIVE
-
-    def right_up():
-        self.STATES['rightled'] = False
-        sb['rightled'].state = not ACTIVE
-
-    sb['leftbutton'].bind('down', left_down)
-    sb['rightbutton'].bind('down', right_down)
-    sb['rightbutton'].bind('up', right_up)
-
-    while True:
-        sb.lcd_write(f"SquishBox {__version__}".ljust(COLS), row=0)
-        match sb.menu_choose([*scripts,
-                              "LCD Settings",
-                              "Wifi Settings",
-                              "Quit"
-                             ], row=1, timeout=0)[1]:
-            case "LCD Settings":
-                sb.menu_lcdsettings()
-            case "Wifi Settings":
-                sb.menu_wifisettings()
-            case "Quit":
-                match sb.menu_choose(["Shutdown", "Reboot"])[1]:
-                    case "Shutdown":
-                        sb.lcd_clear()
-                        sb.lcd_write("Shutting down..", row=0)
-                        sb.lcd_write("Wait 15s, unplug", row=0)
-                        sb.shell_cmd("sudo poweroff")
-                        sys.exit()
-                    case "Reboot":
-                        sb.lcd_clear()
-                        sb.lcd_write("Rebooting")
-                        sb.shell_cmd("sudo reboot")
-                        sys.exit()
-            case script if script != '':
-                sb.lcd_write(script.ljust(COLS), row=0)
-                sb.lcd_write("starting ".rjust(COLS), row=1)
-                sb.progresswheel_start()
-                time.sleep(3)
-                sb.progresswheel_stop()
-                # remove any non-squishbox binds for the app
-                sb['leftbutton'].clear_binds()
-                sb['rightbutton'].clear_binds()
-                
-                script = import_module(script + '.py')
-                script.run(sb)
-
-                # reset non-squishbox binds for this app
-                sb['leftbutton'].bind('down', left_down)
-                sb['rightbutton'].bind('down', right_down)
-                sb['rightbutton'].bind('up', right_up)
+squishbox_hardware = SquishBox()
 
 if __name__ == "__main__":
     """squishbox shell
@@ -1029,14 +939,54 @@ if __name__ == "__main__":
     text editor
     command shell
     """
+    from importlib import import_module
 
-    sb = SquishBox()
-    sb['knob1'] = SquishBoxRotEnc(ROT_L, ROT_R)
-    sb['knob1button'] = SquishBoxButton(ROT_BTN)
-    sb['leftbutton'] = SquishBoxButton(BTN_L)
-    sb['rightbutton'] = SquishBoxButton(BTN_R)
-    sb['leftled'] = SquishBoxOutput(LED_L)
-    sb['rightled'] = SquishBoxOutput(LED_R)
+    sys.path.append(str(SCRIPTS))
+    scripts = []
+    for p in SCRIPTS.iterdir():
+        if p.suffix == '.py' and p.name != 'squishbox.py':
+            scripts.append(p.name)
+        elif p.is_dir() and (p / '__init__.py').exists():
+            scripts.append(p.name)
 
-    run(sb)
+    sb = squishbox_hardware
+
+    sb.knob1.bind('left', sb.action_dec)
+    sb.knob1.bind('right', sb.action_inc)
+    sb.button1.bind('tap', sb.action_do)
+    sb.button1.bind('hold', sb.action_back)
+
+    while True:
+        sb.lcd_write(f"SquishBox {__version__}".ljust(COLS), row=0)
+        match sb.menu_choose([*scripts,
+                              "LCD Settings",
+                              "Wifi Settings",
+                              "Quit"
+                             ], row=1, timeout=0)[1]:
+            case "LCD Settings":
+                sb.menu_lcdsettings()
+            case "Wifi Settings":
+                sb.menu_wifisettings()
+            case "Quit" | "":
+                match sb.menu_choose(["Shutdown", "Reboot"])[1]:
+                    case "Shutdown":
+                        sb.lcd_clear()
+                        sb.lcd_write("Shutting down..", row=0)
+                        sb.lcd_write("Wait 15s, unplug", row=0)
+                        sb.shell_cmd("sudo poweroff")
+                        sys.exit()
+                    case "Reboot":
+                        sb.lcd_clear()
+                        sb.lcd_write("Rebooting")
+                        sb.shell_cmd("sudo reboot")
+                        sys.exit()
+            case script:
+                sb.lcd_write(script.ljust(COLS), row=0)
+                sb.lcd_write("starting ".rjust(COLS), row=1)
+                sb.progresswheel_start()
+                time.sleep(3)
+                sb.progresswheel_stop()
+                
+                script = import_module(script + '.py')
+                script.run()
 
