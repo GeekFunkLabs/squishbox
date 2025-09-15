@@ -211,10 +211,12 @@ class SquishBoxPWM:
         while self._active:
             period = 1 / self.freq
             t_on = period * self.level / 100
-            self._line.set_value(pin, gpiod.line.Value.ACTIVE)
-            time.sleep(t_on)
-            self._line.set_value(pin, gpiod.line.Value.INACTIVE)
-            time.sleep(period - t_on)
+            if self.level > 0:
+                self._line.set_value(pin, gpiod.line.Value.ACTIVE)
+                time.sleep(t_on)
+            if self.level < 100:
+                self._line.set_value(pin, gpiod.line.Value.INACTIVE)
+                time.sleep(period - t_on)
 
 
 class SquishBox:
