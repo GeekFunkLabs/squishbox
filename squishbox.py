@@ -220,41 +220,40 @@ class SquishBoxPWM:
 
 
 class SquishBox:
-    """object representation of the SquishBox hardware
-    methods for controlling
-    - LCD
-    - buttons/inputs, 
-    also some methods for controlling RPi
-    - wifi
-    - shell commands (via subprocess)
-    """
+    """Object representation of the SquishBox hardware"""
+    _instance = None
 
-    def __init__(self):
-        """Initializes LCD, encoder, and related GPIO
-        """
-        self._actions = []
-        self._buffered = False
-        self._wifienabled = self.shell_cmd("nmcli radio wifi") == 'enabled'
-        # set up LCD GPIO
-        self._lines = gpiod.request_lines(
-            GPIO_CHIP,
-            consumer="squishbox",
-            config={
-                (LCD_RS, LCD_EN, *LCD_DATA):
-                    gpiod.LineSettings(direction=gpiod.line.Direction.OUTPUT)
-            }
-        )
-        # initialize LCD
-        for val in (0x33, 0x32, 0x28, 0x0c, 0x06):
-            self._lcd_send(val)
-        self.lcd_clear()
-        self.backlight = SquishBoxPWM(BACK_PIN, level=BACKLIGHT)
-        self.contrast = SquishBoxPWM(CONT_PIN, level=CONTRAST)
-        self.define_custom_glyphs()
-        sys.excepthook = lambda t, e, tb: self.display_error(e, etype=t, tb=tb)
-        # add encoder/pushbutton controls
-        self.knob1 = SquishBoxRotEnc(ROT_L, ROT_R)
-        self.button1 = SquishBoxButton(ROT_BTN)
+    def __new__(cls):
+        print(cls._instance)
+        if cls._instance is None:
+            cls._instance = super(SquishBox, cls).__new__(cls)
+            print(cls._instance)
+            self = cls._instance
+            """Initializes LCD, encoder, and related GPIO"""
+            self._actions = []
+            self._buffered = False
+            self._wifienabled = self.shell_cmd("nmcli radio wifi") == 'enabled'
+            # set up LCD GPIO
+            self._lines = gpiod.request_lines(
+                GPIO_CHIP,
+                consumer="squishbox",
+                config={
+                    (LCD_RS, LCD_EN, *LCD_DATA):
+                        gpiod.LineSettings(direction=gpiod.line.Direction.OUTPUT)
+                }
+            )
+            # initialize LCD
+            for val in (0x33, 0x32, 0x28, 0x0c, 0x06):
+                self._lcd_send(val)
+            self.lcd_clear()
+            self.define_custom_glyphs()
+            sys.excepthook = lambda _, e, tb: self.display_error(e, tb=tb)
+            # add encoder/pushbutton controls
+            self.knob1 = SquishBoxRotEnc(ROT_L, ROT_R)
+            self.button1 = SquishBoxButton(ROT_BTN)
+            self.backlight = SquishBoxPWM(BACK_PIN, level=BACKLIGHT)
+            self.contrast = SquishBoxPWM(CONT_PIN, level=CONTRAST)
+        return cls._instance
 
     def lcd_clear(self):
         """Clear the LCD, initialize layers"""
