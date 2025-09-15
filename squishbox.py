@@ -265,18 +265,27 @@ class SquishBox:
         self._scrollpos = [0] * ROWS
         self._scrolltimer = time.time()
 
-    def lcd_write(self, text, row, col=0, align=''):
+    def lcd_write(self, text, row, col=0, align='', timeout=0, force=True):
         """Writes text to the LCD
         
-        Writes text to the LCD starting at row, col. Text wider than
-        the LCD will be scrolled.
+        Writes text to the LCD starting at row, col.
+        Text wider than the LCD will be scrolled.
+        Specifying a timeout writes temporary text.
 
         Args:
           text: string to write
           row: the row at which to start writing
           col: the column at which to start writing
           align: place text against 'left' or 'right' edge of LCD
+          timeout: seconds to keep text
+          force: write over other timed text
         """
+# self._layers:
+# 0 - scrolled text
+# 1 - static text
+# 2 - blinking text
+# 3 - scroll buffer
+# 4 - LCD contents
         if len(text) > COLS:
             self._layers[3][row] = list(text)
             self._layers[2][row] = [""] * COLS
@@ -285,6 +294,19 @@ class SquishBox:
                 self._scrollpos[row] = len(text) - COLS
             else:
                 self._scrollpos[row] = -SCROLL_PAUSE
+        elif timeout:
+            if align == 'left':
+                text = text[:COLS]
+                col = 0
+            if align == 'right':
+                text = text[-COLS:]
+                col = COLS - len(text)
+            else:
+                text = text[:COLS - col]
+            for i, char in enumerate(text):
+                if force or self._layers[2][row][col + i] == "":
+                    self._blinktimer[row][col + i] = time.time() + timeout
+                    self._layers[2][row][col + i] = char
         else:
             if align == 'left':
                 self._layers[1][row][:len(text)] = list(text)
@@ -299,50 +321,13 @@ class SquishBox:
         if not self._buffered:
             self.update_lcd()
 
-    def lcd_blink(self, text, row, col=0, align='',
-                  delay=BLINK_TIME, override=False):
-        """Blinks a character/message on the LCD
-
-        Overwrites text on the LCD that disappears after a delay,
-        restoring what was there before. Blinked text won't
-        overwrite characters that are already blinking,
-        unless override=True
-        
-        Args:
-          text: string to write
-          row: the row at which to start writing
-          col: the column at which to start writing
-          align: place text against 'left' or 'right' edge of LCD
-          delay: seconds to wait before removing text
-          override: overwrite currently blinked characters
-        """
-        if align == 'left':
-            text = text[:COLS]
-            col = 0
-        if align == 'right':
-            text = text[-COLS:]
-            col = COLS - len(text)
-        else:
-            text = text[:COLS - col]
-        for i, char in enumerate(text):
-            if self._layers[2][row][col + i] == "" or override:
-                self._blinktimer[row][col + i] = time.time() + delay
-                self._layers[2][row][col + i] = char
-
     def update_lcd(self):
         """Updates the LCD
         
         User shouldn't need to call this - it is already called
         by get_action, which is called in all the menu_* functions.
         May be helpful if designing custom menus or displays
-        
-        self._layers:
-        0 - scrolled text
-        1 - static text
-        2 - blinking text
-        3 - scroll buffer
-        4 - LCD contents
-        """
+        """       
         t = time.time()
         for row in range(ROWS):
             if any(self._layers[3][row]):
@@ -367,7 +352,7 @@ class SquishBox:
             self._scrolltimer += SCROLL_TIME
 
     def menu_choose(self, opts, row=ROWS-1, align='right', i=0, wrap=True,
-                    timeout=MENU_TIMEOUT, func=lambda i: None):
+                    timeout=MENU_TIME, func=lambda i: None):
         """Basic LCD menu presenting a list of options
         
         Args:
@@ -402,19 +387,16 @@ class SquishBox:
                     i = max(i - 1, 0)
                     func(i)
                 case 'do':
-                    text = list(self._layers[4][row])
-#                    for _ in range(3):
-#                        self.lcd_write(" " * COLS, row)
-#                        time.sleep(BLINK_TIME)
-#                        self.lcd_write(text, row)
-#                        time.sleep(BLINK_TIME)
                     self.lcd_write(" " * COLS, row)
                     return i, opts[i]
-                case _:
+                case 'back':
                     self.lcd_write(" " * COLS, row)
                     return -1, ''
+                case action:
+                    self.lcd_write(" " * COLS, row)
+                    return -1, action
 
-    def menu_confirm(self, text='', row=ROWS-1, timeout=MENU_TIMEOUT):
+    def menu_confirm(self, text='', row=ROWS-1, timeout=MENU_TIME):
         """Offers a yes/no choice
 
         Args:
@@ -432,11 +414,6 @@ class SquishBox:
                 case 'inc' | 'dec':
                     c ^= 1
                 case 'do' if c:
-                    for _ in range(3):
-                        self.lcd_write(" ", row, COLS - 1)
-                        time.sleep(BLINK_TIME)
-                        self.lcd_write(self.CHECK, row, COLS - 1)
-                        time.sleep(BLINK_TIME)
                     self.lcd_write(" "  * COLS, row)
                     return True
                 case _:
@@ -447,9 +424,9 @@ class SquishBox:
                    timeout=0, charset=""):
         """Text entry interface
 
-	    Allows a user to enter text character-by-character. User can toggle
-	    between cursor modes - blinking square changes the cursor position,
-	    underline changes the current character.
+        Allows a user to enter text character-by-character. User can toggle
+        between cursor modes - blinking square changes the cursor position,
+        underline changes the current character.
 
         Args:
           text: the initial text to be edited
@@ -524,7 +501,7 @@ class SquishBox:
                 files.append(curdir.parent)
                 names.append("../")
             i = files.index(startfile) if startfile in files else 0
-            i = self.menu_choose(names, row + 1, i, timeout=timeout)[0]
+            i = self.menu_choose(names, row + 1, i=i, timeout=timeout)[0]
             if i == -1:
                 self.lcd_write(" "  * COLS, row)
                 return ""
@@ -536,7 +513,7 @@ class SquishBox:
                 self.lcd_write(" "  * COLS, row)
                 return file
 
-    def menu_lcdsettings(self, row=ROWS - 2, timeout=MENU_TIMEOUT):
+    def menu_lcdsettings(self, row=ROWS - 2, timeout=MENU_TIME):
         """Menu for setting backlight and contrast levels
         
         Shows adjustable sliders for contrast and backlight.
@@ -563,10 +540,10 @@ class SquishBox:
                 break
         self.lcd_write(" "  * COLS, row)
         if squishbox_cfgpath != None:
-            if 'globals' not in squishbox_cfg:
-                squishbox_cfg['globals'] = {}
-            squishbox_cfg['globals']['CONTRAST'] = self.contrast.level
-            squishbox_cfg['globals']['BACKLIGHT'] = self.backlight.level
+            squishbox_cfg.setdefault('globals', {}).update(
+                CONTRAST=self.contrast.level,
+                BACKLIGHT=self.backlight.level,
+            )
             squishbox_cfgpath.write_text(yaml.safe_dump(squishbox_cfg))
             
 
@@ -606,7 +583,7 @@ class SquishBox:
                 ssid = [x[0].replace('*', self.CHECK) + x[2:] for x in nw if x[2:]]
                 opts = ssid + ["Scan", "Disable WiFi"]
                 i = max(''.join(s[0] for s in ssid).find(self.CHECK), 0)
-                match self.menu_choose(opts, row + 1, i, timeout=timeout)[1]:
+                match self.menu_choose(opts, row + 1, i=i, timeout=timeout)[1]:
                     case '':
                         self.lcd_write(" " * COLS, row)
                         return
@@ -634,7 +611,7 @@ class SquishBox:
                         except subprocess.CalledProcessError:
                             self.progresswheel_stop()
                             self.lcd_write("Password:".ljust(COLS), row)
-                            psk = self.menu_entertext(row=row + 1, charset=self.GLYPHS, )
+                            psk = self.menu_entertext(row=row + 1, charset=self.GLYPHS)
                             if not self.menu_confirm(psk, row + 1):
                                 continue
                             self.lcd_write(ssid[1:COLS + 1].ljust(COLS), row)
@@ -646,7 +623,7 @@ class SquishBox:
                             except subprocess.CalledProcessError:
                                 self.progresswheel_stop()
                                 self.lcd_write("connection fail".rjust(COLS), row + 1)
-                                self.get_action(timeout=MENU_TIMEOUT)
+                                self.get_action(timeout=MENU_TIME)
                             else:
                                 self.progresswheel_stop()
                         else:
@@ -658,7 +635,7 @@ class SquishBox:
                     self.lcd_write(" " * COLS, row)
                     return
 
-    def menu_exit(self, row=ROWS - 2, timeout=MENU_TIMEOUT):
+    def menu_exit(self, row=ROWS - 2, timeout=MENU_TIME):
         """Options to reboot, shutdown, or exit the current script
         
         Returns: "shell" if that option is chosen, otherwise None
@@ -679,7 +656,7 @@ class SquishBox:
             case "Shell":
                 return "shell"
 
-    def menu_systemsettings(self, row=ROWS - 2, timeout=MENU_TIMEOUT):
+    def menu_systemsettings(self, row=ROWS - 2, timeout=MENU_TIME):
         """A unified system settings menu
         
         Returns: "shell" if that option is chosen, otherwise None
@@ -713,7 +690,7 @@ class SquishBox:
         self._spinning = False
         self._spin.join()
 
-    def display_error(self, err, msg="", etype=None, tb=None, row=ROWS - 1):
+    def display_error(self, err, msg="", tb=None, row=ROWS - 1):
         """Displays Exception text on the LCD
         
         Reformats the text of an Exception so it can be displayed on one
@@ -724,16 +701,19 @@ class SquishBox:
           err: the Exception
           msg: an optional error message
         """
-        if etype == KeyboardInterrupt:
+        if type(err) == KeyboardInterrupt:
             sys.exit()
         # remove newlines + carets and compress spaces
-        err_oneline = msg + re.sub(' {2,}', ' ', re.sub('\n|\^', ' ', str(err)))
+        err_oneline = f"{msg}: " if msg else ""        
+        err_oneline += f"{type(err).__name__}: "
+        err_oneline += re.sub(' {2,}', ' ', re.sub('\n|\^', ' ', str(err)))
         for glyph, char in self.GLYPH2CHAR:
             err_oneline.replace(char, glyph)
         self.lcd_write(err_oneline, row)
-        if msg: print(msg)
+        if msg:
+            print(msg)
         if tb:
-            traceback.print_exception(etype, err, tb)
+            traceback.print_exception(type(err), err, tb)
         else:
             print(err)
         self.get_action()
@@ -758,7 +738,16 @@ class SquishBox:
         """Bind target - cancel/escape/go back
         """
         self._actions.append('back')
+    
+    def add_action(self, name):
+        """Add an action to the stack"""
+        self._actions.append(name)
 
+    def clear_actions(self):
+        """Clear all actions from the stack
+        """
+        self._actions = []
+        
     def get_action(self, idle=POLL_TIME, timeout=0):
         """Block and update the display until an action occurs
         
@@ -768,6 +757,7 @@ class SquishBox:
         Returns: The action name, or None if timed out
         """
         t0 = time.time()
+        self._scrolltimer = t0
         self._buffered = True
         while not self._actions:
             self.update_lcd()
@@ -778,11 +768,6 @@ class SquishBox:
         self._buffered = False
         return self._actions.pop(0)
 
-    def clear_actions(self):
-        """Clear any actions that have accumulated on the stack
-        """
-        self._actions = []
-        
     def draw_glyph(self, loc, text):
         """Instate a custom LCD glyph from ascii art
         
@@ -906,7 +891,7 @@ class SquishBox:
         while self._spinning:
             s = (self.BACKSLASH + '|/-')[i]
             self._lcd_putchars(s, ROWS - 1, COLS - 1)
-            time.sleep(BLINK_TIME)
+            time.sleep(FRAME_TIME)
             i = (i + 1) % 4
         self._lcd_putchars(c, ROWS - 1, COLS - 1)
 
@@ -971,19 +956,22 @@ if 'globals' in squishbox_cfg:
     for var, val in squishbox_cfg['globals'].items():
         globals()[var] = val
 
-# single SquishBox instance
 squishbox_hardware = SquishBox()
+def get_hardware():
+    return squishbox_hardware
 
 if __name__ == "__main__":
     """Display the SquishBox shell"""
+    from importlib import import_module
+    
     if SCRIPTS_DIR not in sys.path:
         sys.path.append(SCRIPTS_DIR)
     scripts = []
     for p in Path(SCRIPTS_DIR).iterdir():
         if p.suffix == '.py' and p.name != 'squishbox.py':
-            scripts.append(p.stem)
+            scripts.append(p)
 
-    sb = squishbox_hardware
+    sb = get_hardware()
 
     sb.knob1.bind('left', sb.action_dec)
     sb.knob1.bind('right', sb.action_inc)
@@ -1006,12 +994,9 @@ if __name__ == "__main__":
                 if sb.menu_exit() == "shell":
                     break
             case script:
-                sb.lcd_write(script.ljust(COLS), row=ROWS - 2)
+                sb.lcd_write(str(script).ljust(COLS), row=ROWS - 2)
                 sb.lcd_write("starting ".rjust(COLS), row=ROWS - 1)
-                sb.progresswheel_start()
-                time.sleep(3)
-                sb.progresswheel_stop()
                 
-                import_module(script)
-                del sys.modules[script]
+                import_module(script.stem)
+                del sys.modules[script.stem]
 
