@@ -46,10 +46,11 @@ SCRIPTS_DIR = ''                                 # location for squishbox script
 # UI settings
 HOLD_TIME = 1.0                                  # button hold time
 SCROLL_TIME = 0.2; SCROLL_PAUSE = 3              # scrolling text options
-MENU_TIMEOUT = 4.0                               # menu timeout delay
-BLINK_TIME = 0.1                                 # default text blink time
+MENU_TIME = 3.0                                  # menu timeout delay
+FRAME_TIME = 0.1                                 # time for a single animation frame
 POLL_TIME = 0.01                                 # default button polling interval
-BOUNCE_TIME = 0.02                               # button debounce time
+BTN_BOUNCE = 0.02                                # button debounce time
+ENC_BOUNCE = 0.002                               # encoder debounce time
 EXEC_TIME = 50e-6                                # increase if LCD displays garbage
 
 
@@ -85,7 +86,7 @@ class SquishBoxButton(_SquishBoxControl):
                     direction=gpiod.line.Direction.INPUT,
                     edge_detection=gpiod.line.Edge.BOTH,
                     bias=bias,
-                    debounce_period=timedelta(seconds=BOUNCE_TIME),
+                    debounce_period=timedelta(seconds=BTN_BOUNCE),
                 )
             }
         )
@@ -135,6 +136,7 @@ class SquishBoxRotEnc(_SquishBoxControl):
                     direction=gpiod.line.Direction.INPUT,
                     edge_detection=gpiod.line.Edge.BOTH,
                     bias=bias,
+                    debounce_period=timedelta(seconds=ENC_BOUNCE),
                 )
             }
         )
