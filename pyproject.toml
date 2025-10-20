@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "squishbox"
+version = "0.9.0"
+description = "LCD + button hardware interface"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Bill Peterson", email = "bill@geekfunklabs.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "gpiod", "yaml"
+]
+
+[project.urls]
+Homepage = "https://github.com/GeekFunkLabs/squishbox"
+Issues = "https://github.com/GeekFunkLabs/squishbox/issues"
+
+[project.scripts]
+squishbox-launcher = "squishbox.scripts.menu:main"
+
