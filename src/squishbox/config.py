@@ -15,12 +15,12 @@ DEFAULTS = {
     "poll_time": 0.01,
     "button_debounce": 0.02,
     "encoder_debounce": 0.002,
-    "lcd_exec_time": 50e-6,
+    "lcd_cols": 16,
+    "lcd_rows": 2,
     "lcd_regsel": 7,
     "lcd_enable": 16,
     "lcd_data": (26, 6, 5, 8),
-    "lcd_cols": 16,
-    "lcd_rows": 2,
+    "lcd_exec_time": 50e-6,
     "lcd_contrast": 12,
     "lcd_backlight": 13,
     "contrast_level": 100,
@@ -40,7 +40,7 @@ CONFIG_PATH = Path(os.getenv(
 
 def load_config():
     if CONFIG_PATH.exists():
-        user_cfg = yaml.safe_load(path.read_text())
+        user_cfg = yaml.safe_load(CONFIG_PATH.read_text())
     else:
         CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
         CONFIG_PATH.write_text(yaml.safe_dump(DEFAULTS))

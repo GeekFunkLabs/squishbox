@@ -1,7 +1,7 @@
 from importlib.util import spec_from_file_location, module_from_spec
 from pathlib import Path
 
-from squishbox import SquishBox, CONFIG
+from squishbox import SquishBox, CONFIG, __version__
 
 
 ROWS = CONFIG["lcd_rows"]
@@ -15,7 +15,7 @@ def discover_scripts():
         if path.stem in {"__init__", Path(__file__).stem}:
             continue
         scripts.append(path)
-    for d in squishbox.CONFIG.get("script_dirs", []):
+    for d in CONFIG.get("script_dirs", []):
         d = Path(d).expanduser()
         if not d.exists():
             continue
@@ -44,7 +44,7 @@ def main():
 
     while True:
         sb.lcd.clear()
-        sb.lcd_write(f"SquishBox {__version__}", row=0)
+        sb.lcd.write(f"SquishBox {__version__}", row=0)
         match sb.menu_choose([*names,
                               "LCD Settings",
                               "WiFi Settings",
@@ -58,8 +58,8 @@ def main():
                 if sb.menu_exit() == "shell":
                     break
             case name:
-                sb.lcd_write(name.ljust(COLS), row=ROWS - 2)
-                sb.lcd_write("starting ".rjust(COLS), row=ROWS - 1)
+                sb.lcd.write(name.ljust(COLS), row=ROWS - 2)
+                sb.lcd.write("starting ".rjust(COLS), row=ROWS - 1)
                 
                 mod = load_script(scripts[names.index(name)])
                 if hasattr(mod, "main"):

@@ -13,7 +13,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "gpiod", "yaml"
+    "gpiod", "pyyaml"
 ]
 
 [project.urls]
@@ -21,5 +21,5 @@ Homepage = "https://github.com/GeekFunkLabs/squishbox"
 Issues = "https://github.com/GeekFunkLabs/squishbox/issues"
 
 [project.scripts]
-squishbox-launcher = "squishbox.scripts.menu:main"
+squishbox-launcher = "squishbox.scripts.launcher:main"
 
