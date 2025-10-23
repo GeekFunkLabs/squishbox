@@ -19,7 +19,7 @@ def edit_sounds():
     chan = 0
     while True:
         # get current presets per channel
-        sb.lcd_write("Sounds:".ljust(COLS), row=0)
+        sb.lcd.write("Sounds:".ljust(COLS), row=0)
         sounds = {}
         channels = []
         for c in range(1, fp.fluidsetting('synth.midi-channels') + 1):
@@ -37,13 +37,13 @@ def edit_sounds():
         while True:
             if chan in sounds:
                 # select preset in the current soundfont
-                sb.lcd_write(f"{chan}: {sounds[chan].file}".ljust(COLS), row=0)
+                sb.lcd.write(f"{chan}: {sounds[chan].file}".ljust(COLS), row=0)
                 sf = fp.soundfonts[sounds[chan].file]
                 presets = [SFPreset(sounds[chan].file, *p) for p in sf]
                 try:
                     i = list(sf).index((sounds[chan].bank, sounds[chan].prog))
                 except ValueError:
-                    sb.lcd_write(f"{sounds[chan].bank}:{sounds[chan].prog}".ljust(COLS), row=1)
+                    sb.lcd.write(f"{sounds[chan].bank}:{sounds[chan].prog}".ljust(COLS), row=1)
                     sb.get_action()
                     change_preset(chan, presets[i := 0])
                 if sb.menu_choose([f"{p[0]:03d}:{p[1]:03d} {sf[p]}" for p in sf],
@@ -52,7 +52,7 @@ def edit_sounds():
                                  )[1] == "":
                     break
             # change/load a soundfont
-            sb.lcd_write("Set Soundfont:".ljust(COLS), row=0)
+            sb.lcd.write("Set Soundfont:".ljust(COLS), row=0)
             if chan in sounds:
                 newsf = sb.menu_choose(list(fp.soundfonts) + ["Load Soundfont", "No Soundfont"],
                                        i=list(fp.soundfonts).index(sounds[chan].file),
@@ -67,7 +67,7 @@ def edit_sounds():
                 fp.apply_patch(pname)
                 break
             if newsf == "Load Soundfont":
-                sb.lcd_write("Load Soundfont:".ljust(COLS), row=0)
+                sb.lcd.write("Load Soundfont:".ljust(COLS), row=0)
                 newsf = sb.menu_choosefile(topdir=fp.cfg.sfpath, ext='.sf2')
                 if newsf == "":
                     break
@@ -100,7 +100,7 @@ def edit_layers():
     last=0
     while True:
         # layer selection
-        sb.lcd_write("Layers:".ljust(COLS), row=0)
+        sb.lcd.write("Layers:".ljust(COLS), row=0)
         layers = [(i, rule)
                   for i, rule in enumerate(fp.bank.patch[pname].get('rules', []))
                   if rule.type == rule.totype == 'note']
@@ -115,14 +115,14 @@ def edit_layers():
         elif rule == "Add Layer":
             rule = MidiRule(type='note', chan=1, num='0-127')
         elif rule == "Delete Layer":
-            sb.lcd_write("Delete Layer:".ljust(COLS), row=0)
+            sb.lcd.write("Delete Layer:".ljust(COLS), row=0)
             if (i := sb.menu_choose(rules, row=1, i=0, timeout=0)[0]) != -1:
                 del fp.bank.patch[pname]['rules'][ri[i]]
             continue
         # layer creation/editing
         num_min = -1
         fp.set_callback(action_notedown)
-        sb.lcd_write(f"range: {rule.num.min}-{rule.num.max}".rjust(COLS), row=1)
+        sb.lcd.write(f"range: {rule.num.min}-{rule.num.max}".rjust(COLS), row=1)
         i, evt = sb.menu_choose([f"channel: [{c}]" for c in range(1, nchan + 1)],
                                 row=0, i=rule.chan.min - 1, timeout=0)
         fp.set_callback(None)
@@ -134,7 +134,7 @@ def edit_layers():
             chan = i + 1
         if num_min == -1:
             fp.set_callback(action_notedown)
-            sb.lcd_write(f"channel: {chan}".rjust(COLS), row=0)
+            sb.lcd.write(f"channel: {chan}".rjust(COLS), row=0)
             num_min, evt = sb.menu_choose([f"range: [{n}]-{rule.num.max}" for n in range(128)],
                                           row=1, i=rule.num.min, wrap=False, timeout=0)
             fp.set_callback(None)
@@ -143,7 +143,7 @@ def edit_layers():
             elif evt == '':
                 continue
         fp.set_callback(action_notedown)
-        sb.lcd_write(f"channel: {chan}".rjust(COLS), row=0)
+        sb.lcd.write(f"channel: {chan}".rjust(COLS), row=0)
         num_max, evt = sb.menu_choose([f"range: {num_min}-[{n}]" for n in range(128)],
                                       row=1, i=rule.num.max, wrap=False, timeout=0)
         fp.set_callback(None)
@@ -151,13 +151,13 @@ def edit_layers():
             num_max = evt.num
         elif evt == '':
             continue
-        sb.lcd_write(f"key shift:".rjust(COLS), row=0)
+        sb.lcd.write(f"key shift:".rjust(COLS), row=0)
         add = sb.menu_choose([format(k, '+') for k in range(-36, 37)],
                              row=1, i=int(rule.num.add) + 36, wrap=False, timeout=0
                             )[0]
         if add == -1:
             continue
-        sb.lcd_write("target:".rjust(COLS), row=0)
+        sb.lcd.write("target:".rjust(COLS), row=0)
         tochan = sb.menu_choose(presets, row=1, align='left', timeout=0,
                                 i=rule.chan.tomin - 1)[0] + 1
         if tochan == 0:
@@ -193,14 +193,14 @@ for fs, vi, vf, dv, name, fmt in (
 def effects_menu():
     last = 0
     while True:
-        sb.lcd_write("Effects:".ljust(COLS), row=0)
+        sb.lcd.write("Effects:".ljust(COLS), row=0)
         fp.apply_patch(pname)
         i, name = sb.menu_choose(list(FLUIDFX_OPTS), row=1, i=last, timeout=0)
         if name == "":
             break
         last = i
         vals, fs = FLUIDFX_OPTS[name]
-        sb.lcd_write(name.ljust(COLS), row=0)
+        sb.lcd.write(name.ljust(COLS), row=0)
         curval = fp.fluidsetting(fs)
         i = min(range(len(vals)), key=lambda i: abs(float(vals[i]) - curval))
         if sb.menu_choose(vals, row=1, i=i, wrap=False, timeout=0,
@@ -226,8 +226,8 @@ def midi_connect():
 
 
 def load_bank(bank):
-    sb.lcd_write(bank.name.ljust(COLS), row=0)
-    sb.lcd_write("loading bank ".ljust(COLS), row=1)
+    sb.lcd.write(bank.name.ljust(COLS), row=0)
+    sb.lcd.write("loading bank ".ljust(COLS), row=1)
     sb.progresswheel_start()
     try:
         fp.load_bank(bank)
@@ -240,12 +240,12 @@ def load_bank(bank):
 
 def refresh_display():
     fp.apply_patch(pname)
-    sb.lcd_write(pname.ljust(COLS), row=0)
-    sb.lcd_write(f"patch {pno + 1}/{len(fp.bank)}".rjust(COLS), row=1)
+    sb.lcd.write(pname.ljust(COLS), row=0)
+    sb.lcd.write(f"patch {pno + 1}/{len(fp.bank)}".rjust(COLS), row=1)
     if sb.wifienabled:
-        sb.lcd_write(sb.WIFION, row=1, col=0)
+        sb.lcd.write(sb.WIFION, row=1, col=0)
     else:
-        sb.lcd_write(sb.WIFIOFF, row=1, col=0)
+        sb.lcd.write(sb.WIFIOFF, row=1, col=0)
 
 VOICE_TYPES = dict(note='NT', cc='CC', kpress='KP', prog='PC', pbend='PB', cpress='CP')
 
@@ -256,10 +256,10 @@ sb.knob1.bind('left', sb.action_dec)
 sb.knob1.bind('right', sb.action_inc)
 sb.button1.bind('tap', sb.action_do)
 sb.button1.bind('hold', sb.action_back)
-sb.lcd_clear()
+sb.lcd.clear()
 
 cfgfile = [*sys.argv, ''][1] or 'fluidpatcherconf.yaml'
-sb.lcd_write(f"loading {cfgfile}".ljust(COLS), row=0)
+sb.lcd.write(f"loading {cfgfile}".ljust(COLS), row=0)
 for path in (Path(cfgfile).parent,
              Path('./config'),
              Path.home() / '.config'):
@@ -293,32 +293,32 @@ while True:
     elif evt == 'back':
         if showevent:
             showevent = False
-            sb.lcd_write("show events OFF".rjust(COLS), row=1,
+            sb.lcd.write("show events OFF".rjust(COLS), row=1,
                          timeout=MENU_TIME)
         else:
             showevent = True
-            sb.lcd_write("show events ON".rjust(COLS), row=1,
+            sb.lcd.write("show events ON".rjust(COLS), row=1,
                          timeout=MENU_TIME)
     elif isinstance(evt, FluidMidiEvent) and evt.type in VOICE_TYPES:
         if showevent:
             typ = VOICE_TYPES[evt.type]
             if hasattr(evt, 'num'):
-                sb.lcd_write(f"{evt.chan:03}:{typ}{evt.num}={evt.val}".ljust(COLS),
+                sb.lcd.write(f"{evt.chan:03}:{typ}{evt.num}={evt.val}".ljust(COLS),
                              row=1, timeout=MENU_TIME)
             else:
-                sb.lcd_write(f"{evt.chan:03}:{typ}={evt.val}".ljust(COLS),
+                sb.lcd.write(f"{evt.chan:03}:{typ}={evt.val}".ljust(COLS),
                              row=1, timeout=MENU_TIME)
         else:
-            sb.lcd_write(sb.NOTEICON, row=1, col=1,
+            sb.lcd.write(sb.NOTEICON, row=1, col=1,
             		 timeout=FRAME_TIME, force=False)
     elif hasattr(evt, 'rule'):
         if hasattr(evt.rule, 'lcdwrite'):
             if hasattr(evt.rule, 'format'):
                 strval = format(evt.val, evt.rule.format)
-                sb.lcd_write(f"{evt.rule.lcdwrite} {strval}".rjust(COLS), row=1,
+                sb.lcd.write(f"{evt.rule.lcdwrite} {strval}".rjust(COLS), row=1,
                              timeout=MENU_TIME)
             else:
-                sb.lcd_write(evt.rule.lcdwrite.rjust(COLS), row=1,
+                sb.lcd.write(evt.rule.lcdwrite.rjust(COLS), row=1,
                              timeout=MENU_TIME)
         if hasattr(evt.rule, 'setpin'):
             if evt.rule.setpin in outpins:
@@ -369,20 +369,20 @@ while True:
                                startfile=fp.cfg.bankpath / fp.cfg.bankfile,
                                ext='.yaml')
         if f != "":
-            sb.lcd_write("Save as:".ljust(COLS), row=0)
+            sb.lcd.write("Save as:".ljust(COLS), row=0)
             name = sb.menu_entertext(f.name)
             if sb.menu_confirm(name):
-                sb.lcd_write(name.ljust(COLS), row=0)
+                sb.lcd.write(name.ljust(COLS), row=0)
                 try:
                     fp.save_bank((f.parent / name).with_suffix('.yaml'))
                 except Exception as e:
                     sb.display_error(e, "bank save error")
                 else:
                     fp.cfg.bankfile = f.parent / name
-                    sb.lcd_write("bank saved".ljust(COLS), row=1)
+                    sb.lcd.write("bank saved".ljust(COLS), row=1)
                     sb.get_action(timeout=MENU_TIME)
     elif choice == "Save Patch":
-        sb.lcd_write("Save patch as:".ljust(COLS), row=0)
+        sb.lcd.write("Save patch as:".ljust(COLS), row=0)
         newname = sb.menu_entertext(pname)
         if sb.menu_confirm(newname):
             if newname != pname:
@@ -391,7 +391,7 @@ while True:
                 pname = newname
             fp.update_patch(pname)
     elif choice == "Delete Patch":
-        sb.lcd_write("Delete patch:".ljust(COLS), row=0)
+        sb.lcd.write("Delete patch:".ljust(COLS), row=0)
         if sb.menu_confirm(pname):
             del fp.bank[pname]
             pno = min(pno, len(fp.bank) - 1)

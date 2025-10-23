@@ -10,8 +10,15 @@ Requires:
 - yaml
 """
 
+from importlib.metadata import version, PackageNotFoundError
+
 from .squishbox import SquishBox
 from .config import CONFIG
 
 __all__ = ["SquishBox", "CONFIG"]
+
+try:
+    __version__ = version("squishbox")
+except PackageNotFoundError:
+    __version__ = "0.0.0-dev"
 

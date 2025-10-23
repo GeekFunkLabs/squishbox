@@ -202,17 +202,17 @@ class PWMOutput:
 
 class LCD_HD44780:
 
-    def __init__(self):
+    def __init__(self, regsel, enable, data):
+        self.regsel = regsel
+        self.enable = enable
+        self.data = data
         self._buffered = False
         # set up LCD GPIO
-        lcdpins = (CONFIG["lcd_regsel"],
-                   CONFIG["lcd_enable"],
-                   *CONFIG["lcd_data"])
         self._lines = gpiod.request_lines(
             CONFIG["gpio_chip"],
             consumer="squishbox",
             config={
-                lcdpins: gpiod.LineSettings(
+                (regsel, enable, *data): gpiod.LineSettings(
                     direction=gpiod.line.Direction.OUTPUT,
                 )
             }
@@ -220,13 +220,7 @@ class LCD_HD44780:
         # initialize LCD
         for val in (0x33, 0x32, 0x28, 0x0c, 0x06):
             self._send(val)
-        self.lcd_clear()
-        self.backlight = SquishBoxPWM(
-            CONFIG["lcd_backlight"], level=CONFIG["backlight_level"]
-        )
-        self.contrast = SquishBoxPWM(
-            CONFIG["lcd_contrast"], level=CONFIG["contrast_level"]
-        )
+        self.clear()
         self.define_custom_glyphs()
 
     def clear(self):
@@ -460,20 +454,20 @@ class LCD_HD44780:
             self._send(0x0e)
 
     def _send(self, val, reg=gpiod.line.Value.INACTIVE):
-        if LCD_RS == 0:
+        if self.regsel == 0:
             return
-        self._lines.set_value(CONFIG["lcd_regsel"], reg)
-        self._lines.set_value(CONFIG["lcd_enable"], gpiod.line.Value.INACTIVE)
+        self._lines.set_value(self.regsel, reg)
+        self._lines.set_value(self.enable, gpiod.line.Value.INACTIVE)
         for nib in (val >> 4, val):
             line_vals = {}
             for i in range(4):
                 if nib >> i & 1:
-                    line_vals[CONFIG["lcd_data"][i]] = gpiod.line.Value.ACTIVE
+                    line_vals[self.data[i]] = gpiod.line.Value.ACTIVE
                 else:
-                    line_vals[CONFIG["lcd_data"][i]] = gpiod.line.Value.INACTIVE
+                    line_vals[self.data[i]] = gpiod.line.Value.INACTIVE
             self._lines.set_values(line_vals)
-            self._lines.set_value(CONFIG["lcd_enable"], gpiod.line.Value.ACTIVE)
+            self._lines.set_value(self.enable, gpiod.line.Value.ACTIVE)
             time.sleep(CONFIG["lcd_exec_time"])
-            self._lines.set_value(CONFIG["lcd_enable"], gpiod.line.Value.INACTIVE)
+            self._lines.set_value(self.enable, gpiod.line.Value.INACTIVE)
 
 

@@ -1,5 +1,16 @@
+import re
+import subprocess
+import sys
+from threading import Thread
+import time
+import traceback
+
 from . import hardware
 from .config import CONFIG
+
+ROWS = CONFIG["lcd_rows"]
+COLS = CONFIG["lcd_cols"]
+MENU_TIME = CONFIG["menu_timeout"]
 
 class SquishBox:
     """Object interface to the SquishBox UI"""
@@ -11,7 +22,11 @@ class SquishBox:
             """Initializes LCD, encoder, and related GPIO"""
             obj._actions = []
             # set up LCD
-            obj.lcd = hardware.LCD_HD44780()
+            obj.lcd = hardware.LCD_HD44780(
+                CONFIG["lcd_regsel"],
+                CONFIG["lcd_enable"],
+                CONFIG["lcd_data"]
+            )
             obj.backlight = hardware.PWMOutput(
                 CONFIG["lcd_backlight"], level=CONFIG["backlight_level"]
             )
@@ -428,7 +443,7 @@ class SquishBox:
         """
         self._actions = []
         
-    def get_action(self, idle=POLL_TIME, timeout=0):
+    def get_action(self, idle=CONFIG["poll_time"], timeout=0):
         """Block and update the display until an action occurs
         
         Args:
