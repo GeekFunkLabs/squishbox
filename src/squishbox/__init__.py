@@ -12,8 +12,9 @@ Requires:
 
 from importlib.metadata import version, PackageNotFoundError
 
-from .squishbox import SquishBox
 from .config import CONFIG
+from .squishbox import SquishBox
+
 
 __all__ = ["SquishBox", "CONFIG"]
 

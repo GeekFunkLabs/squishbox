@@ -6,7 +6,7 @@ import time
 import traceback
 
 from . import hardware
-from .config import CONFIG
+from .config import CONFIG, save_state
 
 ROWS = CONFIG["lcd_rows"]
 COLS = CONFIG["lcd_cols"]
@@ -234,12 +234,9 @@ class SquishBox:
                     )[0] == -1:
                 break
         self.lcd.write(" "  * COLS, row)
-        if squishbox_cfgpath != None:
-            squishbox_cfg.setdefault('globals', {}).update(
-                CONTRAST=self.contrast.level,
-                BACKLIGHT=self.backlight.level,
-            )
-            squishbox_cfgpath.write_text(yaml.safe_dump(squishbox_cfg))
+        CONFIG["contrast_level"] = self.contrast.level
+        CONFIG["backlight_level"] = self.backlight.level
+        save_state[CONFIG]
             
 
     @property
