@@ -6,13 +6,14 @@ import re
 import sys
 import time
 
-from fluidpatcher import FluidMidiEvent, FluidPatcher, MidiRule, SFPreset
+from fluidpatcher import *
 import squishbox
-from squishbox.harware import Output, PWMOutput
+from squishbox.hardware import Output, PWMOutput
 
 COLS = squishbox.CONFIG["lcd_cols"]
 ROWS = squishbox.CONFIG["lcd_rows"]
-
+MENU_TIME = squishbox.CONFIG["menu_timeout"]
+FRAME_TIME = squishbox.CONFIG["frame_time"]
 
 def edit_sounds():
     chan = 0
@@ -211,20 +212,6 @@ def effects_menu():
             fp.bank.patch[pname].setdefault('fluidsettings', {})[fs] = fp.fluidsetting(fs)
 
 
-def midi_connect():
-    """Make MIDI connections as enumerated in config"""
-    devs = {client: port for port, client in re.findall(" (\d+): '([^\n]*)'", sb.shell_cmd("aconnect -io"))}
-    for link in fp.cfg.get('midiconnections', []):
-        mfrom, mto = list(link.items())[0]
-        for client in devs:
-            if re.search(mfrom.split(':')[0], client):
-                mfrom = re.sub(mfrom.split(':')[0], devs[client], mfrom, count=1)
-            if re.search(mto.split(':')[0], client):
-                mto = re.sub(mto.split(':')[0], devs[client], mto, count=1)
-        try: sb.shell_cmd(f"aconnect {mfrom} {mto}")
-        except subprocess.CalledProcessError: pass 
-
-
 def load_bank(bank):
     sb.lcd.write(bank.name.ljust(COLS), row=0)
     sb.lcd.write("loading bank ".ljust(COLS), row=1)
@@ -238,14 +225,16 @@ def load_bank(bank):
     sb.progresswheel_stop()
     return True
 
+
 def refresh_display():
     fp.apply_patch(pname)
     sb.lcd.write(pname.ljust(COLS), row=0)
     sb.lcd.write(f"patch {pno + 1}/{len(fp.bank)}".rjust(COLS), row=1)
     if sb.wifienabled:
-        sb.lcd.write(sb.WIFION, row=1, col=0)
+        sb.lcd.write(sb.lcd.WIFION, row=1, col=0)
     else:
-        sb.lcd.write(sb.WIFIOFF, row=1, col=0)
+        sb.lcd.write(sb.lcd.WIFIOFF, row=1, col=0)
+
 
 VOICE_TYPES = dict(note='NT', cc='CC', kpress='KP', prog='PC', pbend='PB', cpress='CP')
 
@@ -258,21 +247,9 @@ sb.button1.bind('tap', sb.action_do)
 sb.button1.bind('hold', sb.action_back)
 sb.lcd.clear()
 
-cfgfile = [*sys.argv, ''][1] or 'fluidpatcherconf.yaml'
-sb.lcd.write(f"loading {cfgfile}".ljust(COLS), row=0)
-for path in (Path(cfgfile).parent,
-             Path('./config'),
-             Path.home() / '.config'):
-    if (path / cfgfile).exists():
-        try:
-            fp = FluidPatcher(Path(path, cfgfile))
-        except Exception as e:
-            sb.display_error(e, f"Error loading {cfgfile}")
-        break
-else:
-    raise FileNotFoundError(f"Unable to find config file")
+fp = FluidPatcher()
 
-load_bank(fp.cfg.bankfile)
+load_bank(CONFIG["current_bank"])
 
 showevent = False
 last = 0
@@ -309,7 +286,7 @@ while True:
                 sb.lcd.write(f"{evt.chan:03}:{typ}={evt.val}".ljust(COLS),
                              row=1, timeout=MENU_TIME)
         else:
-            sb.lcd.write(sb.NOTEICON, row=1, col=1,
+            sb.lcd.write(sb.lcd.NOTEICON, row=1, col=1,
             		 timeout=FRAME_TIME, force=False)
     elif hasattr(evt, 'rule'):
         if hasattr(evt.rule, 'lcdwrite'):
@@ -353,13 +330,16 @@ while True:
                                ], row=1, i=last)
     last = i if i != -1 else last
     if choice == "Load Bank":
-        lastbank = fp.cfg.bankfile
-        f = sb.menu_choosefile(topdir=fp.cfg.bankpath,
-                               startfile=fp.cfg.bankpath / fp.cfg.bankfile,
-                               ext='.yaml')
+        lastbank = CONFIG["current_bank"]
+        f = sb.menu_choosefile(
+            topdir=CONFIG["banks_path"],
+            startfile=CONFIG["banks_path"] / CONFIG["current_bank"],
+            ext='.yaml'
+        )
         if f and load_bank(f):
-            fp.cfg.bankfile = f
-            if fp.cfg.bankfile == lastbank and pname in fp.bank:
+            CONFIG["current_bank"] = f
+            save_state(CONFIG)
+            if CONFIG["current_bank"] == lastbank and pname in fp.bank:
                 pno = fp.bank.index(pname)
             else:
                 pno = 0
@@ -378,7 +358,8 @@ while True:
                 except Exception as e:
                     sb.display_error(e, "bank save error")
                 else:
-                    fp.cfg.bankfile = f.parent / name
+                    CONFIG["current_bank"] = f.parent / name
+                    save_state(CONFIG)
                     sb.lcd.write("bank saved".ljust(COLS), row=1)
                     sb.get_action(timeout=MENU_TIME)
     elif choice == "Save Patch":
