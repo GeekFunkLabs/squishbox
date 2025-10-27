@@ -6,8 +6,7 @@ import re
 import sys
 import time
 
-from fluidpatcher import FluidPatcher, SFPreset, MidiRule
-from fluidpatcher.pfluidsynth import FluidMidiEvent
+from fluidpatcher import FluidMidiEvent, FluidPatcher, MidiRule, SFPreset
 import squishbox
 from squishbox.harware import Output, PWMOutput
 
@@ -21,54 +20,55 @@ def edit_sounds():
         # get current presets per channel
         sb.lcd.write("Sounds:".ljust(COLS), row=0)
         sounds = {}
-        channels = []
+        channel_info = []
         for c in range(1, fp.fluidsetting('synth.midi-channels') + 1):
             if p := fp.bank[pname][c]:
                 sounds[c] = p
-                channels.append(f"{c}: {p} {fp.soundfonts[p.file][p.bank, p.prog]}")
+                presetname = fp.soundfonts[p.file][p.bank, p.prog]
+                channel_info.append(f"{c}: {p.file}:{p.bank}:{p.prog} {presetname}")
             else:
-                channels.append(f"{c}:")
+                channel_info.append(f"{c}:")
         # channel selection
         if chan == 0:
             chan = list(sounds)[0] if sounds else 1
-        chan = sb.menu_choose(channels, row=1, timeout=0, align='left', i=chan - 1)[0] + 1
+        chan = sb.menu_choose(channel_info, row=1, timeout=0, align='left', i=chan - 1)[0] + 1
         if chan == 0:
             break
         while True:
-            if chan in sounds:
+            if p := sounds.get(chan):
                 # select preset in the current soundfont
-                sb.lcd.write(f"{chan}: {sounds[chan].file}".ljust(COLS), row=0)
-                sf = fp.soundfonts[sounds[chan].file]
-                presets = [SFPreset(sounds[chan].file, *p) for p in sf]
+                sb.lcd.write(f"{chan}: {p.file}".ljust(COLS), row=0)
+                sf = fp.soundfonts[p.file]
+                presets = [SFPreset(p.file, bank, prog) for bank, prog in sf]
                 try:
-                    i = list(sf).index((sounds[chan].bank, sounds[chan].prog))
+                    i = list(sf).index((p.bank, p.prog))
                 except ValueError:
-                    sb.lcd.write(f"{sounds[chan].bank}:{sounds[chan].prog}".ljust(COLS), row=1)
+                    sb.lcd.write(f"{p.bank}:{p.prog}".ljust(COLS), row=1)
                     sb.get_action()
                     change_preset(chan, presets[i := 0])
-                if sb.menu_choose([f"{p[0]:03d}:{p[1]:03d} {sf[p]}" for p in sf],
+                if sb.menu_choose([f"{bank:03d}:{prog:03d} {sf[p]}" for bank, prog in sf],
                                   row=1, i=i, timeout=0, align='left',
                                   func=lambda i: change_preset(chan, presets[i])
                                  )[1] == "":
                     break
-            # change/load a soundfont
-            sb.lcd.write("Set Soundfont:".ljust(COLS), row=0)
-            if chan in sounds:
-                newsf = sb.menu_choose(list(fp.soundfonts) + ["Load Soundfont", "No Soundfont"],
-                                       i=list(fp.soundfonts).index(sounds[chan].file),
+            # change soundfont
+            sb.lcd.write("Set Sound File:".ljust(COLS), row=0)
+            if p := sounds.get(chan):
+                newsf = sb.menu_choose(list(fp.soundfonts) + ["Load Sound File", "No Sound"],
+                                       i=list(fp.soundfonts).index(p.file),
                                        row=1, timeout=0)[1]
             else:
-                newsf = sb.menu_choose(list(fp.soundfonts) + ["Load Soundfont"],
+                newsf = sb.menu_choose(list(fp.soundfonts) + ["Load Sound File"],
                                        row=1, timeout=0)[1]
             if newsf == "":
                 break
-            if newsf == "No Soundfont":
+            if newsf == "No Sound":
                 del fp.bank.patch[pname][chan]
                 fp.apply_patch(pname)
                 break
-            if newsf == "Load Soundfont":
-                sb.lcd.write("Load Soundfont:".ljust(COLS), row=0)
-                newsf = sb.menu_choosefile(topdir=fp.cfg.sfpath, ext='.sf2')
+            if newsf == "Load Sound File":
+                sb.lcd.write("Load Sound File:".ljust(COLS), row=0)
+                newsf = sb.menu_choosefile(topdir=CONFIG["sounds_path"], ext='.sf2')
                 if newsf == "":
                     break
             sounds[chan] = SFPreset(newsf, 0, 0)
@@ -365,8 +365,8 @@ while True:
                 pno = 0
             fp.apply_patch(pname := fp.bank.patches[pno])
     elif choice == "Save Bank":
-        f = sb.menu_choosefile(topdir=fp.cfg.bankpath,
-                               startfile=fp.cfg.bankpath / fp.cfg.bankfile,
+        f = sb.menu_choosefile(topdir=CONFIG["bank_path"],
+                               startfile=fp.bankfile,
                                ext='.yaml')
         if f != "":
             sb.lcd.write("Save as:".ljust(COLS), row=0)
