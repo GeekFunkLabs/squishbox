@@ -18,8 +18,6 @@ Requires:
 - yaml
 """
 
-__version__ = '0.9.0'
-
 from datetime import timedelta
 from threading import Thread
 import time
@@ -89,14 +87,14 @@ class Button(_Control):
             for event in line.read_edge_events():
                 if event.event_type is connect:
                     self._state = self.DOWN
-                    self['down']()
+                    self["down"]()
                     if not line.wait_edge_events(CONFIG["hold_time"]):
                         self._state = self.HELD
-                        self['hold']()
+                        self["hold"]()
                 elif event.event_type is disconnect:
-                    self['up']()
+                    self["up"]()
                     if self._state == self.DOWN:
-                        self['tap']()
+                        self["tap"]()
                     self._state = self.UP
 
 
@@ -139,9 +137,9 @@ class Encoder(_Control):
                 elif event.event_type is event.Type.FALLING_EDGE:
                     self._edges = (self._edges[-1], -event.line_offset)
                 if self._edges == (s * pin1, s * pin2):
-                    self['left']()
+                    self["left"]()
                 elif self._edges == (s * pin2, s * pin1):
-                    self['right']()
+                    self["right"]()
 
 
 class Output:
@@ -202,6 +200,16 @@ class PWMOutput:
 
 class LCD_HD44780:
 
+    printable = """\
+abcdefghijklmnopqrstuvwxyz\
+ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+0123456789-_./!\
+@#$%^&*|?,;:'"`+=<>()[]{}"""
+    glyph2char = (
+        ("backslash", "\\"),
+        ("tilde", "~")
+    )
+
     def __init__(self, regsel, enable, data):
         self.regsel = regsel
         self.enable = enable
@@ -221,7 +229,10 @@ class LCD_HD44780:
         for val in (0x33, 0x32, 0x28, 0x0c, 0x06):
             self._send(val)
         self.clear()
-        self.define_custom_glyphs()
+        self.glyphs = {"solid": chr(255)}
+        self.default_custom_glyphs()
+        self.CHARS = self.printable + self.glyphs["backslash"] + self.glyphs["tilde"] + " "
+        self.FCHARS = self.printable[:67] + self.glyphs["backslash"] + " " # allowable filename characters
 
     def clear(self):
         """Clear the LCD, initialize layers"""
@@ -233,7 +244,7 @@ class LCD_HD44780:
         self._scrollpos = [0] * ROWS
         self._scrolltimer = time.time()
 
-    def write(self, text, row, col=0, align='', timeout=0, force=True):
+    def write(self, text, row, col=0, align="", timeout=0, force=True):
         """Writes text to the LCD
         
         Writes text to the LCD starting at row, col.
@@ -244,7 +255,7 @@ class LCD_HD44780:
           text: string to write
           row: the row at which to start writing
           col: the column at which to start writing
-          align: place text against 'left' or 'right' edge of LCD
+          align: place text against "left" or "right" edge of LCD
           timeout: seconds to keep text
           force: write over other timed text
         """
@@ -254,19 +265,21 @@ class LCD_HD44780:
 # 2 - blinking text
 # 3 - scroll buffer
 # 4 - LCD contents
+        for name, char in self._glyph2char:
+            text = text.replace(char, self.glyphs[name])
         if len(text) > COLS:
             self._layers[3][row] = list(text)
             self._layers[2][row] = [""] * COLS
             self._layers[1][row] = [""] * COLS
-            if align == 'right':
+            if align == "right":
                 self._scrollpos[row] = len(text) - COLS
             else:
                 self._scrollpos[row] = -CONFIG["scroll_pause"]
         elif timeout:
-            if align == 'left':
+            if align == "left":
                 text = text[:COLS]
                 col = 0
-            if align == 'right':
+            if align == "right":
                 text = text[-COLS:]
                 col = COLS - len(text)
             else:
@@ -276,10 +289,10 @@ class LCD_HD44780:
                     self._blinktimer[row][col + i] = time.time() + timeout
                     self._layers[2][row][col + i] = char
         else:
-            if align == 'left':
+            if align == "left":
                 self._layers[1][row][:len(text)] = list(text)
                 self._layers[2][row][:len(text)] = [""] * len(text)
-            elif align == 'right':
+            elif align == "right":
                 self._layers[1][row][COLS - len(text):] = list(text)
                 self._layers[2][row][COLS - len(text):] = [""] * len(text)
             else:
@@ -314,10 +327,11 @@ class LCD_HD44780:
         if t > self._scrolltimer:
             self._scrolltimer += CONFIG["scroll_time"]
 
-    def draw_glyph(self, loc, text):
+    def define_glyph(self, name, loc, text):
         """Instate a custom LCD glyph from ascii art
         
         Args:
+          name: descriptive name for the glyph
           loc: the memory location for the glyph (0-7)
           text: a string representing the 40 pixels of the glyph
             (8 rows times 5 columns) with hash marks (#) and dots (.)
@@ -327,102 +341,103 @@ class LCD_HD44780:
         Returns:
           a character that can be used to write the glyph on the LCD
         """
-        bits = text.replace(' ', '').replace('\n', '').replace('.', '0').replace('#', '1')
+        if loc < 0 or loc > 7:
+            raise ValueError("Custom character location outside range (0-7)")
+        bits = text.replace(" ", "").replace("\n", "").replace(".", "0").replace("#", "1")
         glyphbytes = [int(bits[i:i + 5], 2) for i in range(0, 40, 5)]
         self._send(0x40 | loc << 3)
         for b in glyphbytes:
             self._send(b, gpiod.line.Value.ACTIVE)
-        return chr(loc)
+        self.glyphs[name] = chr(loc)
 
-    def define_custom_glyphs(self):
+    def default_custom_glyphs(self):
         """Re-initialize standard custom glyphs"""
-        self.BACKSLASH = self.draw_glyph(0, """.....
-                                               #....
-                                               .#...
-                                               ..#..
-                                               ...#.
-                                               ....#
-                                               .....
-                                               .....""")
-
-        self.TILDE = self.draw_glyph(1, """.....
-                                           .....
-                                           .....
-                                           .##.#
-                                           #..#.
-                                           .....
-                                           .....
-                                           .....""")
-
-        self.CHECK = self.draw_glyph(2, """.....
-                                           ....#
-                                           ...##
-                                           #.##.
-                                           ###..
-                                           .#...
-                                           .....
-                                           .....""")
-
-        self.XMARK = self.draw_glyph(3, """.....
-                                           ##.##
-                                           .###.
-                                           ..#..
-                                           .###.
-                                           ##.##
-                                           .....
-                                           .....""")
-
-        self.FOLDER = self.draw_glyph(4, """.....
-                                            .....
-                                            ##...
-                                            #.###
-                                            #...#
-                                            #...#
-                                            #####
-                                            .....""")
-
-        self.WIFION = self.draw_glyph(5, """.###.
-                                            #...#
-                                            ..#..
-                                            .#.#.
-                                            .....
-                                            ..#..
-                                            .....
-                                            .....""")
-
-        self.WIFIOFF = self.draw_glyph(6, """.#.#.
-                                             ..#..
-                                             .#.#.
-                                             .....
-                                             ..#..
-                                             .....
-                                             ..#..
-                                             .....""")
-
-        self.NOTEICON = self.draw_glyph(7, """..#..
-                                              ..##.
-                                              ..#.#
-                                              ..#.#
-                                              ..#..
-                                              ###..
-                                              ###..
-                                              .....""")
-
-        printable = """abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_./!@#$%^&*|?,;:'"`+=<>()[]{}"""
-        self.GLYPHS = printable + self.BACKSLASH + self.TILDE + ' '
-        self.FNGLYPHS = printable[:67] + self.BACKSLASH + ' ' # allowable filename characters
-        self.GLYPH2CHAR = ((self.BACKSLASH, '\\'), (self.TILDE, '~'))
-
-    def glyph2char(text):
-        for glyph, char in self.GLYPH2CHAR:
-            text = text.replace(glyph, char)
-        return text
+        self.define_glyph("backslash", 0,
+            """.....
+               #....
+               .#...
+               ..#..
+               ...#.
+               ....#
+               .....
+               ....."""
+        )
+        self.define_glyph("tilde", 1,
+            """.....
+               .....
+               .....
+               .##.#
+               #..#.
+               .....
+               .....
+               ....."""
+        )
+        self.define_glyph("check", 2,
+            """.....
+               ....#
+               ...##
+               #.##.
+               ###..
+               .#...
+               .....
+               ....."""
+        )
+        self.define_glyph("cross", 3, 
+            """.....
+               ##.##
+               .###.
+               ..#..
+               .###.
+               ##.##
+               .....
+               ....."""
+        )
+        self.define_glyph("folder", 4, 
+            """.....
+               .....
+               ##...
+               #.###
+               #...#
+               #...#
+               #####
+               ....."""
+        )
+        self.define_glyph("wifi_on", 5, 
+            """.###.
+               #...#
+               ..#..
+               .#.#.
+               .....
+               ..#..
+               .....
+               ....."""
+        )
+        self.define_glyph("wifi_off", 6,
+            """.#.#.
+               ..#..
+               .#.#.
+               .....
+               ..#..
+               .....
+               ..#..
+               ....."""
+        )
+        self.define_glyph("note", 7,
+            """..#..
+               ..##.
+               ..#.#
+               ..#.#
+               ..#..
+               ###..
+               ###..
+               ....."""
+        )
 
     def _progresswheel_spin(self):
         c = self._layers[4][ROWS - 1][COLS - 1]
         i = 0
         while self._spinning:
-            s = (self.BACKSLASH + '|/-')[i]
+            s = (self.glyphs["backslash"] + "|/-")[i]
             self._putchars(s, ROWS - 1, COLS - 1)
             time.sleep(FRAME_TIME)
             i = (i + 1) % 4
@@ -445,12 +460,12 @@ class LCD_HD44780:
             self._send(0x80 | offset[row] + col)
 
     def _setcursormode(self, mode):
-        if mode == 'hide':
+        if mode == "hide":
             #self._send(0x0c | 0x00)
             self._send(0x0c)
-        elif mode == 'blink':
+        elif mode == "blink":
             self._send(0x0d)
-        elif mode == 'line':    
+        elif mode == "line":    
             self._send(0x0e)
 
     def _send(self, val, reg=gpiod.line.Value.INACTIVE):
@@ -469,5 +484,4 @@ class LCD_HD44780:
             self._lines.set_value(self.enable, gpiod.line.Value.ACTIVE)
             time.sleep(CONFIG["lcd_exec_time"])
             self._lines.set_value(self.enable, gpiod.line.Value.INACTIVE)
-
 
