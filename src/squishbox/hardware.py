@@ -265,7 +265,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 # 2 - blinking text
 # 3 - scroll buffer
 # 4 - LCD contents
-        for name, char in self._glyph2char:
+        for name, char in self.glyph2char:
             text = text.replace(char, self.glyphs[name])
         if len(text) > COLS:
             self._layers[3][row] = list(text)
@@ -439,7 +439,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
         while self._spinning:
             s = (self.glyphs["backslash"] + "|/-")[i]
             self._putchars(s, ROWS - 1, COLS - 1)
-            time.sleep(FRAME_TIME)
+            time.sleep(CONFIG["frame_time"])
             i = (i + 1) % 4
         self._putchars(c, ROWS - 1, COLS - 1)
 
