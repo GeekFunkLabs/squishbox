@@ -237,7 +237,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
     def clear(self):
         """Clear the LCD, initialize layers"""
         self._send(0x01)
-        self._setcursorpos(0, 0)
+        self.setcursorpos(0, 0)
         time.sleep(40 * CONFIG["lcd_exec_time"])
         self._layers = [[[""] * COLS for _ in range(ROWS)] for _ in range(5)]
         self._blinktimer = [[0] * COLS for _ in range(ROWS)]
@@ -433,6 +433,20 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                ....."""
         )
 
+    def setcursorpos(self, row, col):
+        if row < ROWS and col < COLS:
+            offset = (0x00, 0x40, COLS, 0x40 + COLS)
+            self._send(0x80 | offset[row] + col)
+
+    def setcursormode(self, mode):
+        if mode == "hide":
+            #self._send(0x0c | 0x00)
+            self._send(0x0c)
+        elif mode == "blink":
+            self._send(0x0d)
+        elif mode == "line":    
+            self._send(0x0e)
+
     def _progresswheel_spin(self):
         c = self._layers[4][ROWS - 1][COLS - 1]
         i = 0
@@ -448,25 +462,11 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
         for c in chars:
             if c and self._layers[4][row][col] != c:
                 if lastcol != col - 1:
-                    self._setcursorpos(row, col)
+                    self.setcursorpos(row, col)
                 self._send(ord(c), gpiod.line.Value.ACTIVE)
                 self._layers[4][row][col] = c
                 lastcol = col
             col += 1
-
-    def _setcursorpos(self, row, col):
-        if row < ROWS and col < COLS:
-            offset = (0x00, 0x40, COLS, 0x40 + COLS)
-            self._send(0x80 | offset[row] + col)
-
-    def _setcursormode(self, mode):
-        if mode == "hide":
-            #self._send(0x0c | 0x00)
-            self._send(0x0c)
-        elif mode == "blink":
-            self._send(0x0d)
-        elif mode == "line":    
-            self._send(0x0e)
 
     def _send(self, val, reg=gpiod.line.Value.INACTIVE):
         if self.regsel == 0:
