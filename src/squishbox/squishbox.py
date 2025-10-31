@@ -142,14 +142,14 @@ class SquishBox:
         text = list(text.ljust(COLS))
         c = charset.find(text[i])
         mode = "blink"
-        self._lcd_setcursormode(mode)
+        self.lcd.setcursormode(mode)
         while True:
             if mode == "blink":
                 w = text[max(0, i + 1 - COLS):max(COLS, i + 1)]
-                self.lcd.write(w, row)
+                self.lcd.write("".join(w), row)
             else:
                 self.lcd.write(charset[c], row, min(i, COLS - 1))
-            self.lcd._setcursorpos(row, min(i, COLS - 1))
+            self.lcd.setcursorpos(row, min(i, COLS - 1))
             match self.get_action(timeout=timeout), mode:
                 case "inc", "blink":
                     i = min(i + 1, len(text)) 
@@ -167,11 +167,11 @@ class SquishBox:
                     text[i] = charset[c]
                 case "do", _:
                     mode = "blink" if mode == "line" else "line"
-                    self.lcd._setcursormode(mode)
+                    self.lcd.setcursormode(mode)
                 case _:
-                    self.lcd._setcursormode("hide")
+                    self.lcd.setcursormode("hide")
                     text = "".join(text).strip()
-                    for name, char in self.lcd.glyphs2char:
+                    for name, char in self.lcd.glyph2char:
                         text.replace(self.lcd.glyphs[name], char) 
                     return text
 
@@ -248,8 +248,7 @@ class SquishBox:
         self.lcd.write(" "  * COLS, row)
         CONFIG["contrast_level"] = self.contrast.level
         CONFIG["backlight_level"] = self.backlight.level
-        save_state[CONFIG]
-            
+        save_state(CONFIG)
 
     @property
     def wifienabled(self):
