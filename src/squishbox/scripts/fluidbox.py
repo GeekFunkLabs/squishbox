@@ -131,8 +131,10 @@ def edit_layers():
         num_min = -1
         fp.set_callback(action_notedown)
         sb.lcd.write(f"range: {rule.num.min}-{rule.num.max}".rjust(COLS), row=1)
-        i, evt = sb.menu_choose([f"channel: [{c}]" for c in range(1, nchan + 1)],
-                                row=0, i=rule.chan.min - 1, timeout=0)
+        i, evt = sb.menu_choose(
+            [f"channel: [{c}]" for c in range(1, nchan + 1)],
+            row=0, i=rule.chan.min - 1, timeout=0
+        )
         fp.set_callback(None)
         if isinstance(evt, FluidMidiEvent):
             chan, num_min = evt.chan, evt.num
@@ -143,8 +145,10 @@ def edit_layers():
         if num_min == -1:
             fp.set_callback(action_notedown)
             sb.lcd.write(f"channel: {chan}".rjust(COLS), row=0)
-            num_min, evt = sb.menu_choose([f"range: [{n}]-{rule.num.max}" for n in range(128)],
-                                          row=1, i=rule.num.min, wrap=False, timeout=0)
+            num_min, evt = sb.menu_choose(
+                [f"range: [{n}]-{rule.num.max}" for n in range(128)],
+                row=1, i=rule.num.min, wrap=False, timeout=0
+            )
             fp.set_callback(None)
             if isinstance(evt, FluidMidiEvent):
                 num_min = evt.num
@@ -152,22 +156,27 @@ def edit_layers():
                 continue
         fp.set_callback(action_notedown)
         sb.lcd.write(f"channel: {chan}".rjust(COLS), row=0)
-        num_max, evt = sb.menu_choose([f"range: {num_min}-[{n}]" for n in range(128)],
-                                      row=1, i=rule.num.max, wrap=False, timeout=0)
+        num_max, evt = sb.menu_choose(
+            [f"range: {num_min}-[{n}]" for n in range(128)],
+            row=1, i=rule.num.max, wrap=False, timeout=0
+        )
         fp.set_callback(None)
         if isinstance(evt, FluidMidiEvent):
             num_max = evt.num
         elif evt == "":
             continue
         sb.lcd.write(f"key shift:".rjust(COLS), row=0)
-        add = sb.menu_choose([format(k, "+") for k in range(-36, 37)],
-                             row=1, i=int(rule.num.add) + 36, wrap=False, timeout=0
-                            )[0]
+        add = sb.menu_choose(
+            [format(k, "+") for k in range(-36, 37)],
+            row=1, i=int(rule.num.add) + 36, wrap=False, timeout=0
+        )[0]
         if add == -1:
             continue
         sb.lcd.write("target:".rjust(COLS), row=0)
-        tochan = sb.menu_choose(channel_info, row=1, align="left", timeout=0,
-                                i=rule.chan.tomin - 1)[0] + 1
+        tochan = sb.menu_choose(
+            channel_info, row=1, align="left", timeout=0,
+            i=rule.chan.tomin - 1
+        )[0] + 1
         if tochan == 0:
             continue
         newrule = rule.copy(chan=f"{chan}={tochan}",
