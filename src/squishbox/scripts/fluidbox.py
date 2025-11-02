@@ -26,7 +26,7 @@ def edit_sounds():
             if p := fp.bank[pname][c]:
                 sounds[c] = p
                 presetname = fp.soundfonts[p.file][p.bank, p.prog]
-                channel_info.append(f"{c}: {p.file}:{p.bank}:{p.prog} {presetname}")
+                channel_info.append(f"{c}: {p.file}:{p.bank:03}:{p.prog:03} {presetname}")
             else:
                 channel_info.append(f"{c}:")
         # channel selection
@@ -44,7 +44,7 @@ def edit_sounds():
                 preset_info = []
                 for bank, prog in sf:
                     presets.append(SFPreset(p.file, bank, prog))
-                    preset_info.append(f"{bank:03d}:{prog:03d} {sf[bank, prog]}")
+                    preset_info.append(f"{bank:03}:{prog:03} {sf[bank, prog]}")
                 if (p.bank, p.prog) not in sf:
                     sb.lcd.write(f"{p.bank}:{p.prog}".ljust(COLS), row=1)
                     sb.get_action()
@@ -284,17 +284,16 @@ while True:
             sb.lcd.write("show events ON".rjust(COLS), row=1,
                          timeout=MENU_TIME)
     elif isinstance(evt, FluidMidiEvent) and evt.type in VOICE_TYPES:
+        sb.lcd.write(sb.lcd.glyphs["note"], row=1, col=1,
+                     timeout=FRAME_TIME, force=False)
         if showevent:
             typ = VOICE_TYPES[evt.type]
             if hasattr(evt, "num"):
                 sb.lcd.write(f"{evt.chan:03}:{typ}{evt.num}={evt.val}".ljust(COLS),
-                             row=1, timeout=MENU_TIME)
+                             row=1, col=2, timeout=MENU_TIME)
             else:
                 sb.lcd.write(f"{evt.chan:03}:{typ}={evt.val}".ljust(COLS),
-                             row=1, timeout=MENU_TIME)
-        else:
-            sb.lcd.write(sb.lcd.glyphs["note"], row=1, col=1,
-            		 timeout=FRAME_TIME, force=False)
+                             row=1, col=2, timeout=MENU_TIME)
     elif hasattr(evt, "rule"):
         if hasattr(evt.rule, "lcdwrite"):
             if hasattr(evt.rule, "format"):
