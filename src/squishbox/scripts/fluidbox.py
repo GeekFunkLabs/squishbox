@@ -98,12 +98,13 @@ def edit_layers():
     rules to get the same behavior).
     """
     nchan = fp.fluidsetting("synth.midi-channels")
-    presets = []
-    for c in range(1, nchan + 1):
+    channel_info = []
+    for c in range(1, nchan):
         if p := fp.bank[pname][c]:
-            presets.append(f"{c}: {p} {fp.soundfonts[p.file][p.bank, p.prog]}")
+            presetname = fp.soundfonts[p.file][p.bank, p.prog]
+            channel_info.append(f"{c}: {p.file}:{p.bank}:{p.prog} {presetname}")
         else:
-            presets.append(f"{c}:")
+            channel_info.append(f"{c}:")
     last=0
     while True:
         # layer selection
@@ -165,7 +166,7 @@ def edit_layers():
         if add == -1:
             continue
         sb.lcd.write("target:".rjust(COLS), row=0)
-        tochan = sb.menu_choose(presets, row=1, align="left", timeout=0,
+        tochan = sb.menu_choose(channel_info, row=1, align="left", timeout=0,
                                 i=rule.chan.tomin - 1)[0] + 1
         if tochan == 0:
             continue
