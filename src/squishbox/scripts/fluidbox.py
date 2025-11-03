@@ -243,7 +243,6 @@ def load_bank(bank):
 
 
 def refresh_display():
-    fp.apply_patch(pname)
     sb.lcd.write(pname.ljust(COLS), row=0)
     sb.lcd.write(f"patch {pno + 1}/{len(fp.bank)}".rjust(COLS), row=1)
     if sb.wifienabled:
