@@ -26,8 +26,10 @@ import gpiod
 
 from .config import CONFIG
 
+
 ROWS = CONFIG["lcd_rows"]
 COLS = CONFIG["lcd_cols"]
+
 
 class _Control:
 

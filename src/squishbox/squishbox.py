@@ -7,6 +7,7 @@ import traceback
 
 from . import hardware
 from .config import CONFIG, save_state
+from .midi import midi_connect, list_ports
 
 ROWS = CONFIG["lcd_rows"]
 COLS = CONFIG["lcd_cols"]
@@ -265,11 +266,8 @@ class SquishBox:
     def menu_wifisettings(self, row=ROWS - 2, timeout=0):
         """Wifi settings menu
         
-        A series of menus that provides a unified interface for
-        adjusting wifi settings. Can be used to turn
-        wifi on/off, scan for networks, connect/disconnect, and
-        enter passwords. Uses NetworkManager's `nmcli` command
-        to control system-wide network settings.
+        Turn wifi on/off, scan for networks, connect/disconnect, and
+        enter passwords.
 
         Args:
           row: menu uses this row and the one below it
@@ -339,9 +337,63 @@ class SquishBox:
                     self.lcd.write(" " * COLS, row)
                     return
 
-    def menu_exit(self, row=ROWS - 2, timeout=MENU_TIME):
-        """Options to reboot, shutdown, or exit the current script
+    def menu_midisettings(self, row=ROWS - 2, timeout=0):
+        """List and connect/disconnect MIDI ports
+
+        Connections are added to the config file and will
+        be reconnected automatically
         
+         Args:
+          row: menu uses this row and the one below it
+          timeout: seconds to wait, if 0 wait forever
+       """
+        oports = list_ports(output=True)
+        iports = list_ports(input=True)
+        if not (oports and iports):
+            self.lcd.write("no MIDI ports".rjust(COLS), row + 1)
+            self.get_action(timeout=MENU_TIME)
+            self.lcd.write(" " * COLS, row + 1)
+            return
+        olast = 0
+        ilast = 0
+        conns = CONFIG.get("midi_connections", [])
+        while True:
+            self.lcd.write("Select output:".ljust(COLS), row)
+            oname, olast = self.menu_choose(
+                list(oports), row + 1, i=olast, timeout=timeout
+            )
+            if olast == -1:
+                self.lcd.write(" " * COLS, row)
+                if conns:
+                    CONFIG["midi_connections"] = conns
+                else:
+                    CONFIG.pop("midi_connections", [])
+                save_state(CONFIG)
+                return
+            while True:
+                midi_connect()
+                subs = [i for o, i in [c.split(">") for c in conns] if o == oname]
+                self.lcd.write("Connect to:".ljust(COLS), row)
+                iname, ilast = self.menu_choose(
+                    [self.lcd.glyph["check"] if p in subs else " " + p for p in iports],
+                    row + 1, i=ilast, timeout=timeout
+                )
+                if ilast == -1:
+                    break
+                conn = f"{oname}>{iname[1:]}"
+                if conn in conns:
+                    conns.remove(conn)           
+                else:
+                    conns.append(conn)
+
+
+    def menu_exit(self, row=ROWS - 2, timeout=MENU_TIME):
+        """Reboot, shutdown, or exit the current script
+        
+        Args:
+          row: menu uses this row and the one below it
+          timeout: seconds to wait, if 0 wait forever
+
         Returns: "shell" if that option is chosen, otherwise None
         """
         self.lcd.write("Exit options:".ljust(COLS), row)
@@ -359,10 +411,15 @@ class SquishBox:
                 sys.exit()
             case "Shell":
                 return "shell"
+        self.lcd.write(" " * COLS, row)
 
     def menu_systemsettings(self, row=ROWS - 2, timeout=MENU_TIME):
         """A unified system settings menu
         
+        Args:
+          row: menu uses this row and the one below it
+          timeout: seconds to wait, if 0 wait forever
+
         Returns: "shell" if that option is chosen, otherwise None
         """
         self.lcd.write("System Menu".ljust(COLS), row)
@@ -377,6 +434,7 @@ class SquishBox:
             case "Exit":
                 if self.menu_exit(row) == "shell":
                     return "shell"
+        self.lcd.write(" " * COLS, row)
 
     def progresswheel_start(self):
         """Shows an animation while another process runs
