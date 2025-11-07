@@ -7,7 +7,7 @@ import traceback
 
 from . import hardware
 from .config import CONFIG, save_state
-from .midi import midi_connect, list_ports
+from .midi import midi_connect, midi_ports
 
 ROWS = CONFIG["lcd_rows"]
 COLS = CONFIG["lcd_cols"]
@@ -251,6 +251,55 @@ class SquishBox:
         CONFIG["backlight_level"] = self.backlight.level
         save_state(CONFIG)
 
+    def menu_midisettings(self, row=ROWS - 2, timeout=0):
+        """List and connect/disconnect MIDI ports
+
+        Connections are added to the config file and will
+        be reconnected automatically
+        
+         Args:
+          row: menu uses this row and the one below it
+          timeout: seconds to wait, if 0 wait forever
+        """
+        inames = list(midi_ports(input=True))
+        onames = list(midi_ports(output=True))
+        if not (inames and onames):
+            self.lcd.write("no MIDI ports".rjust(COLS), row + 1)
+            self.get_action(timeout=MENU_TIME)
+            self.lcd.write(" " * COLS, row + 1)
+            return
+        ilast = 0
+        olast = 0
+        conns = CONFIG.get("midi_connections", [])
+        while True:
+            self.lcd.write("Source Ports:".ljust(COLS), row)
+            ilast, iname = self.menu_choose(
+                inames, row + 1, i=ilast, timeout=timeout
+            )
+            if ilast == -1:
+                self.lcd.write(" " * COLS, row)
+                if conns:
+                    CONFIG["midi_connections"] = sorted(conns)
+                else:
+                    CONFIG.pop("midi_connections", None)
+                save_state(CONFIG)
+                return
+            while True:
+                midi_connect()
+                self.lcd.write("Dest. Ports:".ljust(COLS), row)
+                olast, oname = self.menu_choose(
+                    [f">{p}" if f"{iname}>{p}" in conns else f" {p}"
+                     for p in onames],
+                    row + 1, i=olast, timeout=timeout
+                )
+                if olast == -1:
+                    break
+                conn = f"{iname}>{oname[1:]}"
+                if conn in conns:
+                    conns.remove(conn)           
+                else:
+                    conns.append(conn)
+
     @property
     def wifienabled(self):
         return self._wifienabled
@@ -337,56 +386,6 @@ class SquishBox:
                     self.lcd.write(" " * COLS, row)
                     return
 
-    def menu_midisettings(self, row=ROWS - 2, timeout=0):
-        """List and connect/disconnect MIDI ports
-
-        Connections are added to the config file and will
-        be reconnected automatically
-        
-         Args:
-          row: menu uses this row and the one below it
-          timeout: seconds to wait, if 0 wait forever
-       """
-        oports = list_ports(output=True)
-        iports = list_ports(input=True)
-        if not (oports and iports):
-            self.lcd.write("no MIDI ports".rjust(COLS), row + 1)
-            self.get_action(timeout=MENU_TIME)
-            self.lcd.write(" " * COLS, row + 1)
-            return
-        olast = 0
-        ilast = 0
-        conns = CONFIG.get("midi_connections", [])
-        while True:
-            self.lcd.write("Select output:".ljust(COLS), row)
-            oname, olast = self.menu_choose(
-                list(oports), row + 1, i=olast, timeout=timeout
-            )
-            if olast == -1:
-                self.lcd.write(" " * COLS, row)
-                if conns:
-                    CONFIG["midi_connections"] = conns
-                else:
-                    CONFIG.pop("midi_connections", [])
-                save_state(CONFIG)
-                return
-            while True:
-                midi_connect()
-                subs = [i for o, i in [c.split(">") for c in conns] if o == oname]
-                self.lcd.write("Connect to:".ljust(COLS), row)
-                iname, ilast = self.menu_choose(
-                    [self.lcd.glyph["check"] if p in subs else " " + p for p in iports],
-                    row + 1, i=ilast, timeout=timeout
-                )
-                if ilast == -1:
-                    break
-                conn = f"{oname}>{iname[1:]}"
-                if conn in conns:
-                    conns.remove(conn)           
-                else:
-                    conns.append(conn)
-
-
     def menu_exit(self, row=ROWS - 2, timeout=MENU_TIME):
         """Reboot, shutdown, or exit the current script
         
@@ -401,7 +400,7 @@ class SquishBox:
                                row + 1, timeout=timeout)[1]:
             case "Shutdown":
                 self.lcd.write("Shutting down..".ljust(COLS), row)
-                self.lcd.write("Wait 15s, unplug".rjust(COLS), row + 1)
+                self.lcd.write("wait 15s, unplug".rjust(COLS), row + 1)
                 self.shell_cmd("sudo poweroff")
                 sys.exit()
             case "Reboot":
@@ -423,13 +422,16 @@ class SquishBox:
         Returns: "shell" if that option is chosen, otherwise None
         """
         self.lcd.write("System Menu".ljust(COLS), row)
-        match self.menu_choose(["LCD Settings",
-                                "WiFi Settings",
+        match self.menu_choose(["LCD Settings..",
+                                "MIDI Settings..",
+                                "WiFi Settings..",
                                 "Exit"
                                ], row + 1, timeout)[1]:
-            case "LCD Settings":
+            case "LCD Settings..":
                 self.menu_lcdsettings(row)
-            case "WiFi Settings":
+            case "MIDI Settings..":
+                self.menu_midisettings(row)
+            case "WiFi Settings..":
                 self.menu_wifisettings(row)
             case "Exit":
                 if self.menu_exit(row) == "shell":
