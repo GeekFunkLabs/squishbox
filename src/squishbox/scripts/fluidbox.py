@@ -75,8 +75,10 @@ def edit_sounds():
                 break
             if newsf == "Load Sound File":
                 sb.lcd.write("Load Sound File:".ljust(COLS), row=0)
-                newsf = sb.menu_choosefile(topdir=CONFIG["sounds_path"], ext=".sf2")
-                if newsf == "":
+                newsf = sb.menu_choosefile(
+                    topdir=CONFIG["sounds_path"], ext=".sf2"
+                )
+                if not newsf.is_file():
                     break
             sounds[chan] = SFPreset(newsf, 0, 0)
             change_preset(chan, sounds[chan])
@@ -350,7 +352,7 @@ while True:
             startfile=CONFIG["banks_path"] / CONFIG["current_bank"],
             ext=".yaml"
         )
-        if f and load_bank(f):
+        if f.is_file() and load_bank(f):
             CONFIG["current_bank"] = f
             save_state(CONFIG)
             if CONFIG["current_bank"] == lastbank and pname in fp.bank:
@@ -359,23 +361,24 @@ while True:
                 pno = 0
             fp.apply_patch(pname := fp.bank.patches[pno])
     elif choice == "Save Bank":
-        f = sb.menu_choosefile(topdir=CONFIG["bank_path"],
-                               startfile=fp.bankfile,
-                               ext=".yaml")
-        if f != "":
-            sb.lcd.write("Save as:".ljust(COLS), row=0)
-            name = sb.menu_entertext(f.name)
-            if sb.menu_confirm(name):
-                sb.lcd.write(name.ljust(COLS), row=0)
-                try:
-                    fp.save_bank((f.parent / name).with_suffix(".yaml"))
-                except Exception as e:
-                    sb.display_error(e, "bank save error")
-                else:
-                    CONFIG["current_bank"] = f.parent / name
-                    save_state(CONFIG)
-                    sb.lcd.write("bank saved".ljust(COLS), row=1)
-                    sb.get_action(timeout=MENU_TIME)
+        f = sb.menu_choosefile(
+            topdir=CONFIG["bank_path"],
+            startfile=fp.bankfile, ext=".yaml"
+        )
+        name = sb.menu_entertext(
+            f.name if f.is_file() else "", charset=sb.lcd.FCHARS
+        )
+        if name and sb.menu_confirm(name):
+            sb.lcd.write(name.ljust(COLS), row=0)
+            try:
+                fp.save_bank((f.parent / name).with_suffix(".yaml"))
+            except Exception as e:
+                sb.display_error(e, "bank save error")
+            else:
+                CONFIG["current_bank"] = f.parent / name
+                save_state(CONFIG)
+                sb.lcd.write("bank saved".ljust(COLS), row=1)
+                sb.get_action(timeout=MENU_TIME)
     elif choice == "Save Patch":
         sb.lcd.write("Save patch as:".ljust(COLS), row=0)
         newname = sb.menu_entertext(pname)

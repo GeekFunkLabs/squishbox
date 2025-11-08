@@ -138,7 +138,7 @@ class SquishBox:
         Returns: the edited string
         """
         if charset == "":
-            charset = self.lcd.FCHARS
+            charset = self.lcd.CHARS
         i %= len(text)
         text = list(text.ljust(COLS))
         c = charset.find(text[i])
@@ -187,10 +187,13 @@ class SquishBox:
           row: menu uses this row and the one below it
           timeout: seconds to wait, if 0 wait forever
 
-        Returns: Path of the chosen file or empty string if canceled
+        Returns: Path of the chosen file or last directory if canceled
         """
         curdir = topdir if startfile == "" else (
-                startfile.parent if startfile.parent > topdir else topdir)
+            startfile if startfile.is_dir() else (
+               startfile.parent if startfile.parent > topdir else topdir
+            )
+        )
         while True:
             self.lcd.write(
                 f"{curdir.relative_to(topdir.parent)}/:".ljust(COLS),
@@ -206,14 +209,12 @@ class SquishBox:
             i = paths.index(startfile) if startfile in paths else 0
             i = self.menu_choose(names, row + 1, i=i, timeout=timeout)[0]
             if i == -1:
-                self.lcd.write(" "  * COLS, row)
-                return ""
+                return curdir
             path = paths[i]
             if path.is_dir():
                 startfile = curdir
                 curdir = path
             else:
-                self.lcd.write(" "  * COLS, row)
                 return path
 
     def menu_lcdsettings(self, row=ROWS - 2, timeout=MENU_TIME):
@@ -362,7 +363,7 @@ class SquishBox:
                         except subprocess.CalledProcessError:
                             self.progresswheel_stop()
                             self.lcd.write("Password:".ljust(COLS), row)
-                            psk = self.menu_entertext(row=row + 1, charset=self.lcd.CHARS)
+                            psk = self.menu_entertext(row=row + 1)
                             if not self.menu_confirm(psk, row + 1):
                                 continue
                             self.lcd.write(ssid[1:COLS + 1].ljust(COLS), row)
