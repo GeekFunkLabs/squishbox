@@ -44,7 +44,7 @@ class SquishBox:
                 CONFIG["rotary_button"]
             )
             obj._wifienabled = obj.shell_cmd("nmcli radio wifi") == "enabled"
-            sys.excepthook = lambda _, e, tb: obj.display_error(e, tb=tb)
+            sys.excepthook = lambda _, e, __: obj.display_error(e)
             cls._instance = obj
         return cls._instance
 
@@ -120,7 +120,7 @@ class SquishBox:
                     self.lcd.write(" "  * COLS, row)
                     return False
 
-    def menu_entertext(self, text=" ", row=ROWS-1, i=-1,
+    def menu_entertext(self, text="", row=ROWS-1, i=-1,
                    timeout=0, charset=""):
         """Text entry interface
 
@@ -139,7 +139,7 @@ class SquishBox:
         """
         if charset == "":
             charset = self.lcd.CHARS
-        i %= len(text)
+        i = i % len(text) if text else 0
         text = list(text.ljust(COLS))
         c = charset.find(text[i])
         mode = "blink"
@@ -171,12 +171,12 @@ class SquishBox:
                     self.lcd.setcursormode(mode)
                 case _:
                     self.lcd.setcursormode("hide")
-                    text = "".join(text).strip()
+                    text = "".join(text)
                     for name, char in self.lcd.glyph2char:
                         text.replace(self.lcd.glyphs[name], char) 
                     return text
 
-    def menu_choosefile(self, topdir, startfile="", ext=[],
+    def menu_choosefile(self, topdir, startfile=None, ext=[],
                         row=ROWS - 2, timeout=0):
         """Browse and select a file on the system
 
@@ -189,7 +189,7 @@ class SquishBox:
 
         Returns: Path of the chosen file or last directory if canceled
         """
-        curdir = topdir if startfile == "" else (
+        curdir = topdir if not startfile else (
             startfile if startfile.is_dir() else (
                startfile.parent if startfile.parent > topdir else topdir
             )
@@ -363,7 +363,7 @@ class SquishBox:
                         except subprocess.CalledProcessError:
                             self.progresswheel_stop()
                             self.lcd.write("Password:".ljust(COLS), row)
-                            psk = self.menu_entertext(row=row + 1)
+                            psk = self.menu_entertext(row=row + 1).strip()
                             if not self.menu_confirm(psk, row + 1):
                                 continue
                             self.lcd.write(ssid[1:COLS + 1].ljust(COLS), row)
@@ -455,7 +455,7 @@ class SquishBox:
         self.lcd._spinning = False
         self._spin.join()
 
-    def display_error(self, err, msg="", tb=None, row=ROWS - 1):
+    def display_error(self, err, msg="", row=ROWS - 1):
         """Displays Exception text on the LCD
         
         Reformats the text of an Exception so it can be displayed on one
@@ -469,18 +469,16 @@ class SquishBox:
         if type(err) == KeyboardInterrupt:
             sys.exit()
         # remove newlines + carets and compress spaces
-        err_oneline = f"{msg}: " if msg else ""        
-        err_oneline += f"{type(err).__name__}: "
-        err_oneline += re.sub(" {2,}", " ", re.sub("\n|\^", " ", str(err)))
+        err_oneline = (
+            (f"{msg}: " if msg else "") + f"{type(err).__name__}: " +
+            re.sub(" {2,}", " ", re.sub("\n|\^", " ", str(err)))
+        )
         for name, char in self.lcd.glyph2char:
             err_oneline.replace(char, self.lcd.glyphs[name])
         self.lcd.write(err_oneline, row)
         if msg:
             print(msg)
-        if tb:
-            traceback.print_exception(type(err), err, tb)
-        else:
-            print(err)
+        traceback.print_exception(type(err), err, err.__traceback__)
         self.get_action()
         self.lcd.write(" " * COLS, row)
 

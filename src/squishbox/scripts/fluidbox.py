@@ -264,16 +264,17 @@ sb.button1.bind("tap", sb.action_do)
 sb.button1.bind("hold", sb.action_back)
 sb.lcd.clear()
 
+pno = 0
 fp = FluidPatcher()
-
 load_bank(CONFIG["current_bank"])
+sb.progresswheel_start()
+fp.apply_patch(pname := fp.bank.patches[pno])
+sb.progresswheel_stop()
+fp.set_callback(sb.add_action)
 
 showevent = False
 last = 0
-pno = 0
-fp.apply_patch(pname := fp.bank.patches[pno])
 refresh_display()
-fp.set_callback(sb.add_action)
 while True:
     evt = sb.get_action()
     if evt == "inc":
@@ -359,7 +360,9 @@ while True:
                 pno = fp.bank.index(pname)
             else:
                 pno = 0
+            sb.progresswheel_start()
             fp.apply_patch(pname := fp.bank.patches[pno])
+            sb.progresswheel_stop()
     elif choice == "Save Bank":
         f = sb.menu_choosefile(
             topdir=CONFIG["bank_path"],
@@ -367,7 +370,7 @@ while True:
         )
         name = sb.menu_entertext(
             f.name if f.is_file() else "", charset=sb.lcd.FCHARS
-        )
+        ).strip()
         if name and sb.menu_confirm(name):
             sb.lcd.write(name.ljust(COLS), row=0)
             try:
@@ -381,7 +384,7 @@ while True:
                 sb.get_action(timeout=MENU_TIME)
     elif choice == "Save Patch":
         sb.lcd.write("Save patch as:".ljust(COLS), row=0)
-        newname = sb.menu_entertext(pname)
+        newname = sb.menu_entertext(pname).strip()
         if sb.menu_confirm(newname):
             if newname != pname:
                 fp.bank[newname] = fp.bank[pname].copy()
