@@ -12,9 +12,10 @@ def midi_ports(**kwargs):
 
 def midi_connect():
     """Make MIDI connections as enumerated in config"""
-    for iname, iport in midi_ports(input=True).items():
-        for oname, oport in midi_ports(output=True).items():
-            if f"{iname}>{oname}" in CONFIG.get("midi_connections", []):
+    conn = set(CONFIG.get("midi_connections", []))
+    for i, iport in midi_ports(input=True).items():
+        for o, oport in midi_ports(output=True).items():
+            if {f"{i}>{o}", f"any>{o}", f"{i}>any"} & conn:
                 try:
                     sbclient.subscribe_port(iport, oport)
                 except ALSAError:

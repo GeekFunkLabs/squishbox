@@ -275,7 +275,7 @@ class SquishBox:
         while True:
             self.lcd.write("Source Ports:".ljust(COLS), row)
             ilast, iname = self.menu_choose(
-                inames, row + 1, i=ilast, timeout=timeout
+                inames + ["any"], row + 1, i=ilast, timeout=timeout
             )
             if iname == None:
                 self.lcd.write(" " * COLS, row)
@@ -290,7 +290,7 @@ class SquishBox:
                 self.lcd.write("Dest. Ports:".ljust(COLS), row)
                 olast, oname = self.menu_choose(
                     [f">{p}" if f"{iname}>{p}" in conns else f" {p}"
-                     for p in onames],
+                     for p in onames + ["any"]],
                     row + 1, i=olast, timeout=timeout
                 )
                 if oname == None:
