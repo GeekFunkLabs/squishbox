@@ -330,111 +330,41 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
         if t > self._scrolltimer:
             self._scrolltimer += CONFIG["scroll_time"]
 
-    def define_glyph(self, name, loc, text):
+    def define_glyph(self, loc, text):
         """Instate a custom LCD glyph from ascii art
         
         Args:
-          name: descriptive name for the glyph
           loc: the memory location for the glyph (0-7)
           text: a string representing the 40 pixels of the glyph
-            (8 rows times 5 columns) with hash marks (#) and dots (.)
+            (8 rows times 5 columns) with "X"=on and "-"=off.
             Spaces and newlines are ignored, so this can be a
             multiline string
             
         Returns:
-          a character that can be used to write the glyph on the LCD
+          the character for writing the glyph to the LCD
         """
         if loc < 0 or loc > 7:
             raise ValueError("Custom character location outside range (0-7)")
-        bits = text.replace(" ", "").replace("\n", "").replace(".", "0").replace("#", "1")
+        bits = text.replace(" ", "").replace("\n", "").replace("-", "0").replace("X", "1")
         glyphbytes = [int(bits[i:i + 5], 2) for i in range(0, 40, 5)]
         self._send(0x40 | loc << 3)
         for b in glyphbytes:
             self._send(b, gpiod.line.Value.ACTIVE)
-        self.glyphs[name] = chr(loc)
+        return chr(loc)
 
     def default_custom_glyphs(self):
         """Re-initialize standard custom glyphs"""
-        self.define_glyph("backslash", 0,
-            """.....
-               #....
-               .#...
-               ..#..
-               ...#.
-               ....#
-               .....
-               ....."""
-        )
-        self.define_glyph("tilde", 1,
-            """.....
-               .....
-               .....
-               .##.#
-               #..#.
-               .....
-               .....
-               ....."""
-        )
-        self.define_glyph("check", 2,
-            """.....
-               ....#
-               ...##
-               #.##.
-               ###..
-               .#...
-               .....
-               ....."""
-        )
-        self.define_glyph("cross", 3, 
-            """.....
-               ##.##
-               .###.
-               ..#..
-               .###.
-               ##.##
-               .....
-               ....."""
-        )
-        self.define_glyph("folder", 4, 
-            """.....
-               .....
-               ##...
-               #.###
-               #...#
-               #...#
-               #####
-               ....."""
-        )
-        self.define_glyph("wifi_on", 5, 
-            """.###.
-               #...#
-               ..#..
-               .#.#.
-               .....
-               ..#..
-               .....
-               ....."""
-        )
-        self.define_glyph("wifi_off", 6,
-            """.#.#.
-               ..#..
-               .#.#.
-               .....
-               ..#..
-               .....
-               ..#..
-               ....."""
-        )
-        self.define_glyph("note", 7,
-            """..#..
-               ..##.
-               ..#.#
-               ..#.#
-               ..#..
-               ###..
-               ###..
-               ....."""
-        )
+        for i, name in enumerate((
+            "backslash",
+            "tilde",
+            "check",
+            "cross",
+            "folder",
+            "wifi_on",
+            "wifi_off",
+            "note",
+        )):
+            self.glyphs[name] = self.define_glyph(i, CONFIG["glyphs_5x8"][name])
 
     def setcursorpos(self, row, col):
         if row < ROWS and col < COLS:
