@@ -62,7 +62,8 @@ class SquishBox:
           func: function to call on choice inc/dec
 
         Returns: (index, item) tuple for the chosen option,
-          or (-1, "") if canceled or timed out
+          (index, None) if canceled, (-1, None) if timed out,
+          (-1, action) pass through an unknown action/object
         """
         i = i % len(opts)
         while True:
@@ -70,25 +71,22 @@ class SquishBox:
                 self.lcd.write(str(opts[i]).ljust(COLS), row)
             else:
                 self.lcd.write(str(opts[i]).rjust(COLS), row)
+            func(i)
             match self.get_action(timeout=timeout):
                 case "inc" if wrap:
                     i = (i + 1) % len(opts)
-                    func(i)
                 case "dec" if wrap:
                     i = (i - 1) % len(opts)
-                    func(i)
                 case "inc":
                     i = min(i + 1, len(opts) - 1)
-                    func(i)
                 case "dec":
                     i = max(i - 1, 0)
-                    func(i)
                 case "do":
                     self.lcd.write(" " * COLS, row)
                     return i, opts[i]
                 case "back":
                     self.lcd.write(" " * COLS, row)
-                    return -1, ""
+                    return i, None
                 case action:
                     self.lcd.write(" " * COLS, row)
                     return -1, action
@@ -207,8 +205,8 @@ class SquishBox:
                 paths.append(curdir.parent)
                 names.append("../")
             i = paths.index(startfile) if startfile in paths else 0
-            i = self.menu_choose(names, row + 1, i=i, timeout=timeout)[0]
-            if i == -1:
+            i, res = self.menu_choose(names, row + 1, i=i, timeout=timeout)
+            if res == None:
                 return curdir
             path = paths[i]
             if path.is_dir():
@@ -233,19 +231,21 @@ class SquishBox:
         while True:
             self.lcd.write("Contrast".ljust(COLS), row)
             ival = int(self.contrast.level / d)
-            if self.menu_choose(
+            res = self.menu_choose(
                 slider, row + 1, align="left",
                 i=ival, wrap=False, timeout=timeout,
                 func=lambda i: setattr(self.contrast, "level", i * d)
-            )[0] == -1:
+            )
+            if res[1] == None:
                 break
             self.lcd.write("Brightness".ljust(COLS), row)
             ival = int(self.backlight.level / d)
-            if self.menu_choose(
+            res = self.menu_choose(
                 slider, row + 1, align="left",
                 i=ival, wrap=False, timeout=timeout,
                 func=lambda i: setattr(self.backlight, "level", i * d)
-            )[0] == -1:
+            )
+            if res[1] == None:
                 break
         self.lcd.write(" "  * COLS, row)
         CONFIG["contrast_level"] = self.contrast.level
@@ -277,7 +277,7 @@ class SquishBox:
             ilast, iname = self.menu_choose(
                 inames, row + 1, i=ilast, timeout=timeout
             )
-            if ilast == -1:
+            if iname == None:
                 self.lcd.write(" " * COLS, row)
                 if conns:
                     CONFIG["midi_connections"] = sorted(conns)
@@ -293,7 +293,7 @@ class SquishBox:
                      for p in onames],
                     row + 1, i=olast, timeout=timeout
                 )
-                if olast == -1:
+                if oname == None:
                     break
                 conn = f"{iname}>{oname[1:]}"
                 if conn in conns:
@@ -336,7 +336,7 @@ class SquishBox:
                 opts = ssid + ["Scan", "Disable WiFi"]
                 i = max("".join(s[0] for s in ssid).find(self.lcd.glyphs["check"]), 0)
                 match self.menu_choose(opts, row + 1, i=i, timeout=timeout)[1]:
-                    case "":
+                    case None:
                         self.lcd.write(" " * COLS, row)
                         return
                     case "Scan":
@@ -381,7 +381,8 @@ class SquishBox:
                         else:
                             self.progresswheel_stop()
             else:
-                if self.menu_choose(["Enable WiFi"], row + 1, timeout=timeout)[0] == 0:
+                res = self.menu_choose(["Enable WiFi"], row + 1, timeout=timeout)
+                if res[1] != None:
                     self.wifienabled = True
                 else:
                     self.lcd.write(" " * COLS, row)
@@ -439,7 +440,7 @@ class SquishBox:
                     return "shell"
         self.lcd.write(" " * COLS, row)
 
-    def progresswheel_start(self):
+    def activitywheel_start(self):
         """Shows an animation while another process runs
         
         Displays a spinning character in the lower right corner of the
@@ -450,7 +451,7 @@ class SquishBox:
         self._spin = Thread(target=self.lcd._progresswheel_spin)
         self._spin.start()
     
-    def progresswheel_stop(self):
+    def activitywheel_stop(self):
         """Removes the spinning character"""
         self.lcd._spinning = False
         self._spin.join()
@@ -517,7 +518,7 @@ class SquishBox:
         Args:
           idle: delay between polling controls so other threads can work
           timeout: return after this many seconds. If 0 wait forever
-        Returns: The action name, or None if timed out
+        Returns: The action, or None if timed out
         """
         t0 = time.time()
         self._scrolltimer = t0

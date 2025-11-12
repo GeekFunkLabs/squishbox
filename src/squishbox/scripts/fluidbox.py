@@ -26,15 +26,20 @@ def edit_sounds():
             if p := fp.bank[pname][c]:
                 sounds[c] = p
                 presetname = fp.soundfonts[p.file][p.bank, p.prog]
-                channel_info.append(f"{c}: {p.file}:{p.bank:03}:{p.prog:03} {presetname}")
+                channel_info.append(
+                    f"{c}: {p.file}:{p.bank:03}:{p.prog:03} {presetname}"
+                )
             else:
                 channel_info.append(f"{c}:")
         # channel selection
         if chan == 0:
             chan = list(sounds)[0] if sounds else 1
-        chan = sb.menu_choose(channel_info, row=1, timeout=0, align="left", i=chan - 1)[0] + 1
-        if chan == 0:
+        i, choice = sb.menu_choose(
+            channel_info, row=1, i=chan - 1, timeout=0, align="left"
+        )
+        if choice == None:
             break
+        chan = i + 1
         while True:
             if p := sounds.get(chan):
                 # select preset in the current soundfont
@@ -51,10 +56,11 @@ def edit_sounds():
                     change_preset(chan, presets[i := 0])
                 else:
                     i = list(sf).index((p.bank, p.prog))
-                if sb.menu_choose(
+                res = sb.menu_choose(
                     preset_info, row=1, i=i, timeout=0, align="left",
                     func=lambda i: change_preset(chan, presets[i])
-                )[1] == "":
+                )
+                if res[1] == None:
                     break
             # change soundfont
             sb.lcd.write("Set Sound File:".ljust(COLS), row=0)
@@ -67,7 +73,7 @@ def edit_sounds():
                 newsf = sb.menu_choose(
                     list(fp.soundfonts) + ["Load Sound File"],
                     row=1, timeout=0)[1]
-            if newsf == "":
+            if newsf == None:
                 break
             if newsf == "No Sound":
                 del fp.bank.patch[pname][chan]
@@ -120,13 +126,14 @@ def edit_layers():
                                         row=1, i=last, timeout=0)
         else:
             last, rule = sb.menu_choose(["Add Layer"], row=1, i=last, timeout=0)
-        if rule == "":
+        if rule == None:
             break
         elif rule == "Add Layer":
             rule = MidiRule(type="note", chan=1, num="0-127")
         elif rule == "Delete Layer":
             sb.lcd.write("Delete Layer:".ljust(COLS), row=0)
-            if (i := sb.menu_choose(rules, row=1, i=0, timeout=0)[0]) != -1:
+            i, choice = sb.menu_choose(rules, row=1, i=0, timeout=0)
+            if choice != None:
                 del fp.bank.patch[pname]["rules"][ri[i]]
             continue
         # layer creation/editing
@@ -138,10 +145,10 @@ def edit_layers():
             row=0, i=rule.chan.min - 1, timeout=0
         )
         fp.set_callback(None)
-        if isinstance(evt, FluidMidiEvent):
-            chan, num_min = evt.chan, evt.num
-        elif evt == "":
+        if evt == None:
             continue
+        elif isinstance(evt, FluidMidiEvent):
+            chan, num_min = evt.chan, evt.num
         else:
             chan = i + 1
         if num_min == -1:
@@ -152,10 +159,10 @@ def edit_layers():
                 row=1, i=rule.num.min, wrap=False, timeout=0
             )
             fp.set_callback(None)
-            if isinstance(evt, FluidMidiEvent):
-                num_min = evt.num
-            elif evt == "":
+            if evt == None:
                 continue
+            elif isinstance(evt, FluidMidiEvent):
+                num_min = evt.num
         fp.set_callback(action_notedown)
         sb.lcd.write(f"channel: {chan}".rjust(COLS), row=0)
         num_max, evt = sb.menu_choose(
@@ -163,25 +170,25 @@ def edit_layers():
             row=1, i=rule.num.max, wrap=False, timeout=0
         )
         fp.set_callback(None)
-        if isinstance(evt, FluidMidiEvent):
-            num_max = evt.num
-        elif evt == "":
+        if evt == None:
             continue
+        elif isinstance(evt, FluidMidiEvent):
+            num_max = evt.num
         sb.lcd.write(f"key shift:".rjust(COLS), row=0)
         add = sb.menu_choose(
             [format(k, "+") for k in range(-36, 37)],
             row=1, i=int(rule.num.add) + 36, wrap=False, timeout=0
-        )[0]
-        if add == -1:
+        )[1]
+        if add == None:
             continue
         sb.lcd.write("target:".rjust(COLS), row=0)
-        tochan = sb.menu_choose(
+        i, choice = sb.menu_choose(
             channel_info, row=1, align="left", timeout=0,
             i=rule.chan.tomin - 1
-        )[0] + 1
-        if tochan == 0:
+        )
+        if choice == None:
             continue
-        newrule = rule.copy(chan=f"{chan}={tochan}",
+        newrule = rule.copy(chan=f"{chan}={i + 1}",
                             num=f"{num_min}-{num_max}*1{add - 36:+}")
         if last == len(layers):
             fp.bank.patch[pname].setdefault("rules", []).append(newrule)
@@ -215,16 +222,18 @@ def effects_menu():
         sb.lcd.write("Effects:".ljust(COLS), row=0)
         fp.apply_patch(pname)
         i, name = sb.menu_choose(list(FLUIDFX_OPTS), row=1, i=last, timeout=0)
-        if name == "":
+        if name == None:
             break
         last = i
         vals, fs = FLUIDFX_OPTS[name]
         sb.lcd.write(name.ljust(COLS), row=0)
         curval = fp.fluidsetting(fs)
         i = min(range(len(vals)), key=lambda i: abs(float(vals[i]) - curval))
-        if sb.menu_choose(vals, row=1, i=i, wrap=False, timeout=0,
-                          func=lambda i: fp.fluidsetting_set(fs, vals[i])
-                         )[0] == -1:
+        res = sb.menu_choose(
+            vals, row=1, i=i, wrap=False, timeout=0,
+            func=lambda i: fp.fluidsetting_set(fs, vals[i])
+        )
+        if res[1] == None:
             fp.fluidsetting_set(fs, curval)
         else:
             fp.bank.patch[pname].setdefault("fluidsettings", {})[fs] = fp.fluidsetting(fs)
@@ -233,14 +242,14 @@ def effects_menu():
 def load_bank(bank):
     sb.lcd.write(bank.name.ljust(COLS), row=0)
     sb.lcd.write("loading bank ".ljust(COLS), row=1)
-    sb.progresswheel_start()
+    sb.activitywheel_start()
     try:
         fp.load_bank(bank)
     except Exception as e:
-        sb.progresswheel_stop()
+        sb.activitywheel_stop()
         sb.display_error(e, "bank load error")
         return False
-    sb.progresswheel_stop()
+    sb.activitywheel_stop()
     return True
 
 
@@ -267,9 +276,9 @@ sb.lcd.clear()
 pno = 0
 fp = FluidPatcher()
 load_bank(CONFIG["current_bank"])
-sb.progresswheel_start()
+sb.activitywheel_start()
 fp.apply_patch(pname := fp.bank.patches[pno])
-sb.progresswheel_stop()
+sb.activitywheel_stop()
 fp.set_callback(sb.add_action)
 
 showevent = False
@@ -345,7 +354,7 @@ while True:
                                 "Effects..",
                                 "System Menu.."
                                ], row=1, i=last)
-    last = i if i != -1 else last
+    last = i if choice == None else last
     if choice == "Load Bank":
         lastbank = CONFIG["current_bank"]
         f = sb.menu_choosefile(
@@ -360,9 +369,9 @@ while True:
                 pno = fp.bank.index(pname)
             else:
                 pno = 0
-            sb.progresswheel_start()
+            sb.activitywheel_start()
             fp.apply_patch(pname := fp.bank.patches[pno])
-            sb.progresswheel_stop()
+            sb.activitywheel_stop()
     elif choice == "Save Bank":
         f = sb.menu_choosefile(
             topdir=CONFIG["bank_path"],

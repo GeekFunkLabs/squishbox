@@ -69,7 +69,7 @@ def main():
                 sb.menu_midisettings()
             case "WiFi Settings..":
                 sb.menu_wifisettings()
-            case "Exit" | "":
+            case "Exit" | None:
                 if sb.menu_exit() == "shell":
                     break
             case name:
