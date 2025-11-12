@@ -58,8 +58,7 @@ def main(curfile = None):
                     display_row = max(display_row - 1, 0)
             case "do":
                 i = display_row + cursor_row
-                contents[i] = sb.menu_entertext(contents[i], row=cursor_row)
-                sb.lcd.clear()
+                contents[i] = sb.menu_entertext(contents[i], row=cursor_row).rstrip()
             case "back":
                 i, choice = sb.menu_choose(["Insert Row",
                                             "Delete Row",
@@ -68,7 +67,7 @@ def main(curfile = None):
                                             "New File",
                                             "Exit"
                                            ], row=ROWS - 1, i=last)
-                last = i if i != -1 else last
+                last = i if choice != None else last
                 if choice == "Insert Row":
                     contents.insert(display_row + cursor_row, "")
                 if choice ==  "Delete Row":
