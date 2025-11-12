@@ -54,6 +54,7 @@ def main():
     clear_binds()
     add_binds()
 
+    last = 0
     while True:
         sb.lcd.clear()
         sb.lcd.write(f"SquishBox {__version__}", row=0)
@@ -62,17 +63,17 @@ def main():
                               "MIDI Settings..",
                               "WiFi Settings..",
                               "Exit"
-                             ], row=ROWS - 1, timeout=0)[1]:
-            case "LCD Settings..":
+                             ], row=ROWS - 1, i=last, timeout=0):
+            case last, "LCD Settings..":
                 sb.menu_lcdsettings()
-            case "MIDI Settings..":
+            case last, "MIDI Settings..":
                 sb.menu_midisettings()
-            case "WiFi Settings..":
+            case last, "WiFi Settings..":
                 sb.menu_wifisettings()
-            case "Exit" | None:
+            case last, "Exit" | None:
                 if sb.menu_exit() == "shell":
                     break
-            case name:
+            case last, name:
                 sb.lcd.write(name.ljust(COLS), row=ROWS - 2)
                 sb.lcd.write("starting ".rjust(COLS), row=ROWS - 1)
                 clear_binds()

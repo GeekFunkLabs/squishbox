@@ -354,7 +354,7 @@ while True:
                                 "Effects..",
                                 "System Menu.."
                                ], row=1, i=last)
-    last = i if choice == None else last
+    last = i if choice != None else last
     if choice == "Load Bank":
         lastbank = CONFIG["current_bank"]
         f = sb.menu_choosefile(

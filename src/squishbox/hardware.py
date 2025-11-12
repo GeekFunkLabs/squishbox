@@ -320,7 +320,6 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                 for col, btime in enumerate(self._blinktimer[row]):
                     if btime and t > btime:
                         self._layers[2][row][col] = ""
-#            chars = [""] * COLS
             chars = [" "] * COLS
             for i in range(3):
                 for col in range(COLS):
