@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+"""Front-end menu for SquishBox scripts"""
+
 from importlib.util import spec_from_file_location, module_from_spec
 from pathlib import Path
 
@@ -58,12 +61,15 @@ def main():
     while True:
         sb.lcd.clear()
         sb.lcd.write(f"SquishBox {__version__}", row=0)
-        match sb.menu_choose([*names,
-                              "LCD Settings..",
-                              "MIDI Settings..",
-                              "WiFi Settings..",
-                              "Exit"
-                             ], row=ROWS - 1, i=last, timeout=0):
+        match sb.menu_choose(
+            [
+                *names,
+                "LCD Settings..",
+                "MIDI Settings..",
+                "WiFi Settings..",
+                "Exit"
+            ], row=ROWS - 1, i=last, timeout=0
+        ):
             case last, "LCD Settings..":
                 sb.menu_lcdsettings()
             case last, "MIDI Settings..":

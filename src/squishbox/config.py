@@ -21,8 +21,8 @@ def load_config():
     return CONFIG
 
 
-def save_state(config):
-    CONFIG_PATH.write_text(yaml.safe_dump(config, sort_keys=False))
+def save_state(cfg):
+    CONFIG_PATH.write_text(yaml.safe_dump(cfg, sort_keys=False))
 
 
 CONFIG_PATH = Path(os.getenv(

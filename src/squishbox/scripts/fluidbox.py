@@ -345,21 +345,24 @@ while True:
     if evt != "do":
         continue
     fp.set_callback(None)
-    i, choice = sb.menu_choose(["Load Bank",
-                                "Save Bank",
-                                "Save Patch",
-                                "Delete Patch",
-                                "Sounds..",
-                                "Layers..",
-                                "Effects..",
-                                "System Menu.."
-                               ], row=1, i=last)
+    i, choice = sb.menu_choose(
+        [
+            "Load Bank",
+            "Save Bank",
+            "Save Patch",
+            "Delete Patch",
+            "Sounds..",
+            "Layers..",
+            "Effects..",
+            "System Menu..",
+        ], row=1, i=last
+    )
     last = i if choice != None else last
     if choice == "Load Bank":
         lastbank = CONFIG["current_bank"]
         f = sb.menu_choosefile(
             topdir=CONFIG["banks_path"],
-            startfile=CONFIG["banks_path"] / CONFIG["current_bank"],
+            startfile=CONFIG["current_bank"],
             ext=".yaml"
         )
         if f.is_file() and load_bank(f):
@@ -374,8 +377,9 @@ while True:
             sb.activitywheel_stop()
     elif choice == "Save Bank":
         f = sb.menu_choosefile(
-            topdir=CONFIG["bank_path"],
-            startfile=fp.bankfile, ext=".yaml"
+            topdir=CONFIG["banks_path"],
+            startfile=CONFIG["current_bank"],
+            ext=".yaml"
         )
         name = sb.menu_entertext(
             f.name if f.is_file() else "", charset=sb.lcd.FCHARS

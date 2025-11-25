@@ -174,24 +174,26 @@ class SquishBox:
                         text.replace(self.lcd.glyphs[name], char) 
                     return text
 
-    def menu_choosefile(self, topdir, startfile=None, ext=[],
+    def menu_choosefile(self, topdir, start=None, ext=[],
                         row=ROWS - 2, timeout=0):
         """Browse and select a file on the system
 
         Args:
           topdir: Path of the highest-level directory the user may see
-          startfile: Path of the file to show as the initial choice
+          start: File or directory to start from
           ext: list of file extensions to show, if empty shows all files
           row: menu uses this row and the one below it
           timeout: seconds to wait, if 0 wait forever
 
         Returns: Path of the chosen file or last directory if canceled
         """
-        curdir = topdir if not startfile else (
-            startfile if startfile.is_dir() else (
-               startfile.parent if startfile.parent > topdir else topdir
-            )
-        )
+        curdir = topdir
+        if start:
+            start = topdir / start
+            if start.is_dir() and start > topdir:
+                curdir = start
+            elif start.parent > topdir:
+                curdir = start.parent
         while True:
             self.lcd.write(
                 f"{curdir.relative_to(topdir.parent)}/:".ljust(COLS),
@@ -204,7 +206,8 @@ class SquishBox:
             if curdir != topdir:
                 paths.append(curdir.parent)
                 names.append("../")
-            i = paths.index(startfile) if startfile in paths else 0
+            i = paths.index(start) if start in paths else 0
+            start = None
             i, res = self.menu_choose(names, row + 1, i=i, timeout=timeout)
             if res == None:
                 return curdir
