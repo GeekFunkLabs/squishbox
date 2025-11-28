@@ -265,22 +265,22 @@ class SquishBox:
           row: menu uses this row and the one below it
           timeout: seconds to wait, if 0 wait forever
         """
-        inames = list(midi_ports(input=True))
-        onames = list(midi_ports(output=True))
-        if not (inames and onames):
+        srcnames = list(midi_ports(input=True))
+        destnames = list(midi_ports(output=True))
+        if not (srcnames and destnames):
             self.lcd.write("no MIDI ports".rjust(COLS), row + 1)
             self.get_action(timeout=MENU_TIME)
             self.lcd.write(" " * COLS, row + 1)
             return
-        ilast = 0
-        olast = 0
+        last_src = 0
+        last_dest = 0
         conns = CONFIG.get("midi_connections", [])
         while True:
             self.lcd.write("Source Ports:".ljust(COLS), row)
-            ilast, iname = self.menu_choose(
-                inames + ["any"], row + 1, i=ilast, timeout=timeout
+            last_src, src = self.menu_choose(
+                srcnames + ["any"], row + 1, i=last_src, timeout=timeout
             )
-            if iname == None:
+            if src == None:
                 self.lcd.write(" " * COLS, row)
                 if conns:
                     CONFIG["midi_connections"] = sorted(conns)
@@ -291,18 +291,20 @@ class SquishBox:
             while True:
                 midi_connect()
                 self.lcd.write("Dest. Ports:".ljust(COLS), row)
-                olast, oname = self.menu_choose(
-                    [f">{p}" if f"{iname}>{p}" in conns else f" {p}"
-                     for p in onames + ["any"]],
-                    row + 1, i=olast, timeout=timeout
+                last_dest, dest = self.menu_choose(
+                    [f">{p}" if f"{src}>{p}" in conns else f" {p}"
+                     for p in destnames + ["any"]],
+                    row + 1, i=last_dest, timeout=timeout
                 )
-                if oname == None:
+                if dest == None:
                     break
-                conn = f"{iname}>{oname[1:]}"
+                conn = f"{src}>{dest[1:]}"
                 if conn in conns:
-                    conns.remove(conn)           
+                    conns.remove(conn)
                 else:
                     conns.append(conn)
+            if CONFIG.get("midi_connections") == []:
+                del CONFIG["midi_connections"]
 
     @property
     def wifienabled(self):
@@ -344,9 +346,9 @@ class SquishBox:
                         return
                     case "Scan":
                         self.lcd.write("scanning ".rjust(COLS), row + 1)
-                        self.progresswheel_start()
+                        self.activitywheel_start()
                         nw = self.shell_cmd("sudo nmcli -g IN-USE,SSID dev wifi").splitlines()
-                        self.progresswheel_stop()
+                        self.activitywheel_stop()
                     case "Disable WiFi":
                         self.wifienabled = False
                         self.lcd.write(" " * COLS, row)
@@ -354,35 +356,35 @@ class SquishBox:
                     case ssid if ssid[0] == self.lcd.glyphs["check"]:
                         self.lcd.write(ssid[1:COLS + 1].ljust(COLS), row)
                         self.lcd.write("disconnecting ".rjust(COLS), row + 1)
-                        self.progresswheel_start()
+                        self.activitywheel_start()
                         self.shell_cmd(f"sudo nmcli con down {ssid[1:]}")
-                        self.progresswheel_stop()
+                        self.activitywheel_stop()
                     case ssid:
                         self.lcd.write(ssid[1:COLS + 1].ljust(COLS), row)
                         self.lcd.write("connecting ".rjust(COLS), row + 1)
-                        self.progresswheel_start()
+                        self.activitywheel_start()
                         try:
                             self.shell_cmd(f"sudo nmcli con up {ssid[1:]}")
                         except subprocess.CalledProcessError:
-                            self.progresswheel_stop()
+                            self.activitywheel_stop()
                             self.lcd.write("Password:".ljust(COLS), row)
                             psk = self.menu_entertext(row=row + 1).strip()
                             if not self.menu_confirm(psk, row + 1):
                                 continue
                             self.lcd.write(ssid[1:COLS + 1].ljust(COLS), row)
                             self.lcd.write("connecting ".rjust(COLS), row + 1)
-                            self.progresswheel_start()
+                            self.activitywheel_start()
                             try:
                                 cmd = ["sudo", "nmcli", "dev", "wifi", "connect"]
                                 self.shell_cmd([*cmd, ssid[1:], "password", psk], shell=False)
                             except subprocess.CalledProcessError:
-                                self.progresswheel_stop()
+                                self.activitywheel_stop()
                                 self.lcd.write("connection fail".rjust(COLS), row + 1)
                                 self.get_action(timeout=MENU_TIME)
                             else:
-                                self.progresswheel_stop()
+                                self.activitywheel_stop()
                         else:
-                            self.progresswheel_stop()
+                            self.activitywheel_stop()
             else:
                 res = self.menu_choose(["Enable WiFi"], row + 1, timeout=timeout)
                 if res[1] != None:
@@ -451,7 +453,7 @@ class SquishBox:
         the user some feedback while a long-running process completes.
         """
         self.lcd._spinning = True
-        self._spin = Thread(target=self.lcd._progresswheel_spin)
+        self._spin = Thread(target=self.lcd._activitywheel_spin)
         self._spin.start()
     
     def activitywheel_stop(self):
