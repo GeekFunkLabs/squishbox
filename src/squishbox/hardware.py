@@ -379,7 +379,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
         elif mode == "line":    
             self._send(0x0e)
 
-    def _progresswheel_spin(self):
+    def _activitywheel_spin(self):
         c = self._layers[4][ROWS - 1][COLS - 1]
         i = 0
         while self._spinning:
