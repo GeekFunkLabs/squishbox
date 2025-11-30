@@ -362,7 +362,7 @@ while True:
         lastbank = CONFIG["current_bank"]
         f = sb.menu_choosefile(
             topdir=CONFIG["banks_path"],
-            startfile=CONFIG["current_bank"],
+            start=CONFIG["current_bank"],
             ext=".yaml"
         )
         if f.is_file() and load_bank(f):
@@ -378,7 +378,7 @@ while True:
     elif choice == "Save Bank":
         f = sb.menu_choosefile(
             topdir=CONFIG["banks_path"],
-            startfile=CONFIG["current_bank"],
+            start=CONFIG["current_bank"],
             ext=".yaml"
         )
         name = sb.menu_entertext(

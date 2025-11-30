@@ -77,7 +77,7 @@ def main(curfile = None):
                     cursor_row = min(cursor_row, len(contents) - 1)
                     display_row = max(min(display_row, len(contents) - ROWS), 0)                        
                 if choice ==  "Save File":
-                    f = sb.menu_choosefile(topdir=TOP_DIR, startfile=curfile)
+                    f = sb.menu_choosefile(topdir=TOP_DIR, start=curfile)
                     name = sb.menu_entertext(
                         f.name if f.is_file() else "", charset=sb.lcd.FCHARS
                     ).strip()
@@ -95,7 +95,7 @@ def main(curfile = None):
                             sb.lcd.write("file saved".ljust(COLS), row=1)
                             sb.get_action(timeout=MENU_TIME)
                 if choice ==  "Open File":
-                    f = sb.menu_choosefile(topdir=TOP_DIR, startfile=curfile)
+                    f = sb.menu_choosefile(topdir=TOP_DIR, start=curfile)
                     if f.is_file():
                         try:
                             contents = f.read_text().splitlines()

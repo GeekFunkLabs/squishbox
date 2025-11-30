@@ -66,21 +66,22 @@ amp_vel_sens        84     lin       1       0      1      1       0
 portamento_mode     85     stp       0       0      1      1       0
 """.splitlines()]:
     PARS[name] = {
-        "cc": int(cc), "default": float(default), "vals": []
+        "cc": int(cc), "default": float(default), "vals": [], "display": []
     }
     pmin, pmax, base, offset = map(float, s)
     for i in range(128):
-        x = pmin + (pmax - pmin) * i / 127
-        if typ == "lin":
-            val = base * x + offset
+        val = pmin + (pmax - pmin) * i / 127
+        if typ == "stp":
+            val = round(val)
+            PARS[name]["display"].append(val)
+        elif typ == "lin":
+            PARS[name]["display"].append(base * val + offset)
         elif typ == "exp":
-            val = base ** x + offset
+            PARS[name]["display"].append(base ** val + offset)
         elif typ == "pow":
-            val = x ** base + offset
-        elif typ == "stp":
-            val = round(x)
-        PARS[name]["vals"].append(val)
-# generate pretty display values
+            PARS[name]["display"].append(val ** base + offset)
+        PARS[name]["vals"].append(val)        
+# make displayed values pretty
 for name in """\
 osc_mix_mode
 osc1_pulsewidth
@@ -128,28 +129,28 @@ filter_release
 portamento_time""".split():
     PARS[name]["display"] = [
         f"{v * 1000:.0f} ms" if v < 1.0 else f"{v:.1f} s"
-        for v in PARS[name]["vals"]
+        for v in PARS[name]["display"]
     ]
 PARS["lfo_freq"]["display"] = [
-    f"{v:.1f} Hz" for v in PARS["lfo_freq"]["vals"]
+    f"{v:.1f} Hz" for v in PARS["lfo_freq"]["display"]
 ]
 PARS["osc2_detune"]["display"] = [
     f"{1200 * log(v, 2):.1f} cents"
-    for v in PARS["osc2_detune"]["vals"]
+    for v in PARS["osc2_detune"]["display"]
 ]
 PARS["osc2_pitch"]["display"] = [
-    f"{v:+} semitones" for v in PARS["osc2_pitch"]["vals"]
+    f"{v:+} semitones" for v in PARS["osc2_pitch"]["display"]
 ]
 PARS["osc2_range"]["display"] = [
-    f"{v:+} octaves" for v in PARS["osc2_range"]["vals"]
+    f"{v:+} octaves" for v in PARS["osc2_range"]["display"]
 ]
 PARS["master_vol"]["display"] = [
     f"{20 * log(v, 10):+.1f} dB" if v else "-inf dB"
-    for v in PARS["master_vol"]["vals"]
+    for v in PARS["master_vol"]["display"]
 ]
 PARS["filter_env_amount"]["display"] = [
     f"{v / 16 * 100:.0f}%"
-    for v in PARS["filter_env_amount"]["vals"]
+    for v in PARS["filter_env_amount"]["display"]
 ]
 PARS["osc_mix"]["display"] = [
     f"1:{(127 - i) / 1.27:3.0f}%  2:{i / 1.27:3.0f}%"
@@ -187,7 +188,7 @@ def write_bankfile(path, presets):
             lines.append(
                 f"<parameter> {name} {PARS[name]['vals'][val]}"
             )
-    lines.append(["EOF"])
+    lines.append("EOF")
     path.write_text("\n".join(lines))
 
 
@@ -211,7 +212,6 @@ def start_wrapper():
         caps=alsa_midi.READ_PORT,
         type=alsa_midi.PortType.MIDI_GENERIC,
     )
-#    midi_connect()
     return client, inport, outport
 
 
@@ -409,14 +409,16 @@ while True:
             i, choice = sb.menu_choose(
                 [
                     "Parameters",
-                    "Load Bank",
-                    "Save Bank",
+                    "MIDI Learn..",
                     "Save Preset",
                     "Delete Preset",
-                    "MIDI Learn..",
+                    "Load Bank",
+                    "Save Bank",
                     "System Menu..",
                 ], row=1, i=last
             )
+            if choice != None:
+                last = i
             if choice == "Parameters":
                 while True:
                     i, par = sb.menu_choose(
@@ -430,7 +432,7 @@ while True:
                         break
                     lastpar = i
                     name = list(PARS)[i]
-                    sb.lcd.write(name.ljust(COLS), row=0)
+                    sb.lcd.write(f"{name[-15:]}:".ljust(COLS), row=0)
                     opts = list(dict.fromkeys(PARS[name]["display"]))
                     res = sb.menu_choose(
                         opts, row=1, wrap=False, timeout=0,
@@ -441,51 +443,6 @@ while True:
                     )
                     if res[1] == None:
                         break
-            elif choice == "Load Bank":
-                f = sb.menu_choosefile(
-                    topdir=CONFIG["banks_path"],
-                    startfile=CONFIG["current_bank"],
-                )
-                if f.is_file():
-                    try:
-                        presets = read_bankfile(f)
-                    except Exception as e:
-                        sb.display_error(e, "bank load error")
-                    else:
-                        pno = 0
-                        set_preset(pname := list(presets)[pno])
-            elif choice == "Save Bank":
-                f = sb.menu_choosefile(
-                    topdir=CONFIG["bank_path"],
-                    startfile=CONFIG["current_bank"]
-                )
-                name = sb.menu_entertext(
-                    f.name if f.is_file() else "", charset=sb.lcd.FCHARS
-                ).strip()
-                if name and sb.menu_confirm(name):
-                    sb.lcd.write(name.ljust(COLS), row=0)
-                    try:
-                        write_bankfile(f.parent / name, presets)
-                    except Exception as e:
-                        sb.display_error(e, "bank save error")
-                    else:
-                        CONFIG["current_bank"] = f.parent / name
-                        save_state(CONFIG)
-                        sb.lcd.write("bank saved".ljust(COLS), row=1)
-                        sb.get_action(timeout=MENU_TIME)
-            elif choice == "Save Preset":
-                sb.lcd.write("Save preset as:".ljust(COLS), row=0)
-                newname = sb.menu_entertext(pname).strip()
-                if sb.menu_confirm(newname):
-                    pname = newname
-                    presets[pname] = curvals.copy()
-                    pno = list(presets).index(pname)
-            elif choice == "Delete Preset":
-                sb.lcd.write("Delete preset:".ljust(COLS), row=0)
-                if sb.menu_confirm(pname):
-                    del presets[pname]
-                    pno = min(pno, len(presets) - 1)
-                    set_preset(pname := list(presets)[pno])
             elif choice == "MIDI Learn..":
                 ctrls = {v: k for k, v in CONFIG.get("controllers", {}).items()}
                 ccs = [str(ctrls.get(par, "not mapped")) for par in PARS]
@@ -506,7 +463,55 @@ while True:
                         CONFIG["controllers"].pop(cc, None)
                         if CONFIG["controllers"] == {}:
                             del CONFIG["controllers"]
+                        save_state(CONFIG)
                     midi_learn_callback = None
+            elif choice == "Save Preset":
+                sb.lcd.write("Save preset as:".ljust(COLS), row=0)
+                newname = sb.menu_entertext(pname).strip()
+                if sb.menu_confirm(newname):
+                    pname = newname
+                    presets[pname] = curvals.copy()
+                    pno = list(presets).index(pname)
+            elif choice == "Delete Preset":
+                sb.lcd.write("Delete preset:".ljust(COLS), row=0)
+                if sb.menu_confirm(pname):
+                    del presets[pname]
+                    pno = min(pno, len(presets) - 1)
+                    set_preset(pname := list(presets)[pno])
+            elif choice == "Load Bank":
+                f = sb.menu_choosefile(
+                    topdir=CONFIG["banks_path"],
+                    start=CONFIG["current_bank"],
+                )
+                if f.is_file():
+                    try:
+                        presets = read_bankfile(f)
+                    except Exception as e:
+                        sb.display_error(e, "bank load error")
+                    else:
+                        CONFIG["current_bank"] = f
+                        save_state(CONFIG)
+                        pno = 0
+                        set_preset(pname := list(presets)[pno])
+            elif choice == "Save Bank":
+                f = sb.menu_choosefile(
+                    topdir=CONFIG["banks_path"],
+                    start=CONFIG["current_bank"]
+                )
+                name = sb.menu_entertext(
+                    f.name if f.is_file() else "", charset=sb.lcd.FCHARS
+                ).strip()
+                if name and sb.menu_confirm(name):
+                    sb.lcd.write(name.ljust(COLS), row=0)
+                    try:
+                        write_bankfile(f.parent / name, presets)
+                    except Exception as e:
+                        sb.display_error(e, "bank save error")
+                    else:
+                        CONFIG["current_bank"] = f.parent / name
+                        save_state(CONFIG)
+                        sb.lcd.write("bank saved".ljust(COLS), row=1)
+                        sb.get_action(timeout=MENU_TIME)
             elif choice == "System Menu..":
                 remove_wrapper(wrapper)
                 midithread.join()
