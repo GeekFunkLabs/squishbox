@@ -202,11 +202,30 @@ class PWMOutput:
 
 class LCD_HD44780:
 
-    printable = """\
+    _printable = """\
 abcdefghijklmnopqrstuvwxyz\
 ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 0123456789-_./!\
 @#$%^&*|?,;:'"`+=<>()[]{}"""
+    _glyphs = {
+        "backslash": """\
+-----
+X----
+-X---
+--X--
+---X-
+----X
+-----
+-----""",
+        "tilde": """\
+-----
+-----
+-----
+-XX-X
+X--X-
+-----
+-----
+-----"""}
     glyph2char = (
         ("backslash", "\\"),
         ("tilde", "~")
@@ -216,7 +235,8 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
         self.regsel = regsel
         self.enable = enable
         self.data = data
-        self._buffered = False
+        self.buffered = False
+        self._spinning = False
         # set up LCD GPIO
         self._lines = gpiod.request_lines(
             CONFIG["gpio_chip"],
@@ -231,17 +251,41 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
         for val in (0x33, 0x32, 0x28, 0x0c, 0x06):
             self._send(val)
         self.clear()
-        self.glyphs = {"solid": chr(255)}
-        self.default_custom_glyphs()
-        self.CHARS = self.printable + self.glyphs["backslash"] + self.glyphs["tilde"] + " "
-        self.FCHARS = self.printable[:67] + self.glyphs["backslash"] + " " # allowable filename characters
+        # set up glyphs
+        for name, text in CONFIG["glyphs_5x8"].items():
+            self._glyphs[name] = text
+        self._chars = {"solid": 255}
+        self._used = []
+
+    def printable(self):
+        return self._printable + self["backslash"] + self["tilde"] + " "
+
+    def fnchars(self):
+        return self._printable[:67] + self["backslash"] + " "
+
+    def __setitem__(self, name, text):
+        self._glyphs[name] = text
+        self._chars.pop(name, None)
+
+    def __getitem__(self, name):
+        if name not in self._chars:
+            if len(self._used) < 8:
+                loc = len(self._used)
+            else:
+                loc = self._chars.pop(self._used[-8])
+            self._load_glyph(loc, self._glyphs[name])
+            self._chars[name] = loc
+        if self._chars[name] < 8 and name not in self._used:
+            self._used = self._used[-7:] + [name]
+        return chr(self._chars[name])
 
     def clear(self):
         """Clear the LCD, initialize layers"""
         self._send(0x01)
         self.setcursorpos(0, 0)
         time.sleep(40 * CONFIG["lcd_exec_time"])
-        self._layers = [[[""] * COLS for _ in range(ROWS)] for _ in range(5)]
+        self._layers = {x: [[""] * COLS for _ in range(ROWS)]
+                        for x in ("displayed", "scrollbuffer", "scrolling", "static", "blinking")}
         self._blinktimer = [[0] * COLS for _ in range(ROWS)]
         self._scrollpos = [0] * ROWS
         self._scrolltimer = time.time()
@@ -261,18 +305,12 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
           timeout: seconds to keep text
           force: write over other timed text
         """
-# self._layers:
-# 0 - scrolled text
-# 1 - static text
-# 2 - blinking text
-# 3 - scroll buffer
-# 4 - LCD contents
         for name, char in self.glyph2char:
-            text = text.replace(char, self.glyphs[name])
+            text = text.replace(char, self[name])
         if len(text) > COLS:
-            self._layers[3][row] = list(text)
-            self._layers[2][row] = [""] * COLS
-            self._layers[1][row] = [""] * COLS
+            self._layers["scrollbuffer"][row] = list(text)
+            self._layers["blinking"][row] = [""] * COLS
+            self._layers["static"][row] = [""] * COLS
             if align == "right":
                 self._scrollpos[row] = len(text) - COLS
             else:
@@ -287,90 +325,58 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
             else:
                 text = text[:COLS - col]
             for i, char in enumerate(text):
-                if force or self._layers[2][row][col + i] == "":
+                if force or self._layers["blinking"][row][col + i] == "":
                     self._blinktimer[row][col + i] = time.time() + timeout
-                    self._layers[2][row][col + i] = char
+                    self._layers["blinking"][row][col + i] = char
         else:
             if align == "left":
-                self._layers[1][row][:len(text)] = list(text)
-                self._layers[2][row][:len(text)] = [""] * len(text)
+                self._layers["static"][row][:len(text)] = list(text)
+                self._layers["blinking"][row][:len(text)] = [""] * len(text)
             elif align == "right":
-                self._layers[1][row][COLS - len(text):] = list(text)
-                self._layers[2][row][COLS - len(text):] = [""] * len(text)
+                self._layers["static"][row][COLS - len(text):] = list(text)
+                self._layers["blinking"][row][COLS - len(text):] = [""] * len(text)
             else:
                 n = min(len(text), COLS - col)
-                self._layers[1][row][col:col + n] = list(text[:n])
-                self._layers[2][row][col:col + n] = [""] * n
-        if not self._buffered:
+                self._layers["static"][row][col:col + n] = list(text[:n])
+                self._layers["blinking"][row][col:col + n] = [""] * n
+        if not self.buffered:
             self.update()
 
     def update(self):
         """Updates the LCD"""
+        if self._spinning:
+            return
         t = time.time()
         for row in range(ROWS):
-            if any(self._layers[3][row]):
-                scrollmax = len(self._layers[3][row]) - COLS
+            if any(self._layers["scrollbuffer"][row]):
+                scrollmax = len(self._layers["scrollbuffer"][row]) - COLS
                 if t > self._scrolltimer:
                     self._scrollpos[row] += 1
                     if self._scrollpos[row] > scrollmax + CONFIG["scroll_pause"]:
                         self._scrollpos[row] = -CONFIG["scroll_pause"]
                 i = min(max(0, self._scrollpos[row]), scrollmax)
-                self._layers[0][row] = self._layers[3][row][i:i + COLS]
-            if any(self._layers[2][row]):
+                self._layers["scrolling"][row] = self._layers["scrollbuffer"][row][i:i + COLS]
+            if any(self._layers["blinking"][row]):
                 for col, btime in enumerate(self._blinktimer[row]):
                     if btime and t > btime:
-                        self._layers[2][row][col] = ""
+                        self._layers["blinking"][row][col] = ""
             chars = [" "] * COLS
-            for i in range(3):
+            for x in ("scrolling", "static", "blinking"):
                 for col in range(COLS):
-                    if self._layers[i][row][col] != "":
-                        chars[col] = self._layers[i][row][col]
+                    if self._layers[x][row][col] != "":
+                        chars[col] = self._layers[x][row][col]
             self._putchars(chars, row, 0)
         if t > self._scrolltimer:
             self._scrolltimer += CONFIG["scroll_time"]
 
-    def define_glyph(self, loc, text):
-        """Instate a custom LCD glyph from ascii art
-        
-        Args:
-          loc: the memory location for the glyph (0-7)
-          text: a string representing the 40 pixels of the glyph
-            (8 rows times 5 columns) with "X"=on and "-"=off.
-            Spaces and newlines are ignored, so this can be a
-            multiline string
-            
-        Returns:
-          the character for writing the glyph to the LCD
-        """
-        if loc < 0 or loc > 7:
-            raise ValueError("Custom character location outside range (0-7)")
-        bits = text.replace(" ", "").replace("\n", "").replace("-", "0").replace("X", "1")
-        glyphbytes = [int(bits[i:i + 5], 2) for i in range(0, 40, 5)]
-        self._send(0x40 | loc << 3)
-        for b in glyphbytes:
-            self._send(b, gpiod.line.Value.ACTIVE)
-        return chr(loc)
-
-    def default_custom_glyphs(self):
-        """Re-initialize standard custom glyphs"""
-        for i, name in enumerate((
-            "backslash",
-            "tilde",
-            "check",
-            "cross",
-            "folder",
-            "wifi_on",
-            "wifi_off",
-            "note",
-        )):
-            self.glyphs[name] = self.define_glyph(i, CONFIG["glyphs_5x8"][name])
-
     def setcursorpos(self, row, col):
+        """set the cursor row and column"""
         if row < ROWS and col < COLS:
             offset = (0x00, 0x40, COLS, 0x40 + COLS)
             self._send(0x80 | offset[row] + col)
 
     def setcursormode(self, mode):
+        """set cursor to blink, line, or hide"""
         if mode == "hide":
             #self._send(0x0c | 0x00)
             self._send(0x0c)
@@ -379,26 +385,50 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
         elif mode == "line":    
             self._send(0x0e)
 
+    def activity_start(self):
+        """Shows an animation while another process runs
+        
+        Displays a spinning character in the lower right corner of the
+        LCD that runs in a thread after this function returns, to give
+        the user some feedback while a long-running process completes.
+        """
+        self._spinning = True
+        self._spin = Thread(target=self._activitywheel_spin)
+        self._spin.start()
+    
+    def activity_stop(self):
+        """Removes the spinning character"""
+        self._spinning = False
+        self._spin.join()
+
     def _activitywheel_spin(self):
-        c = self._layers[4][ROWS - 1][COLS - 1]
+        c = self._layers["displayed"][ROWS - 1][COLS - 1]
         i = 0
         while self._spinning:
-            s = (self.glyphs["backslash"] + "|/-")[i]
+            s = (self["backslash"] + "|/-")[i]
             self._putchars(s, ROWS - 1, COLS - 1)
             time.sleep(CONFIG["frame_time"])
             i = (i + 1) % 4
         self._putchars(c, ROWS - 1, COLS - 1)
 
+    def _load_glyph(self, loc, text):
+        bits = text.replace("\n", "").replace("-", "0").replace("X", "1")
+        glyphbytes = [int(bits[i:i + 5], 2) for i in range(0, 40, 5)]
+        self._send(0x40 | loc << 3)
+        for b in glyphbytes:
+            self._send(b, gpiod.line.Value.ACTIVE)
+
     def _putchars(self, chars, row, col):
         lastcol = -2
         for c in chars:
-            if c and self._layers[4][row][col] != c:
+            if c and self._layers["displayed"][row][col] != c:
                 if lastcol != col - 1:
                     self.setcursorpos(row, col)
                 self._send(ord(c), gpiod.line.Value.ACTIVE)
-                self._layers[4][row][col] = c
+                self._layers["displayed"][row][col] = c
                 lastcol = col
             col += 1
+
 
     def _send(self, val, reg=gpiod.line.Value.INACTIVE):
         if self.regsel == 0:

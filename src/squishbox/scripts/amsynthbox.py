@@ -9,9 +9,9 @@ import sys
 from threading import Thread
 
 import alsa_midi
-import yaml
 
 import squishbox
+from squishbox.config import load_config, save_state
 from squishbox.midi import midi_ports, midi_connect
 
 
@@ -272,12 +272,6 @@ def set_preset(presetname):
         send_param(name, i)
 
 
-def save_state(cfg):
-    cfg_posix = {k: v.as_posix() if isinstance(v, Path) else v
-                 for k, v in cfg.items()}
-    CONFIG_PATH.write_text(yaml.safe_dump(cfg_posix, sort_keys=False))
-
-
 def refresh_display():
     sb.lcd.write(pname.ljust(COLS), row=0)
     sb.lcd.write(f"patch {pno + 1}/{len(presets)}".rjust(COLS), row=1)
@@ -291,7 +285,7 @@ sb.button1.bind("tap", sb.action_do)
 sb.button1.bind("hold", sb.action_back)
 sb.lcd.clear()
 
-DEFAULT_CONFIG = yaml.safe_load("""\
+default_cfg = """\
 midi_channel: 1
 sample_rate: 44100
 polyphony: 16
@@ -300,22 +294,12 @@ audio_driver: alsa
 alsa_audio_device: hw:sndrpihifiberry
 banks_path: ~/.local/share/amsynth/banks
 current_bank: default
-""")
-
+"""
 CONFIG_PATH = Path(os.getenv(
     "AMSYNTHBOX_CONFIG",
     "~/.config/amsynth/amsynthboxconf.yaml"
 )).expanduser()
-CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-# read config, create if it doesn't exist
-if CONFIG_PATH.exists():
-    CONFIG = yaml.safe_load(CONFIG_PATH.read_text())
-else:
-    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CONFIG_PATH.write_text(yaml.safe_dump(DEFAULT_CONFIG))
-    CONFIG = {}
-CONFIG = DEFAULT_CONFIG | CONFIG
+CONFIG = load_config(CONFIG_PATH, default_cfg)
 CONFIG["banks_path"] = Path(CONFIG["banks_path"]).expanduser()
 CONFIG["current_bank"] = Path(CONFIG["current_bank"]).expanduser()
 
@@ -394,6 +378,7 @@ while True:
             refresh_display()
         case "back":
             if sb.menu_exit() == "shell":
+                amsynthx.terminate()
                 break
         case name, val:
             sb.lcd.write(
@@ -406,19 +391,16 @@ while True:
             )
         case "do":
             display_callback = None
-            i, choice = sb.menu_choose(
-                [
-                    "Parameters",
-                    "MIDI Learn..",
-                    "Save Preset",
-                    "Delete Preset",
-                    "Load Bank",
-                    "Save Bank",
-                    "System Menu..",
-                ], row=1, i=last
-            )
-            if choice != None:
-                last = i
+            i, choice = sb.menu_choose([
+                "Parameters",
+                "MIDI Learn..",
+                "Save Preset",
+                "Delete Preset",
+                "Load Bank",
+                "Save Bank",
+                "System Menu..",
+            ], row=1, i=last)
+            last = i if choice != None else last
             if choice == "Parameters":
                 while True:
                     i, par = sb.menu_choose(
@@ -463,7 +445,7 @@ while True:
                         CONFIG["controllers"].pop(cc, None)
                         if CONFIG["controllers"] == {}:
                             del CONFIG["controllers"]
-                        save_state(CONFIG)
+                        save_state(CONFIG_PATH, CONFIG)
                     midi_learn_callback = None
             elif choice == "Save Preset":
                 sb.lcd.write("Save preset as:".ljust(COLS), row=0)
@@ -490,7 +472,7 @@ while True:
                         sb.display_error(e, "bank load error")
                     else:
                         CONFIG["current_bank"] = f
-                        save_state(CONFIG)
+                        save_state(CONFIG_PATH, CONFIG)
                         pno = 0
                         set_preset(pname := list(presets)[pno])
             elif choice == "Save Bank":
@@ -499,7 +481,7 @@ while True:
                     start=CONFIG["current_bank"]
                 )
                 name = sb.menu_entertext(
-                    f.name if f.is_file() else "", charset=sb.lcd.FCHARS
+                    f.name if f.is_file() else "", charset=sb.lcd.fnchars()
                 ).strip()
                 if name and sb.menu_confirm(name):
                     sb.lcd.write(name.ljust(COLS), row=0)
@@ -509,13 +491,14 @@ while True:
                         sb.display_error(e, "bank save error")
                     else:
                         CONFIG["current_bank"] = f.parent / name
-                        save_state(CONFIG)
+                        save_state(CONFIG_PATH, CONFIG)
                         sb.lcd.write("bank saved".ljust(COLS), row=1)
                         sb.get_action(timeout=MENU_TIME)
             elif choice == "System Menu..":
                 remove_wrapper(wrapper)
                 midithread.join()
                 if sb.menu_systemsettings() == "shell":
+                    amsynthx.terminate()
                     break
                 wrapper, wrapper_in, wrapper_out = start_wrapper()
                 midithread = Thread(target=process_events, daemon=True)

@@ -60,13 +60,14 @@ def main(curfile = None):
                 i = display_row + cursor_row
                 contents[i] = sb.menu_entertext(contents[i], row=cursor_row).rstrip()
             case "back":
-                i, choice = sb.menu_choose(["Insert Row",
-                                            "Delete Row",
-                                            "Save File",
-                                            "Open File",
-                                            "New File",
-                                            "Exit"
-                                           ], row=ROWS - 1, i=last)
+                i, choice = sb.menu_choose([
+                    "Insert Row",
+                    "Delete Row",
+                    "Save File",
+                    "Open File",
+                    "New File",
+                    "Exit"
+                ], row=ROWS - 1, i=last)
                 last = i if choice != None else last
                 if choice == "Insert Row":
                     contents.insert(display_row + cursor_row, "")
@@ -79,7 +80,7 @@ def main(curfile = None):
                 if choice ==  "Save File":
                     f = sb.menu_choosefile(topdir=TOP_DIR, start=curfile)
                     name = sb.menu_entertext(
-                        f.name if f.is_file() else "", charset=sb.lcd.FCHARS
+                        f.name if f.is_file() else "", charset=sb.lcd.fnchars()
                     ).strip()
                     if name and sb.menu_confirm(name):
                         sb.lcd.write(name.ljust(COLS), row=0)

@@ -4,35 +4,37 @@ from pathlib import Path
 import yaml
 
 
+def load_config(path, default_cfg=""):
+    if path.exists():
+        user_cfg = yaml.safe_load(path.read_text())
+    else:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(default_cfg)
+        user_cfg = {}
+    cfg = yaml.safe_load(default_cfg) | user_cfg
+    return cfg
+
+
+def save_state(path, cfg):
+    cfg_posix = {k: v.as_posix() if isinstance(v, Path) else v
+                 for k, v in cfg.items()}
+    path.write_text(yaml.safe_dump(cfg_posix, sort_keys=False))
+
+
 def str_presenter(dumper, data):
     if "\n" in data:
         return dumper.represent_scalar("tag:yaml.org,2002:str", str(data), style="|")
     return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
 
-def load_config():
-    if CONFIG_PATH.exists():
-        user_cfg = yaml.safe_load(CONFIG_PATH.read_text())
-    else:
-        CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        CONFIG_PATH.write_text(yaml.safe_dump(DEFAULTS))
-        user_cfg = {}
-    CONFIG = DEFAULTS | user_cfg
-    return CONFIG
-
-
-def save_state(cfg):
-    CONFIG_PATH.write_text(yaml.safe_dump(cfg, sort_keys=False))
-
+yaml.add_representer(str, str_presenter, Dumper=yaml.SafeDumper)
 
 CONFIG_PATH = Path(os.getenv(
     "SQUISHBOX_CONFIG",
     "~/.config/squishbox/squishboxconf.yaml"
 )).expanduser()
 
-yaml.add_representer(str, str_presenter, Dumper=yaml.SafeDumper)
-
-DEFAULTS = yaml.safe_load("""\
+DEFAULT_CFG = """\
 lcd_rows: 2
 lcd_cols: 16
 menu_time: 3
@@ -59,24 +61,6 @@ pull_up: true
 active_high: true
 gpio_chip: /dev/gpiochip4
 glyphs_5x8:
-  backslash: |
-    -----
-    X----
-    -X---
-    --X--
-    ---X-
-    ----X
-    -----
-    -----
-  tilde: |
-    -----
-    -----
-    -----
-    -XX-X
-    X--X-
-    -----
-    -----
-    -----
   check: |
     -----
     ----X
@@ -131,7 +115,7 @@ glyphs_5x8:
     XXX--
     XXX--
     -----
-""")
+"""
 
-CONFIG = load_config()
+CONFIG = load_config(CONFIG_PATH, DEFAULT_CFG)
 

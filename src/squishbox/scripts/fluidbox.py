@@ -242,14 +242,14 @@ def effects_menu():
 def load_bank(bank):
     sb.lcd.write(bank.name.ljust(COLS), row=0)
     sb.lcd.write("loading bank ".ljust(COLS), row=1)
-    sb.activitywheel_start()
+    sb.lcd.activity_start()
     try:
         fp.load_bank(bank)
     except Exception as e:
-        sb.activitywheel_stop()
+        sb.lcd.activity_stop()
         sb.display_error(e, "bank load error")
         return False
-    sb.activitywheel_stop()
+    sb.lcd.activity_stop()
     return True
 
 
@@ -276,9 +276,9 @@ sb.lcd.clear()
 pno = 0
 fp = FluidPatcher()
 load_bank(CONFIG["current_bank"])
-sb.activitywheel_start()
+sb.lcd.activity_start()
 fp.apply_patch(pname := fp.bank.patches[pno])
-sb.activitywheel_stop()
+sb.lcd.activity_stop()
 fp.set_callback(sb.add_action)
 
 showevent = False
@@ -372,9 +372,9 @@ while True:
                 pno = fp.bank.index(pname)
             else:
                 pno = 0
-            sb.activitywheel_start()
+            sb.lcd.activity_start()
             fp.apply_patch(pname := fp.bank.patches[pno])
-            sb.activitywheel_stop()
+            sb.lcd.activity_stop()
     elif choice == "Save Bank":
         f = sb.menu_choosefile(
             topdir=CONFIG["banks_path"],
@@ -382,7 +382,7 @@ while True:
             ext=".yaml"
         )
         name = sb.menu_entertext(
-            f.name if f.is_file() else "", charset=sb.lcd.FCHARS
+            f.name if f.is_file() else "", charset=sb.lcd.fnchars()
         ).strip()
         if name and sb.menu_confirm(name):
             sb.lcd.write(name.ljust(COLS), row=0)
