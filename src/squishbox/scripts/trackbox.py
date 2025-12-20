@@ -107,6 +107,7 @@ class GStreamerPlayer:
                 dur_ok, dur = self._pb.query_duration(Gst.Format.TIME)
                 self.statuscallback((
                     s.get_value("peak"),
+                    s.get_value("rms"),
                     pos // Gst.SECOND if pos_ok else 0,
                     dur // Gst.SECOND if dur_ok else 0,
                 ))
@@ -139,12 +140,19 @@ def advance_track(msg):
     eoscallback(msg)
 
 
-def show_tracklist(startrow, blank=0):
-    irow = startrow % len(tracks)
+def levels_to_vu(dBpeak, dBrms):
+    # modify to tweak VDU responsiveness
+    levels = 5
+    dB = dBpeak * 0.7 + dBrms * 0.3
+    return min(levels - 1, int(levels * max(0, ((dB + 40) / 34)) ** 3))
+
+
+def show_tracklist(startrow, end=0):
+    irow = min(startrow, len(tracks) - ROWS + end) % len(tracks)
     crow = 0
     while True:
-        for i in range(irow, min(irow + ROWS, len(tracks) + blank)):
-            if i == len(tracks):
+        for i in range(irow, min(irow + ROWS, len(tracks) + end)):
+            if i >= len(tracks):
                 sb.lcd.write(" " * COLS, row=i - irow)
                 break
             if i == track.i:
@@ -158,9 +166,9 @@ def show_tracklist(startrow, blank=0):
         match sb.get_action():
             case "inc":
                 crow += 1
-                if crow == ROWS:
-                    crow = ROWS - 1
-                    irow = min(irow + 1, len(tracks) - ROWS + blank)
+                if crow == ROWS or crow == len(tracks):
+                    crow -= 1
+                    irow = min(irow + 1, len(tracks) - ROWS + end) % len(tracks)
             case "dec":
                 crow -= 1
                 if crow < 0:
@@ -178,7 +186,7 @@ def show_tracklist(startrow, blank=0):
             case "back":
                 return None, ""
             case "end-of-stream":
-                return show_tracklist(irow, blank)
+                return show_tracklist(irow, end)
 
 
 # start squishbox
@@ -233,7 +241,6 @@ for i in range(2, 7, 2):
 default_cfg = """\
 tracklists_path: ~/.config/trackbox
 tracks_head: ~/Music
-current_tracklist: sample.yaml
 """
 CONFIG_PATH = Path(os.getenv(
     "TRACKBOX_CONFIG",
@@ -244,10 +251,19 @@ TRACKLISTS_PATH = Path(CONFIG["tracklists_path"]).expanduser()
 TRACKS_HEAD = Path(CONFIG["tracks_head"]).expanduser()
 
 # load the tracklist
-tracklist = yaml.safe_load(Path(
-    TRACKLISTS_PATH,
-    CONFIG["current_tracklist"]
-).read_text())
+if "current_tracklist" not in CONFIG:
+    f = sb.menu_choosefile(topdir=TRACKS_HEAD)
+    if f.is_file():
+        tracklist = {
+            "tracks": [{"file": str(f.relative_to(TRACKS_HEAD))}]
+        }
+    else:
+        sys.exit()
+else:
+    tracklist = yaml.safe_load(Path(
+        TRACKLISTS_PATH,
+        CONFIG["current_tracklist"]
+    ).read_text())
 tracks_path = TRACKS_HEAD / tracklist.get("tracks_path", "")
 tracks = tracklist["tracks"]
 track = type("TrackState", (), dict(
@@ -293,11 +309,11 @@ while True:
                 sb.lcd.write(track.name.ljust(COLS), row=0)
         case "end-of-stream":
             sb.lcd.write(track.name.ljust(COLS), row=0)
-        case (lev, pos, dur):
-            vu = [" ", sb.lcd["L2"], sb.lcd["L4"], sb.lcd["L6"], sb.lcd["solid"]]
-            for c, dB in enumerate(lev):
+        case (peak, rms, pos, dur):
+            vdu = [" ", sb.lcd["L2"], sb.lcd["L4"], sb.lcd["L6"], sb.lcd["solid"]]
+            for c, (dBpeak, dBrms) in enumerate(zip(peak, rms)):
                 sb.lcd.write(
-                    vu[min(4, int(5 * max(0, ((dB + 40) / 34)) ** 3))],
+                    vdu[levels_to_vu(dBpeak, dBrms)],
                     row=1, col=1 + c,
                 )
             sb.lcd.write(
@@ -324,7 +340,10 @@ while True:
                 if sb.menu_systemsettings() == "shell":
                     break
             elif choice == "Load Tracklist":
-                f = sb.menu_choosefile(topdir=TRACKLISTS_PATH, start=CONFIG["current_tracklist"])
+                f = sb.menu_choosefile(
+                    topdir=TRACKLISTS_PATH,
+                    start=CONFIG.get("current_tracklist")
+                )
                 if f.is_file():
                     try:
                         tracklist = yaml.safe_load(f.read_text())
@@ -340,7 +359,7 @@ while True:
             elif choice == "Save Tracklist":
                 f = sb.menu_choosefile(
                     topdir=TRACKLISTS_PATH,
-                    start=CONFIG["current_tracklist"],
+                    start=CONFIG.get("current_tracklist"),
                     ext=".yaml",
                 )
                 name = sb.menu_entertext(
@@ -396,13 +415,11 @@ while True:
                     else:
                         opts = ["Play", "Move", "Add"]
                     i, choice = sb.menu_choose(opts, row=ROWS - 1)
-                    if choice == None:
-                        break
-                    elif choice == "Play":
+                    if choice == "Play":
                         play_track(t)
                     elif choice == "Move":
                         eoscallback = sb.add_action
-                        p, name = show_tracklist(t, blank=1)
+                        p, name = show_tracklist(t, end=1)
                         eoscallback = lambda x: None
                         if p == None:
                             break
@@ -427,6 +444,5 @@ while True:
                             t = len(tracks)
                             tracks.append({"file": str(f.relative_to(tracks_path))})
             # menu finished, display current track name
-            sb.lcd.clear()
             sb.lcd.write(track.name.ljust(COLS), row=0)
 
