@@ -110,7 +110,7 @@ class SquishBox:
             )
             match self.get_action(timeout=timeout):
                 case "inc" | "dec":
-                    c = False if c else True
+                    c = not c
                 case "do":
                     self.lcd.write(" "  * COLS, row)
                     return c
@@ -168,7 +168,7 @@ class SquishBox:
                     c = (c - 1) % len(charset)
                     text[i] = charset[c]
                 case "do":
-                    move = False if move else True
+                    move = not move
                     self.lcd.setcursormode(
                         "blink" if move else "line"
                     )
@@ -220,12 +220,11 @@ class SquishBox:
             i, res = self.menu_choose(names, row + 1, i=i, timeout=timeout)
             if res == None:
                 return curdir
-            path = paths[i]
-            if path.is_dir():
+            if path[i].is_dir():
                 startfile = curdir
-                curdir = path
+                curdir = path[i]
             else:
-                return path
+                return path[i]
 
     def menu_lcdsettings(self, row=ROWS - 2, timeout=MENU_TIME):
         """Menu for setting backlight and contrast levels
@@ -474,8 +473,6 @@ class SquishBox:
             (f"{msg}: " if msg else "") + f"{type(err).__name__}: " +
             re.sub(" {2,}", " ", re.sub("\n|\^", " ", str(err)))
         )
-        for name, char in self.lcd.glyph2char:
-            err_oneline.replace(char, self.lcd[name])
         self.lcd.write(err_oneline, row)
         if msg:
             print(msg)
