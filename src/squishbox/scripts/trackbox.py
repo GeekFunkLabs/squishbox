@@ -154,7 +154,7 @@ def show_tracklist(startrow, end=0):
         for i in range(irow, min(irow + ROWS, len(tracks) + end)):
             if i >= len(tracks):
                 sb.lcd.write(" " * COLS, row=i - irow)
-                break
+                continue
             if i == track.i:
                 m = " " + sb.lcd["play"] + " :"
             else:
