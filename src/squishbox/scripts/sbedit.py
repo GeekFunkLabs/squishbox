@@ -30,35 +30,36 @@ def main(curfile = None):
     else:
         contents = [""]
 
-    cursor_row = 0
-    display_row = 0
+    crow = 0
+    irow = 0
     last = 0
     while True:
         sb.lcd.clear()
-        row = 0
-        for line in contents[display_row:display_row + ROWS]:
-            sb.lcd.write(line.ljust(COLS), row=row)
-            row += 1
+        for i in range(irow, min(irow + ROWS, len(contents))):
+            if i >= len(contents):
+                sb.lcd.write(" " * COLS, row=i - irow)
+            else:
+                sb.lcd.write(contents[i].ljust(COLS), row=i - irow)
         sb.lcd.write(
-            f"{display_row + cursor_row}>",
-            row=cursor_row, col=0, timeout=FRAME_TIME
+            f"{irow + crow + 1}>",
+            row=crow, col=0, timeout=FRAME_TIME
         )
         match sb.get_action():
             case "inc":
-                cursor_row += 1
-                if cursor_row == ROWS:
-                    cursor_row = ROWS - 1
-                    display_row += 1
-                    if display_row == len(contents):
+                crow += 1
+                if crow == ROWS or crow == len(contents):
+                    crow = ROWS - 1
+                    irow += 1
+                    if irow == len(contents):
                         contents.append("")
             case "dec":
-                cursor_row -= 1
-                if cursor_row < 0:
-                    cursor_row = 0
-                    display_row = max(display_row - 1, 0)
+                crow -= 1
+                if crow < 0:
+                    crow = 0
+                    irow = max(irow - 1, 0)
             case "do":
-                i = display_row + cursor_row
-                contents[i] = sb.menu_entertext(contents[i], row=cursor_row).rstrip()
+                i = irow + crow
+                contents[i] = sb.menu_entertext(contents[i], row=crow).rstrip()
             case "back":
                 i, choice = sb.menu_choose([
                     "Insert Row",
@@ -70,13 +71,13 @@ def main(curfile = None):
                 ], row=ROWS - 1, i=last)
                 last = i if choice != None else last
                 if choice == "Insert Row":
-                    contents.insert(display_row + cursor_row, "")
+                    contents.insert(irow + crow, "")
                 if choice ==  "Delete Row":
-                    del contents[display_row + cursor_row]
+                    del contents[irow + crow]
                     if not contents:
                         contents = [""]
-                    cursor_row = min(cursor_row, len(contents) - 1)
-                    display_row = max(min(display_row, len(contents) - ROWS), 0)                        
+                    crow = min(crow, len(contents) - 1)
+                    irow = max(min(irow, len(contents) - ROWS), 0)                        
                 if choice ==  "Save File":
                     f = sb.menu_choosefile(topdir=TOP_DIR, start=curfile)
                     name = sb.menu_entertext(
@@ -86,8 +87,8 @@ def main(curfile = None):
                         sb.lcd.write(name.ljust(COLS), row=0)
                         while contents and contents[-1] == "":
                             contents.pop()
-                        cursor_row = min(cursor_row, len(contents) - 1)
-                        display_row = max(min(display_row, len(contents) - ROWS), 0)
+                        crow = min(crow, len(contents) - 1)
+                        irow = max(min(irow, len(contents) - ROWS), 0)
                         try:
                             (f.parent / name).write_text("\n".join(contents))
                         except Exception as e:
@@ -104,13 +105,13 @@ def main(curfile = None):
                             sb.display_error(e, "error opening file")
                         else:
                             curfile = f
-                            cursor_row = 0
-                            display_row = 0
+                            crow = 0
+                            irow = 0
                 if choice ==  "New File":
                     curfile = curfile.parent
                     contents = [""]
-                    cursor_row = 0
-                    display_row = 0
+                    crow = 0
+                    irow = 0
                 if choice ==  "Exit":
                     if sb.menu_exit() == "shell":
                         break
