@@ -8,6 +8,7 @@ import traceback
 from . import hardware
 from .config import CONFIG, CONFIG_PATH, save_state
 from .midi import midi_connect, midi_ports
+from .keys import keys_dispatch, keys_stop
 
 ROWS = CONFIG["lcd_rows"]
 COLS = CONFIG["lcd_cols"]
@@ -142,44 +143,51 @@ class SquishBox:
             charset = self.lcd.printable()
         i = i % len(text) if text else 0
         text = list(text.ljust(COLS))
-        c = charset.find(text[i])
-        move = True
-        self.lcd.setcursormode("blink")
+        mode = "blink"
+        self.lcd.setcursormode(mode)
+        keys_dispatch(self.add_action)
         while True:
-            if move:
-                w = text[max(0, i + 1 - COLS):max(COLS, i + 1)]
-                self.lcd.write("".join(w), row)
-            else:
-                self.lcd.write(charset[c], row, min(i, COLS - 1))
+            w = text[max(0, i + 1 - COLS):max(COLS, i + 1)]
+            self.lcd.write("".join(w), row)
             self.lcd.setcursorpos(row, min(i, COLS - 1))
             match self.get_action(timeout=timeout):
-                case "inc" if move:
-                    i = min(i + 1, len(text)) 
+                case "inc" if mode == "line":
+                    c = charset.find(text[i])
+                    text[i] = charset[(c + 1) % len(charset)]
+                case "dec" if mode == "line":
+                    c = charset.find(text[i])
+                    text[i] = charset[(c - 1) % len(charset)]
+                case "inc" | ("key", "right"):
+                    i += 1
                     if i == len(text):
                         text.append(" ")
-                    c = charset.find(text[i])
-                case "dec" if move:
+                case "dec" | ("key", "left"):
                     i = max(i - 1, 0)
-                    c = charset.find(text[i])
-                case "inc":
-                    c = (c + 1) % len(charset)
-                    text[i] = charset[c]
-                case "dec":
-                    c = (c - 1) % len(charset)
-                    text[i] = charset[c]
-                case "do":
-                    move = not move
-                    self.lcd.setcursormode(
-                        "blink" if move else "line"
-                    )
-                case "back":
+                case ("key", "erase"):
+                    if i > 0:
+                        text[i - 1:] = text[i:]
+                        i -= 1
+                case "do" | ("key", "insert"):
+                    mode = "blink" if mode == "line" else "line"
+                    self.lcd.setcursormode(mode)
+                case "back" | ("key", "done"):
                     self.lcd.setcursormode("hide")
                     text = "".join(text)
                     for name, char in self.lcd.glyph2char:
                         text.replace(self.lcd[name], char) 
+                    keys_stop()
                     return text
+                case ("key", k):
+                    if mode == "line":
+                        text.insert(i, k)
+                    else:
+                        text[i] = k
+                    i += 1
+                    if i == len(text):
+                        text.append(" ")
                 case other:
                     self.lcd.setcursormode("hide")
+                    keys_stop()
                     return other
 
     def menu_choosefile(self, topdir, start=None, ext=[],
@@ -210,7 +218,7 @@ class SquishBox:
             )
             paths = sorted([p for p in curdir.iterdir()
                             if p.is_dir() or p.suffix in ext or not ext])
-            names = [f'{self.lcd["folder"]}{p.name}/'
+            names = [f'{p.name}/'
                      if p.is_dir() else p.name for p in paths]
             if curdir != topdir:
                 paths.append(curdir.parent)
@@ -220,11 +228,11 @@ class SquishBox:
             i, res = self.menu_choose(names, row + 1, i=i, timeout=timeout)
             if res == None:
                 return curdir
-            if path[i].is_dir():
+            if paths[i].is_dir():
                 startfile = curdir
-                curdir = path[i]
+                curdir = paths[i]
             else:
-                return path[i]
+                return paths[i]
 
     def menu_lcdsettings(self, row=ROWS - 2, timeout=MENU_TIME):
         """Menu for setting backlight and contrast levels
@@ -530,7 +538,7 @@ class SquishBox:
         return self._actions.pop(0)
 
     @staticmethod
-    def shell_cmd(cmd, shell=True, **kwargs):
+    def shell_cmd(cmd, **kwargs):
         """Executes a shell command and returns the output
         
         Uses subprocess.run to execute a shell command and returns the output
@@ -543,6 +551,11 @@ class SquishBox:
 
         Returns: the stripped ascii STDOUT of the command
         """
-        return subprocess.run(cmd, check=True, stdout=subprocess.PIPE, shell=shell,
-                              encoding="ascii", **kwargs).stdout.rstrip("\n")
+        kwargs = {
+            "check": True,
+            "shell": True,
+            "stdout": subprocess.PIPE,
+            "encoding": "ascii",
+        } | kwargs            
+        return subprocess.run(cmd, **kwargs).stdout.rstrip("\n")
 
