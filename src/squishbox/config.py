@@ -79,15 +79,6 @@ glyphs_5x8:
     XX-XX
     -----
     -----
-  folder: |
-    -----
-    -----
-    XX---
-    X-XXX
-    X---X
-    X---X
-    XXXXX
-    -----
   wifi_on: |
     -XXX-
     X---X
