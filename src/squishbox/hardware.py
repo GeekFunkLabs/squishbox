@@ -37,8 +37,8 @@ class _Control:
         return self._actions.get(val, lambda: None)
 
     def bind(self, event, func):
-        if func == None and event in self._actions:
-            del self._actions[event]
+        if func == None:
+            self._actions.pop(event, None)
         else:
             self._actions[event] = func
 
@@ -378,7 +378,6 @@ X--X-
     def setcursormode(self, mode):
         """set cursor to blink, line, or hide"""
         if mode == "hide":
-            #self._send(0x0c | 0x00)
             self._send(0x0c)
         elif mode == "blink":
             self._send(0x0d)
@@ -428,7 +427,6 @@ X--X-
                 self._layers["displayed"][row][col] = c
                 lastcol = col
             col += 1
-
 
     def _send(self, val, reg=gpiod.line.Value.INACTIVE):
         if self.regsel == 0:
