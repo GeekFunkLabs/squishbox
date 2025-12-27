@@ -269,14 +269,19 @@ X--X-
 
     def __getitem__(self, name):
         if name not in self._chars:
-            if len(self._used) < 8:
-                loc = len(self._used)
+            free = set(range(8)) - set(self._chars.values())
+            if free:
+                loc = list(free)[0]
             else:
-                loc = self._chars.pop(self._used[-8])
+                loc = self._chars.pop(self._used.pop(0), 0)
             self._load_glyph(loc, self._glyphs[name])
             self._chars[name] = loc
-        if self._chars[name] < 8 and name not in self._used:
-            self._used = self._used[-7:] + [name]
+        if self._chars[name] < 8:
+            if name in self._used:
+                self._used.remove(name)
+            self._used.append(name)
+            if len(self._used) > 8:
+                self._used.pop(0)
         return chr(self._chars[name])
 
     def clear(self):
