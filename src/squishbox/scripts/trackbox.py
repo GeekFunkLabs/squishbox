@@ -48,12 +48,13 @@ class GStreamerPlayer:
         self._pb = Gst.ElementFactory.make("playbin")
         self._pb.set_property("audio-filter", lev)
         self._pb.set_property("volume", 0.0)
-        bus = self._pb.get_bus()
-        bus.add_signal_watch()
-        bus.connect("message", self._on_bus_message)
-
-        Thread(target=GLib.MainLoop().run, daemon=True).start()
-
+        self._bus = self._pb.get_bus()
+        self._bus.add_signal_watch()
+        self._bus.connect("message", self._on_bus_message)
+        self._loop = GLib.MainLoop()
+        self._loop_thread = Thread(target=self._loop.run)
+        self._loop_thread.start()
+        
     @property
     def playing(self):
         return self._playing
@@ -118,6 +119,19 @@ class GStreamerPlayer:
             if self._seek_waiting != None:
                 self.seek(self._seek_waiting)
                 self._seek_waiting = None
+
+    def dismiss(self):
+        self.statuscallback = lambda x: None
+        self.eoscallback = lambda x: None
+        try:
+            self._pb.set_state(Gst.State.NULL)
+            self._bus.remove_signal_watch()
+        except Exception:
+            pass
+        if self._loop.is_running():
+            self._loop.quit()
+        if self._loop_thread.is_alive():
+            self._loop_thread.join()
 
 
 def play_track(n):
@@ -234,7 +248,7 @@ XXXXX
 -XXX-
 --X--
 -----"""
-for i in range(2, 7, 2):
+for i in (2, 4, 6):
     sb.lcd[f"L{i}"] = "-----" * (8 - i) + "XXXXX" * i
 
 # set up config
@@ -338,6 +352,7 @@ while True:
             # handle menu choice
             if choice == "System Menu..":
                 if sb.menu_systemsettings() == "shell":
+                    player.dismiss()
                     break
             elif choice == "Load Tracklist":
                 f = sb.menu_choosefile(
