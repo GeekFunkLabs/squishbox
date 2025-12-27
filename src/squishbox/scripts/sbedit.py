@@ -10,7 +10,7 @@ COLS = squishbox.CONFIG["lcd_cols"]
 ROWS = squishbox.CONFIG["lcd_rows"]
 MENU_TIME = squishbox.CONFIG["menu_timeout"]
 FRAME_TIME = squishbox.CONFIG["frame_time"]
-TOP_DIR = Path(squishbox.CONFIG.get("sbedit_top_dir", Path.home()))
+TOP_DIR = Path(squishbox.CONFIG.get("top_directory", Path.home()))
 
 def main(curfile = None):
     sb = squishbox.SquishBox()
