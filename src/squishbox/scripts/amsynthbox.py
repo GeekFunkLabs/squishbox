@@ -292,12 +292,12 @@ polyphony: 16
 pitch_bend_range: 2
 audio_driver: alsa
 alsa_audio_device: hw:sndrpihifiberry
-banks_path: ~/.local/share/amsynth/banks
+banks_path: ~/SquishBox/amsynth/banks
 current_bank: default
 """
 CONFIG_PATH = Path(os.getenv(
     "AMSYNTHBOX_CONFIG",
-    "~/.config/amsynth/amsynthboxconf.yaml"
+    "~/SquishBox/amsynthboxconf.yaml"
 )).expanduser()
 CONFIG = load_config(CONFIG_PATH, default_cfg)
 CONFIG["banks_path"] = Path(CONFIG["banks_path"]).expanduser()

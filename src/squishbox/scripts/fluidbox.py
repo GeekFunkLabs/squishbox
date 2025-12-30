@@ -257,9 +257,9 @@ def refresh_display():
     sb.lcd.write(pname.ljust(COLS), row=0)
     sb.lcd.write(f"patch {pno + 1}/{len(fp.bank)}".rjust(COLS), row=1)
     if sb.wifienabled:
-        sb.lcd.write(sb.lcd.glyphs["wifi_on"], row=1, col=0)
+        sb.lcd.write(sb.lcd["wifi_on"], row=1, col=0)
     else:
-        sb.lcd.write(sb.lcd.glyphs["wifi_off"], row=1, col=0)
+        sb.lcd.write(sb.lcd["wifi_off"], row=1, col=0)
 
 
 VOICE_TYPES = dict(note="NT", cc="CC", kpress="KP", prog="PC", pbend="PB", cpress="CP")
@@ -304,7 +304,7 @@ while True:
             sb.lcd.write("show events ON".rjust(COLS), row=1,
                          timeout=MENU_TIME)
     elif isinstance(evt, FluidMidiEvent) and evt.type in VOICE_TYPES:
-        sb.lcd.write(sb.lcd.glyphs["note"], row=1, col=1,
+        sb.lcd.write(sb.lcd["note"], row=1, col=1,
                      timeout=FRAME_TIME, force=False)
         if showevent:
             typ = VOICE_TYPES[evt.type]
@@ -367,7 +367,7 @@ while True:
         )
         if f.is_file() and load_bank(f):
             CONFIG["current_bank"] = f
-            save_state(CONFIG)
+            save_config()
             if CONFIG["current_bank"] == lastbank and pname in fp.bank:
                 pno = fp.bank.index(pname)
             else:
@@ -392,7 +392,7 @@ while True:
                 sb.display_error(e, "bank save error")
             else:
                 CONFIG["current_bank"] = f.parent / name
-                save_state(CONFIG)
+                save_config()
                 sb.lcd.write("bank saved".ljust(COLS), row=1)
                 sb.get_action(timeout=MENU_TIME)
     elif choice == "Save Patch":

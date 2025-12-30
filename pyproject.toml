@@ -18,8 +18,6 @@ dependencies = [
 
 [project.optional-dependencies]
 fluidbox = ["fluidpatcher"]
-djbox = ["pydub"]
-full = ["fluidpatcher", "pydub"]
 
 [project.urls]
 Homepage = "https://github.com/GeekFunkLabs/squishbox"

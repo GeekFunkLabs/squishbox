@@ -1,85 +1,32 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-installdir=""
-UPDATED=false
-UPGRADE=false
-PYTHON_PKG=""
-ASK_TO_REBOOT=false
+set -euo pipefail
 
-yesno() {
-    read -r -p "$1 ([y]/n) " response < /dev/tty
-    if [[ $response =~ ^(no|n|N)$ ]]; then
-        false
-    else
-        true
-    fi
-}
-
-noyes() {
-    read -r -p "$1 (y/[n]) " response < /dev/tty
-    if [[ $response =~ ^(yes|y|Y)$ ]]; then
-        false
-    else
-        true
-    fi
-}
+VENV = "$HOME/.squishbox_venv"
 
 query() {
-    read -r -p "$1 [$2] " response < /dev/tty
-    if [[ $response == "" ]]; then
-        response=$2
+    local prompt=$1 default=$2 response
+    read -r -p "$prompt [$default] " response < /dev/tty
+    echo "${response:-$default}"
+}
+
+yesno() {
+    local prompt=$1 response
+    read -r -p "$prompt ([y]/n) " response < /dev/tty
+    if [[ $response =~ ^(no|n|N)$ ]]; then
+        echo false
+    else
+        echo true
     fi
 }
 
-success() {
-    echo -e "$(tput setaf 2)$1$(tput sgr0)"
-}
-
-inform() {
-    echo -e "$(tput setaf 6)$1$(tput sgr0)"
-}
-
-warning() {
-    echo -e "$(tput setaf 3)$1$(tput sgr0)"
-}
+success() {echo -e "$(tput setaf 2)$1$(tput sgr0)"}
+inform() {echo -e "$(tput setaf 6)$1$(tput sgr0)"}
+warn() {echo -e "$(tput setaf 3)$1$(tput sgr0)"}
 
 failout() {
     echo -e "$(tput setaf 1)$1$(tput sgr0)"
     exit 1
-}
-
-sysupdate() {
-    if ! $UPDATED; then
-        echo "Updating package indexes..."
-        if { sudo apt-get update 2>&1 || echo E: update failed; } | grep '^[WE]:'; then
-            warning "Updating incomplete"
-        fi
-        sleep 3
-        UPDATED=true
-    fi
-    if $UPGRADE; then
-        echo "Upgrading your system..."
-        if { sudo DEBIAN_FRONTEND=noninteractive apt-get -y upgrade --with-new-pkgs 2>&1 \
-            || echo E: upgrade failed; } | grep '^[WE]:'; then
-            warning "Encountered problems during upgrade"
-        fi
-        sudo apt-get clean && sudo apt-get autoclean
-        sudo apt-get -qqy autoremove
-        UPGRADE=false
-    fi
-}
-
-apt_pkg_install() {
-    sysupdate
-    echo "Installing package $1..."
-    if { sudo DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install "$1" 2>&1 \
-        || echo E: install failed; } | grep '^[WE]:'; then
-        if [[ ! $2 == "optional" ]]; then
-            failout "Problems installing $1!"
-        else
-            warning "Problems installing $1!"
-        fi
-    fi
 }
 
 
@@ -98,116 +45,106 @@ echo -e "
      ${RED}│ ${NC}│ █ │ █ █ │ ${RED}│
      \_${NC}│_│_│_│_│_│${RED}_/${NC}
 "
-echo "This script installs or updates software and optional extras for
-the SquishBox. View the code for this script and report issues at
-https://github.com/GeekFunkLabs/squishbox
-"
-inform "Choose your install options. Default options are shown in brackets.
-Setup will begin after all questions are answered.
+echo "This script installs software and configures your system for the SquishBox.
+Report any issues at https://github.com/GeekFunkLabs/squishbox
 "
 
-ENVCHECK=true
-if test -f /etc/os-release; then
-    if ! { grep -q ^Raspberry /proc/device-tree/model; } then
-        ENVCHECK=false
-    fi
-    if ! { grep -q "bullseye\|bookworm" /etc/os-release; } then
-        ENVCHECK=false
-    fi
-fi
-if ! ($ENVCHECK); then
-    warning "This software is designed for a Raspberry Pi computer"
-    warning "running Raspberry Pi OS bullseye or bookworm,"
-    warning "which does not appear to be the situation here. YMMV!"
-    if noyes "Proceed anyway?"; then
-        exit 1
-    fi
+userdir=$(query "Enter location for user files:" "$HOME/SquishBox")
+
+alldeps=$(yesno "Install all script dependencies?")
+if ! $alldeps; then
+    amsynthbox=$(yesno "Install amsynthbox dependencies?")
+    fluidbox=$(yesno "Install fluidbox dependencies?")
+    trackbox=$(yesno "Install trackbox dependencies?")
 fi
 
-echo "What are you setting up?"
-echo "  1. SquishBox"
-echo "  2. Naked Raspberry Pi Synth"
-query "Choose" "1"; installtype=$response
-readarray -t AUDIOCARDS <<< $(cat /proc/asound/cards | sed -n 's/.*\[//;s/ *\].*//p')
-if [[ $installtype == 1 ]]; then
-    if [[ ! " ${AUDIOCARDS[*]} " =~ " sndrpihifiberry " ]]; then
-        inform "This script must reboot your computer to activate your sound card."
-        inform "Once this is complete, run this script again to continue setup."
-        if yesno "Reboot?"; then
-            if test -d /boot/firmware; then
-                sudo sed -i '$ a\dtoverlay=hifiberry-dac' /boot/firmware/config.txt
-            else
-                sudo sed -i '$ a\dtoverlay=hifiberry-dac' /boot/config.txt
-            fi
-            sync && sudo reboot
-            exit 0
-        fi
-    fi
-    echo "What version of SquishBox hardware are you using?"
-    echo "  v6 - Green PCB with SMT components"
-    echo "  v4 - Purple PCB, has 2 resistors and LED"
-    echo "  v3 - Purple PCB, has 1 resistor"
-    echo "  v2 - Hackaday/perfboard build"
-    query "Enter version code" "v6"; hw_version=$response
-elif [[ $installtype == 2 ]]; then
-    echo "Set up controls for Naked Pi Synth:"
-    query "    MIDI channel for controls" "1"; ctrls_channel=$response
-    query "    Previous patch momentary CC#" "21"; decpatch=$response
-    query "    Next patch momentary CC#" "22"; incpatch=$response
-    query "    Patch select knob/slider CC#" "23"; selpatch=$response
-else
-    exit 1
+if [[ "$alldeps" || "$fluid_deps" ]]; then
+    soundfonts=$(yesno "Download ~400MB of additional soundfonts?")
 fi
 
-query "Enter install location" $HOME; installdir=$response
-if ! [[ -d $installdir ]]; then
-    mkdir -p $installdir
+filemgr=$(yesno "Set up remote file manager?")
+if $filemgr; then
+    echo "  Create a user name and password."
+    read -r -p "    username: " fmgr_user < /dev/tty
+    read -r -p "    password: " fmgr_pass < /dev/tty
 fi
 
-defcard=0
-echo "Select your audio output device:"
-echo "  0. No change"
-echo "  1. Default"
-i=2
-for dev in ${AUDIOCARDS[@]}; do
-    echo "  $i. $dev"
-    if [[ $installtype == 1 && $dev == "sndrpihifiberry" ]]; then
-        defcard=$i
-    elif [[ $installtype == 2 && $dev == "Headphones" ]]; then
-        defcard=$i
-    fi
-    ((i+=1))
-done
-query "Choose" $defcard; audiosetup=$response
+upgrade=$(yesno "Perfom an operating system update?")
 
-if yesno "Install/update FluidPatcher synthesizer software?"; then
-    install_synth=true
-    if ! noyes "Download and install ~400MB of additional soundfonts?"; then
-        soundfonts=true
-    fi
-
-    if yesno "Set up web-based file manager?"; then
-        filemgr=true
-        echo "  Please create a user name and password."
-        read -r -p "    username: " fmgr_user < /dev/tty
-        read -r -p "    password: " fmgr_pass < /dev/tty
-    fi
-fi
-
-if yesno "Update your operating system?"; then
-    UPGRADE=true
-fi
-
-echo ""
 if ! yesno "Option selection complete. Proceed with installation?"; then
     exit 1
 fi
-warning "\nThis may take some time ... go make some coffee.\n"
+
+# begin install/config actions
+
+sudo apt-get update
+sudo apt-get upgrade -y
+sudo apt-get install -y python3-venv
+
+if [[ "$alldeps" || "$amsynthbox" ]]; then
+    sudo apt-get install -y amsynth
+fi
+if [[ "$alldeps" || "$fluidbox" ]]; then
+    sudo apt-get install -y --no-install-recommends \
+        libfluidsynth3 \
+        fluid-soundfont-gm \
+        fluid-soundfont-gs \
+        ladspa-sdk \
+        swh-plugins \
+        tap-plugins \
+        wah-plugins
+fi
+if [[ "$alldeps" || "$trackbox" ]]; then
+    sudo apt-get install -y --no-install-recommends \
+        python3-gi \
+        gir1.2-gst-1.0 \
+        gstreamer1.0-plugins-base \
+        gstreamer1.0-plugins-good \
+        gstreamer1.0-plugins-bad \
+        gstreamer1.0-plugins-ugly \
+        gstreamer1.0-libav \
+        gstreamer1.0-alsa
+fi
+
+# create venv and install python stuff
+
+if ! [[ -d $userdir ]]; then
+    mkdir -p $userdir
+fi
+python -m venv --system-site-packages $VENV
+source $VENV/bin/activate
+# try to install from local files, else fall back to pypi
+if [ -f "pyproject.toml" ] && [ -d "src/squishbox" ]; then
+    pip install .
+else
+    pip install squishbox
+fi
+if [[ "$alldeps" || "$fluidbox" ]]; then
+    pip install fluidpatcher
+fi
 
 
-## do things
 
-umask 002 # friendly file permissions for web file manager
+    if ! test -e $sf2dir/FluidR3_GM_GS.sf2; then
+        wget -q --show-progress https://archive.org/download/fluidr3-gm-gs/FluidR3_GM_GS.sf2; fi
+    if ! test -L defaultGM.sf2; then
+        mv defaultGM.sf2 liteGM.sf2; ln -s FluidR3_GM_GS.sf2 defaultGM.sf2; fi
+
+
+
+# automount USB drives
+sudo apt-get install -y udisks2
+
+
+readarray -t AUDIOCARDS <<< $(cat /proc/asound/cards | sed -n 's/.*\[//;s/ *\].*//p')
+if [[ ! " ${AUDIOCARDS[*]} " =~ " sndrpihifiberry " ]]; then
+    if test -d /boot/firmware; then
+        sudo sed -i '$ a\dtoverlay=hifiberry-dac' /boot/firmware/config.txt
+    else
+        sudo sed -i '$ a\dtoverlay=hifiberry-dac' /boot/config.txt
+    fi
+fi
+
 sudo sed -i "/^#deb-src/s|#||" /etc/apt/sources.list # allow apt-get build-dep
 startdir=$(pwd)
 cd $installdir

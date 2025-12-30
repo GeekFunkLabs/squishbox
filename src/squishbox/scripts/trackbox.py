@@ -4,16 +4,14 @@ from threading import Thread
 import time
 
 """
-sudo apt install python3-gi python3-gi-cairo gir1.2-gst-1.0
-sudo apt install python3-gi gir1.2-gst-1.0 \
-                 gstreamer1.0-plugins-base \
-                 gstreamer1.0-plugins-good \
-                 gstreamer1.0-plugins-bad \
-                 gstreamer1.0-plugins-ugly \
-                 gstreamer1.0-libav
-sudo apt install gstreamer1.0-alsa
-sudo apt install gstreamer1.0-tools
-sudo apt install python3-gi python3-gst-1.0 gstreamer1.0-alsa
+sudo apt install \
+  python3-gi \
+  gir1.2-gst-1.0 \
+  gstreamer1.0-plugins-base \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-libav \
+  gstreamer1.0-alsa \
+  gstreamer1.0-tools
 """
 
 import gi
@@ -253,12 +251,12 @@ for i in (2, 4, 6):
 
 # set up config
 default_cfg = """\
-tracklists_path: ~/.config/trackbox
-tracks_head: ~/Music
+tracklists_path: ~/SquishBox/tracklists
+tracks_head: ~/SquishBox/music
 """
 CONFIG_PATH = Path(os.getenv(
     "TRACKBOX_CONFIG",
-    "~/.config/trackbox/trackboxconf.yaml"
+    "~/SquishBox/trackboxconf.yaml"
 )).expanduser()
 CONFIG = load_config(CONFIG_PATH, default_cfg)
 TRACKLISTS_PATH = Path(CONFIG["tracklists_path"]).expanduser()
