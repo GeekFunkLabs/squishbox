@@ -15,11 +15,12 @@ ROWS = squishbox.CONFIG["lcd_rows"]
 MENU_TIME = squishbox.CONFIG["menu_timeout"]
 FRAME_TIME = squishbox.CONFIG["frame_time"]
 
+
 def edit_sounds():
     chan = 0
     while True:
-        # get current presets per channel
-        sb.lcd.write("Sounds:".ljust(COLS), row=0)
+        # build a dictionary of presets keyed by channel
+        # plus a list of channel description strings 
         sounds = {}
         channel_info = []
         for c in range(1, fp.fluidsetting("synth.midi-channels") + 1):
@@ -31,9 +32,10 @@ def edit_sounds():
                 )
             else:
                 channel_info.append(f"{c}:")
-        # channel selection
+        # user channel selection
         if chan == 0:
             chan = list(sounds)[0] if sounds else 1
+        sb.lcd.write("Sounds:".ljust(COLS), row=0)
         i, choice = sb.menu_choose(
             channel_info, row=1, i=chan - 1, timeout=0, align="left"
         )
@@ -41,10 +43,10 @@ def edit_sounds():
             break
         chan = i + 1
         while True:
+            # change the preset on the selected channel
             if p := sounds.get(chan):
-                # select preset in the current soundfont
                 sb.lcd.write(f"{chan}: {p.file}".ljust(COLS), row=0)
-                sf = fp.soundfonts[p.file]
+                sf = fp.open_soundfont(p.file)
                 presets = []
                 preset_info = []
                 for bank, prog in sf:
@@ -62,7 +64,7 @@ def edit_sounds():
                 )
                 if res[1] == None:
                     break
-            # change soundfont
+            # change soundfont on the selected channel
             sb.lcd.write("Set Sound File:".ljust(COLS), row=0)
             if p := sounds.get(chan):
                 newsf = sb.menu_choose(
@@ -86,8 +88,11 @@ def edit_sounds():
                 )
                 if not newsf.is_file():
                     break
-            sounds[chan] = SFPreset(newsf, 0, 0)
-            change_preset(chan, sounds[chan])
+            # select the first preset in the new soundfont
+            sf = fp.open_soundfont(newsf)
+            if len(sf) > 0:
+                bank, prog = list(sf)[0]
+                sounds[chan] = SFPreset(sf.file, bank, prog)
 
 def change_preset(chan, preset):
     fp.bank.patch[pname][chan] = preset
@@ -262,7 +267,7 @@ def refresh_display():
         sb.lcd.write(sb.lcd["wifi_off"], row=1, col=0)
 
 
-VOICE_TYPES = dict(note="NT", cc="CC", kpress="KP", prog="PC", pbend="PB", cpress="CP")
+VOICE_TYPES = dict(note="NT", ctrl="CC", kpress="KP", prog="PC", pbend="PB", cpress="CP")
 
 # main
 
@@ -273,17 +278,23 @@ sb.button1.bind("tap", sb.action_do)
 sb.button1.bind("hold", sb.action_back)
 sb.lcd.clear()
 
-pno = 0
 fp = FluidPatcher()
-load_bank(CONFIG["current_bank"])
+
+CONFIG.setdefault(
+    "fpatcherbox_path",
+    CONFIG["banks_path"] / "testbank.yaml"
+)
+load_bank(CONFIG["fpatcherbox_path"])
+
+pno = 0
 sb.lcd.activity_start()
 fp.apply_patch(pname := fp.bank.patches[pno])
 sb.lcd.activity_stop()
-fp.set_callback(sb.add_action)
 
-showevent = False
 last = 0
+showevent = False
 refresh_display()
+fp.set_callback(sb.add_action)
 while True:
     evt = sb.get_action()
     if evt == "inc":
@@ -359,26 +370,28 @@ while True:
     )
     last = i if choice != None else last
     if choice == "Load Bank":
-        lastbank = CONFIG["current_bank"]
         f = sb.menu_choosefile(
             topdir=CONFIG["banks_path"],
-            start=CONFIG["current_bank"],
+            start=CONFIG["fpatcherbox_path"],
             ext=".yaml"
         )
         if f.is_file() and load_bank(f):
-            CONFIG["current_bank"] = f
-            save_config()
-            if CONFIG["current_bank"] == lastbank and pname in fp.bank:
+            if (
+                f == CONFIG["fpatcherbox_path"] and
+                pname in fp.bank
+            ):
                 pno = fp.bank.index(pname)
             else:
                 pno = 0
+            CONFIG["fpatcherbox_path"] = f
+            save_config()
             sb.lcd.activity_start()
             fp.apply_patch(pname := fp.bank.patches[pno])
             sb.lcd.activity_stop()
     elif choice == "Save Bank":
         f = sb.menu_choosefile(
             topdir=CONFIG["banks_path"],
-            start=CONFIG["current_bank"],
+            start=CONFIG["fpatcherbox_path"],
             ext=".yaml"
         )
         name = sb.menu_entertext(
@@ -391,7 +404,7 @@ while True:
             except Exception as e:
                 sb.display_error(e, "bank save error")
             else:
-                CONFIG["current_bank"] = f.parent / name
+                CONFIG["fpatcherbox_path"] = f.parent / name
                 save_config()
                 sb.lcd.write("bank saved".ljust(COLS), row=1)
                 sb.get_action(timeout=MENU_TIME)

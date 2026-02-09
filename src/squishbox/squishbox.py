@@ -207,10 +207,10 @@ class SquishBox:
         curdir = topdir
         if start:
             start = topdir / start
-            if start.is_dir() and start > topdir:
-                curdir = start
-            elif start.parent > topdir:
-                curdir = start.parent
+            if start.is_dir():
+                curdir = max(start, topdir)
+            else:
+                curdir = max(start.parent, topdir)
         while True:
             self.lcd.write(
                 f"{curdir.relative_to(topdir.parent)}/:".ljust(COLS),

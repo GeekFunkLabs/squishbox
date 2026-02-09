@@ -31,7 +31,7 @@ yaml.add_representer(str, str_presenter, Dumper=yaml.SafeDumper)
 
 CONFIG_PATH = Path(os.getenv(
     "SQUISHBOX_CONFIG",
-    "~/.config/squishbox/squishboxconf.yaml"
+    "~/SquishBox/squishbox/squishboxconf.yaml"
 )).expanduser()
 
 DEFAULT_CFG = """\
