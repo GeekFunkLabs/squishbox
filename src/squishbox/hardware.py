@@ -18,6 +18,7 @@ Requires:
 - yaml
 """
 
+from contextlib import contextmanager
 from datetime import timedelta
 from threading import Thread
 import time
@@ -389,22 +390,29 @@ X--X-
         elif mode == "line":    
             self._send(0x0e)
 
-    def activity_start(self):
+    @contextmanager
+    def activity(self, msg=None):
         """Shows an animation while another process runs
         
-        Displays a spinning character in the lower right corner of the
-        LCD that runs in a thread after this function returns, to give
-        the user some feedback while a long-running process completes.
-        """
-        self._spinning = True
-        self._spin = Thread(target=self._activitywheel_spin)
-        self._spin.start()
-    
-    def activity_stop(self):
-        """Removes the spinning character"""
-        self._spinning = False
-        self._spin.join()
+        Runs in a ``with`` statuement. Displays a spinning character
+        in the lower right corner of the LCD to give feedback while a
+        long-running process completes.
 
+        Args:
+          msg: text to display
+        """
+        if msg:
+            self.write(msg, row=ROWS - 1)
+        if not self._spinning:
+            self._spinning = True
+            self._spin = Thread(target=self._activitywheel_spin)
+            self._spin.start()
+        try:
+            yield
+        finally:
+            self._spinning = False
+            self._spin.join()
+    
     def _activitywheel_spin(self):
         c = self._layers["displayed"][ROWS - 1][COLS - 1]
         i = 0
