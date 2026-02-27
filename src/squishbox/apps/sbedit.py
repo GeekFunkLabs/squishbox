@@ -62,11 +62,11 @@ def main(curfile = None):
                 contents[i] = sb.menu_entertext(contents[i], row=crow).rstrip()
             case "back":
                 i, choice = sb.menu_choose([
+                    "Open File",
+                    "Save File",
                     "Insert Row",
                     "Delete Row",
-                    "Save File",
-                    "Open File",
-                    "New File",
+                    "Clear Rows",
                     "Exit"
                 ], row=ROWS - 1, i=last)
                 last = i if choice != None else last
@@ -107,7 +107,7 @@ def main(curfile = None):
                             curfile = f
                             crow = 0
                             irow = 0
-                if choice ==  "New File":
+                if choice ==  "Clear Rows":
                     curfile = curfile.parent
                     contents = [""]
                     crow = 0

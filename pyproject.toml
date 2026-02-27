@@ -13,11 +13,13 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "gpiod", "pyyaml", "alsa-midi"
+    "gpiod", "pyyaml", "alsa-midi", "evdev"
 ]
 
 [project.optional-dependencies]
 fluidbox = ["fluidpatcher"]
+trackbox = ["gi"]
+full = ["fluidpatcher", "gi"]
 
 [project.urls]
 Homepage = "https://github.com/GeekFunkLabs/squishbox"

@@ -338,7 +338,7 @@ while True:
             while True:
                 i, choice = sb.menu_choose([
                     "Volume",
-                    "Tracklist",
+                    "Edit Tracklist",
                     "Load Tracklist",
                     "Save Tracklist",
                     "System Menu..",

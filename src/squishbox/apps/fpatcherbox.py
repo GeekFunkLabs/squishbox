@@ -101,7 +101,7 @@ class FPBox:
                 elif hasattr(evt, "rule"):
                     self.on_rule_event(evt)
                 elif evt == "do":
-                    break
+                    return
 
     def on_increment(self, inc):
         self.apply_patch((self.pno + inc) % len(fp.bank))
