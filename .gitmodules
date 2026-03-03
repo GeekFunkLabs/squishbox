@@ -1,0 +1,3 @@
+[submodule "fluidpatcher"]
+	path = fluidpatcher
+	url = https://github.com/GeekFunkLabs/fluidpatcher.git
