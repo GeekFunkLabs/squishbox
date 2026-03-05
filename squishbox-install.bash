@@ -333,7 +333,7 @@ if [[ $install_synth ]]; then
 
     # install/update fluidpatcher
     inform "Installing/Updating FluidPatcher ..."
-    wget -qO - https://github.com/GeekFunkLabs/fluidpatcher/tarball/master | tar -xzm
+    wget -qO - https://github.com/GeekFunkLabs/fluidpatcher/tarball/b4382db | tar -xzm
     fptemp=$(ls -dt GeekFunkLabs-fluidpatcher-* | head -n1)
     cp -rf $fptemp/fluidpatcher .
     cp -rn $fptemp/scripts/config SquishBox
