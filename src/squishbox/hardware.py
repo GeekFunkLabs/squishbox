@@ -394,7 +394,7 @@ X--X-
     def activity(self, msg=None):
         """Shows an animation while another process runs
         
-        Runs in a ``with`` statuement. Displays a spinning character
+        Runs in a ``with`` statement. Displays a spinning character
         in the lower right corner of the LCD to give feedback while a
         long-running process completes.
 

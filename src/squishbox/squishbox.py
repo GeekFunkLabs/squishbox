@@ -352,7 +352,7 @@ class SquishBox:
                 self.lcd.write("Not connected".ljust(COLS), row)
             if self.wifienabled:
                 ssid = [x[0].replace("*", self.lcd["check"]) + x[2:]
-                        for x in nw if x[2:]]
+                        for x in aps if x[2:]]
                 match self.menu_choose(
                     ssid + ["Scan", "Disable WiFi"],
                     row + 1, timeout=timeout,
@@ -362,46 +362,40 @@ class SquishBox:
                         self.lcd.write(" " * COLS, row)
                         break
                     case "Scan":
-                        self.lcd.write("scanning ".rjust(COLS), row + 1)
-                        self.activitywheel_start()
-                        aps = self.shell_cmd("sudo nmcli -g IN-USE,SSID dev wifi").splitlines()
-                        self.activitywheel_stop()
+                        with sb.lcd.activity("scanning ".rjust(COLS)):
+                            aps = self.shell_cmd(
+                                "sudo nmcli -g IN-USE,SSID dev wifi"
+                            ).splitlines()
                     case "Disable WiFi":
                         self.wifienabled = False
                         self.lcd.write(" " * COLS, row)
                         break
                     case ssid if ssid[0] == self.lcd["check"]:
                         self.lcd.write(ssid[1:COLS + 1].ljust(COLS), row)
-                        self.lcd.write("disconnecting ".rjust(COLS), row + 1)
-                        self.activitywheel_start()
-                        self.shell_cmd(f"sudo nmcli con down {ssid[1:]}")
-                        self.activitywheel_stop()
+                        with sb.lcd.activity("disconnecting ".rjust(COLS)):
+                            self.shell_cmd(f"sudo nmcli con down {ssid[1:]}")
                     case ssid:
                         self.lcd.write(ssid[1:COLS + 1].ljust(COLS), row)
                         self.lcd.write("connecting ".rjust(COLS), row + 1)
-                        self.activitywheel_start()
                         try:
-                            self.shell_cmd(f"sudo nmcli con up {ssid[1:]}")
+                            with sb.lcd.activity("connecting ".rjust(COLS)):
+                                self.shell_cmd(f"sudo nmcli con up {ssid[1:]}")
                         except subprocess.CalledProcessError:
-                            self.activitywheel_stop()
                             self.lcd.write("Password:".ljust(COLS), row)
                             psk = self.menu_entertext(row=row + 1).strip()
                             if not self.menu_confirm(psk, row + 1):
                                 continue
                             self.lcd.write(ssid[1:COLS + 1].ljust(COLS), row)
-                            self.lcd.write("connecting ".rjust(COLS), row + 1)
-                            self.activitywheel_start()
                             try:
-                                cmd = ["sudo", "nmcli", "dev", "wifi", "connect"]
-                                self.shell_cmd([*cmd, ssid[1:], "password", psk], shell=False)
+                                with sb.lcd.activity("connecting ".rjust(COLS)):
+                                    self.shell_cmd(
+                                        "sudo nmcli dev wifi connect".split() +
+                                        [ssid[1:], "password", psk],
+                                        shell=False
+                                    )
                             except subprocess.CalledProcessError:
-                                self.activitywheel_stop()
                                 self.lcd.write("connection fail".rjust(COLS), row + 1)
                                 self.get_action(timeout=MENU_TIME)
-                            else:
-                                self.activitywheel_stop()
-                        else:
-                            self.activitywheel_stop()
             else:
                 res = self.menu_choose(["Enable WiFi"], row + 1, timeout=timeout)
                 if res[1] != None:
