@@ -1,0 +1,17 @@
+[Unit]
+Description=SquishBox (%i)
+After=local-fs.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/%i
+Environment=FLUIDPATCHER_CONFIG=/home/%i/SquishBox/fluidpatcherconf.yaml
+Environment=SQUISHBOX_CONFIG=/home/%i/SquishBox/squishboxconf.yaml
+ExecStart=/usr/bin/python3 -m squishbox.scripts.launcher
+Restart=on-failure
+LimitMEMLOCK=infinity
+LimitRTPRIO=90
+
+[Install]
+WantedBy=multi-user.target

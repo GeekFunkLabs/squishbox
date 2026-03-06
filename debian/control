@@ -1,0 +1,46 @@
+Source: squishbox
+Section: sound
+Priority: optional
+Maintainer: Bill Peterson <bill@geekfunklabs.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-python,
+ python3-all,
+ python3-setuptools,
+ python3-build,
+ gcc,
+ libasound2-dev,
+ ladspa-sdk
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+
+Package: squishbox
+Architecture: all
+Depends:
+ ${python3:Depends},
+ ${misc:Depends},
+ python3-evdev,
+ python3-yaml
+Description: SquishBox core Python application
+
+Package: squishbox-system
+Architecture: any
+Depends:
+ ${misc:Depends}
+Description: SquishBox system services and MIDI tools
+
+Package: squishbox-fluidpatcher
+Architecture: all
+Depends:
+ ${python3:Depends},
+ ${misc:Depends},
+ fluidsynth
+Description: Fluidpatcher engine bundled for SquishBox
+
+Package: squishbox-full
+Architecture: all
+Depends:
+ squishbox,
+ squishbox-system,
+ squishbox-fluidpatcher
+Description: Complete SquishBox installation
