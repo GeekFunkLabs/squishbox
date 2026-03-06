@@ -1105,7 +1105,7 @@ if __name__ == "__main__":
         sb.display_error(e, "bad config file: ")
     else:
         mainapp = FluidBox()
-        mainapp.midi_connect()
+#        mainapp.midi_connect()
         mainapp.load_bank(fp.currentbank)
         while not fp.currentbank:
             mainapp.load_bank()
