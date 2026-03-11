@@ -14,8 +14,8 @@ keycodes = (
 "KEY_APOSTROPHE", "KEY_COMMA", "KEY_DOT", "KEY_SLASH", "KEY_SPACE")
 
 keymap_us = (
-"""abcdefghijklmnopqrstuvwxyz1234567890`-=[]\;',./ """,
-"""ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()~_+{}|:"<>? """
+r"""abcdefghijklmnopqrstuvwxyz1234567890`-=[]\;',./ """,
+r"""ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()~_+{}|:"<>? """
 )
 
 KEYMAPS = {

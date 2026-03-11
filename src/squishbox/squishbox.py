@@ -362,7 +362,7 @@ class SquishBox:
                         self.lcd.write(" " * COLS, row)
                         break
                     case "Scan":
-                        with sb.lcd.activity("scanning ".rjust(COLS)):
+                        with self.lcd.activity("scanning ".rjust(COLS)):
                             aps = self.shell_cmd(
                                 "sudo nmcli -g IN-USE,SSID dev wifi"
                             ).splitlines()
@@ -372,13 +372,13 @@ class SquishBox:
                         break
                     case ssid if ssid[0] == self.lcd["check"]:
                         self.lcd.write(ssid[1:COLS + 1].ljust(COLS), row)
-                        with sb.lcd.activity("disconnecting ".rjust(COLS)):
+                        with self.lcd.activity("disconnecting ".rjust(COLS)):
                             self.shell_cmd(f"sudo nmcli con down {ssid[1:]}")
                     case ssid:
                         self.lcd.write(ssid[1:COLS + 1].ljust(COLS), row)
                         self.lcd.write("connecting ".rjust(COLS), row + 1)
                         try:
-                            with sb.lcd.activity("connecting ".rjust(COLS)):
+                            with self.lcd.activity("connecting ".rjust(COLS)):
                                 self.shell_cmd(f"sudo nmcli con up {ssid[1:]}")
                         except subprocess.CalledProcessError:
                             self.lcd.write("Password:".ljust(COLS), row)
@@ -387,7 +387,7 @@ class SquishBox:
                                 continue
                             self.lcd.write(ssid[1:COLS + 1].ljust(COLS), row)
                             try:
-                                with sb.lcd.activity("connecting ".rjust(COLS)):
+                                with self.lcd.activity("connecting ".rjust(COLS)):
                                     self.shell_cmd(
                                         "sudo nmcli dev wifi connect".split() +
                                         [ssid[1:], "password", psk],
@@ -457,7 +457,7 @@ class SquishBox:
                     return "shell"
         self.lcd.write(" " * COLS, row)
 
-    def display_error(self, err, msg="", row=ROWS - 1):
+    def display_error(self, err, msg="", row=ROWS - 2):
         """Displays Exception text on the LCD
         
         Reformats the text of an Exception so it can be displayed on one
@@ -468,19 +468,28 @@ class SquishBox:
           err: the Exception
           msg: an optional error message
         """
-        if type(err) == KeyboardInterrupt:
+
+        if isinstance(err, KeyboardInterrupt):
             sys.exit()
-        # remove newlines + carets and compress spaces
-        err_oneline = (
-            (f"{msg}: " if msg else "") + f"{type(err).__name__}: " +
-            re.sub(" {2,}", " ", re.sub("\n|\^", " ", str(err)))
-        )
-        self.lcd.write(err_oneline, row)
+
+        tb = traceback.extract_tb(err.__traceback__)
+        frame = tb[-1]
+
+        location = f"{frame.filename.split('/')[-1]}:{frame.lineno}"
+        code = frame.line.strip() if frame.line else ""
+
+        text = (f"{msg}: " if msg else "") + f"{type(err).__name__}: {err}"
+        text = re.sub(r"[\n^]", " ", text)
+        text = re.sub(r" {2,}", " ", text)
+
+        debug = f"{location} {code}"
+
+        self.lcd.write(text, row)
+        self.lcd.write(debug, row + 1)
         if msg:
             print(msg)
         traceback.print_exception(type(err), err, err.__traceback__)
         self.get_action()
-        self.lcd.write(" " * COLS, row)
 
     def action_inc(self):
         """Bind target - increment a value/choice
