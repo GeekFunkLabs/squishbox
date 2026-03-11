@@ -1,0 +1,16 @@
+polkit.addRule(function(action, subject) {
+    var allowed = [
+        "org.freedesktop.udisks2.filesystem-mount",
+        "org.freedesktop.udisks2.filesystem-mount-other-seat",
+        "org.freedesktop.udisks2.filesystem-unmount",
+        "org.freedesktop.udisks2.filesystem-unmount-other-seat",
+        "org.freedesktop.udisks2.power-off-drive",
+        "org.freedesktop.udisks2.power-off-drive-other-seat"
+    ];
+    if (allowed.indexOf(action.id) >= 0) {
+        if (subject.isInGroup("plugdev")) {
+            return polkit.Result.YES;
+        }
+    }
+});
+

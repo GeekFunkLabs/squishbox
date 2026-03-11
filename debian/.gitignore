@@ -1,0 +1,14 @@
+# debhelper build output
+.debhelper/
+tmp/
+
+# generated package roots
+squishbox-system/
+squishbox-full/
+
+# build metadata
+*.debhelper
+*.substvars
+files
+debhelper-build-stamp
+

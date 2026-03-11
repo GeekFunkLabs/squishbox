@@ -4,43 +4,37 @@ Priority: optional
 Maintainer: Bill Peterson <bill@geekfunklabs.com>
 Build-Depends:
  debhelper-compat (= 13),
- dh-python,
- python3-all,
- python3-setuptools,
- python3-build,
  gcc,
- libasound2-dev,
- ladspa-sdk
+ libasound2-dev
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
 
-Package: squishbox
-Architecture: all
-Depends:
- ${python3:Depends},
- ${misc:Depends},
- python3-evdev,
- python3-yaml
-Description: SquishBox core Python application
-
 Package: squishbox-system
 Architecture: any
+Multi-Arch: foreign
 Depends:
- ${misc:Depends}
-Description: SquishBox system services and MIDI tools
-
-Package: squishbox-fluidpatcher
-Architecture: all
-Depends:
- ${python3:Depends},
  ${misc:Depends},
- fluidsynth
-Description: Fluidpatcher engine bundled for SquishBox
+ ${shlibs:Depends},
+ python3-evdev
+Description: SquishBox system services and MIDI tools
 
 Package: squishbox-full
 Architecture: all
 Depends:
- squishbox,
  squishbox-system,
- squishbox-fluidpatcher
+ fluidsynth,
+ ladspa-sdk,
+ swh-plugins,
+ tap-plugins,
+ wah-plugins,
+ amsynth,
+ python3-gi,
+ gir1.2-gst-1.0,
+ gstreamer1.0-plugins-base,
+ gstreamer1.0-plugins-good,
+ gstreamer1.0-plugins-bad,
+ gstreamer1.0-plugins-ugly,
+ gstreamer1.0-libav,
+ gstreamer1.0-alsa 
 Description: Complete SquishBox installation
+
