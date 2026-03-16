@@ -48,6 +48,10 @@ class _Control:
 
 
 class Button(_Control):
+    """A rotary encoder
+    
+    Binds to: up, down, tap, hold
+    """
 
     UP, DOWN, HELD = 0, 1, 2
 
@@ -102,7 +106,10 @@ class Button(_Control):
 
 
 class Encoder(_Control):
+    """A rotary encoder
     
+    Binds to: left, right
+    """
     def __init__(self, pin1, pin2, pull_up=CONFIG["pull_up"]):
         if pull_up:
             bias = gpiod.line.Bias.PULL_UP
@@ -147,7 +154,7 @@ class Encoder(_Control):
 
 class Output:
 
-    def __init__(self, pin, on=0):
+    def __init__(self, pin, on=False):
         self._pin = pin
         if on:
             val = gpiod.line.Value.ACTIVE

@@ -192,6 +192,30 @@ def write_bankfile(path, presets):
     path.write_text("\n".join(lines))
 
 
+def setup_amsynth():
+    """Shadow config to amsynth configs
+    """
+    amscfg = Path("~/.config/amsynth/config").expanduser()
+    amscfg.write_text(
+        "\n".join(
+            [f"{k} {v}" for k, v in CONFIG.items() if k in (
+                    "midi_channel",
+                    "sample_rate",
+                    "polyphony",
+                    "pitch_bend_range",
+                    "audio_driver",
+                    "alsa_audio_device",
+                )
+            ]
+        )
+    )
+    amsctrl = Path("~/.config/amsynth/controllers").expanduser()
+    controllers = ["null"] * 128
+    for name in PARS:
+        controllers[PARS[name]["cc"]] = name
+    amsctrl.write_text("\n".join(controllers))
+
+
 def start_wrapper():
     """Create a client for observing/routing MIDI messages
     and insert it between amSynth and anything connected to it
@@ -279,10 +303,6 @@ def refresh_display():
 
 # start squishbox
 sb = squishbox.SquishBox()
-sb.knob1.bind("left", sb.action_dec)
-sb.knob1.bind("right", sb.action_inc)
-sb.button1.bind("tap", sb.action_do)
-sb.button1.bind("hold", sb.action_back)
 sb.lcd.clear()
 
 default_cfg = """\
@@ -292,51 +312,26 @@ polyphony: 16
 pitch_bend_range: 2
 audio_driver: alsa
 alsa_audio_device: hw:sndrpihifiberry
-banks_path: ~/SquishBox/amsynth/banks
-current_bank: default
+banks_path: ~/SquishBox/banks/amsynth
+currentbank_path: amsynth_factory.bank
 """
 CONFIG_PATH = Path(os.getenv(
     "AMSYNTHBOX_CONFIG",
-    "~/SquishBox/amsynthboxconf.yaml"
+    "~/SquishBox/config/amsynthboxconf.yaml"
 )).expanduser()
 CONFIG = load_config(CONFIG_PATH, default_cfg)
-CONFIG["banks_path"] = Path(CONFIG["banks_path"]).expanduser()
-CONFIG["current_bank"] = Path(CONFIG["current_bank"]).expanduser()
 
-# write amsynth config
-amscfg = Path("~/.config/amsynth/config").expanduser()
-amscfg.write_text(
-    "\n".join(
-        [f"{k} {v}" for k, v in CONFIG.items() if k in (
-                "midi_channel",
-                "sample_rate",
-                "polyphony",
-                "pitch_bend_range",
-                "audio_driver",
-                "alsa_audio_device",
-            )
-        ]
+if not CONFIG["banks_path"].exists():
+    CONFIG["banks_path"].mkdir(parents=True, exist_ok=True)
+    Path(CONFIG["banks_path"] / "presets").symlink_to(
+        "/usr/share/amsynth/banks"
     )
-)
-
-# write controller config
-amsctrl = Path("~/.config/amsynth/controllers").expanduser()
-controllers = ["null"] * 128
-for name in PARS:
-    controllers[PARS[name]["cc"]] = name
-amsctrl.write_text("\n".join(controllers))
-
-# link default banks to user banks location
-CONFIG["banks_path"].mkdir(parents=True, exist_ok=True)
-for path in (
-    Path("~/.local/share/amsynth/banks").expanduser(),
-    Path("/usr/share/amsynth/banks"),
-):
-    for bank in [f for f in path.iterdir() if f.is_file()]:
-        if not (CONFIG["banks_path"] / bank.name).exists():
-            (CONFIG["banks_path"] / bank.name).symlink_to(bank)
+    Path("/usr/share/amsynth/banks/amsynth_factory.bank").copy(
+        CONFIG["banks_path"] / "amsynth_factory.bank"
+    )
 
 # start amsynth
+setup_amsynth()
 try:
     amsynthx = Popen(
         ["stdbuf", "-oL", "amsynth", "-x"],
@@ -357,7 +352,7 @@ midi_learn_callback = None
 midithread.start()
 
 presets = read_bankfile(
-    CONFIG["banks_path"] / CONFIG["current_bank"]
+    CONFIG["banks_path"] / CONFIG["currentbank_path"]
 )
 curvals = {name: 0 for name in PARS}
 pno = 0
@@ -389,7 +384,7 @@ while True:
                 PARS[name]["display"][val].rjust(COLS),
                 row=1, timeout=MENU_TIME
             )
-        case "do":
+        case "select":
             display_callback = None
             i, choice = sb.menu_choose([
                 "Parameters",
@@ -463,7 +458,7 @@ while True:
             elif choice == "Load Bank":
                 f = sb.menu_choosefile(
                     topdir=CONFIG["banks_path"],
-                    start=CONFIG["current_bank"],
+                    start=CONFIG["currentbank_path"],
                 )
                 if f.is_file():
                     try:
@@ -471,14 +466,14 @@ while True:
                     except Exception as e:
                         sb.display_error(e, "bank load error")
                     else:
-                        CONFIG["current_bank"] = f
+                        CONFIG["currentbank_path"] = f
                         save_state(CONFIG_PATH, CONFIG)
                         pno = 0
                         set_preset(pname := list(presets)[pno])
             elif choice == "Save Bank":
                 f = sb.menu_choosefile(
                     topdir=CONFIG["banks_path"],
-                    start=CONFIG["current_bank"]
+                    start=CONFIG["currentbank_path"]
                 )
                 name = sb.menu_entertext(
                     f.name if f.is_file() else "", charset=sb.lcd.fnchars()
@@ -490,7 +485,7 @@ while True:
                     except Exception as e:
                         sb.display_error(e, "bank save error")
                     else:
-                        CONFIG["current_bank"] = f.parent / name
+                        CONFIG["currentbank_path"] = f.parent / name
                         save_state(CONFIG_PATH, CONFIG)
                         sb.lcd.write("bank saved".ljust(COLS), row=1)
                         sb.get_action(timeout=MENU_TIME)

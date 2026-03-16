@@ -16,8 +16,6 @@ def run_script(path):
     mod = module_from_spec(spec)
     CONFIG["startup_script"] = path.stem
     save_state(CONFIG_PATH, CONFIG)
-    sb.knob1.clear_binds()
-    sb.button1.clear_binds()
     
     try:
         spec.loader.exec_module(mod)
@@ -28,19 +26,9 @@ def run_script(path):
     finally:
         CONFIG.pop("startup_script", None)
         save_state(CONFIG_PATH, CONFIG)
-        sb.knob1.clear_binds()
-        sb.button1.clear_binds()
-        sb.knob1.bind('left', sb.action_dec)
-        sb.knob1.bind('right', sb.action_inc)
-        sb.button1.bind('tap', sb.action_do)
-        sb.button1.bind('hold', sb.action_back)
 
 
 sb = SquishBox()
-sb.knob1.bind('left', sb.action_dec)
-sb.knob1.bind('right', sb.action_inc)
-sb.button1.bind('tap', sb.action_do)
-sb.button1.bind('hold', sb.action_back)
 
 paths = []
 builtin_dir = Path(__file__).parent
@@ -79,7 +67,7 @@ while True:
         case last, "Exit" | None:
             if sb.menu_exit() == "shell":
                 break
-        case last, name:
+        case last, name if name in scripts:
             sb.lcd.write(name.ljust(COLS), row=ROWS - 2)
             sb.lcd.write("starting..".rjust(COLS), row=ROWS - 1)
             run_script(scripts[name])

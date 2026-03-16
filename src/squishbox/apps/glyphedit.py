@@ -32,7 +32,7 @@ def edit_glyph(name, text):
             case "dec":
                 p = (p - 1) % 40
                 b = "X"
-            case "do":
+            case "select":
                 text = (
                     text[:p] +
                     ("X" if text[p] == "-" else "-") +
@@ -51,10 +51,6 @@ def show_glyph(i):
 
 
 def main():
-    sb.knob1.bind('left', sb.action_dec)
-    sb.knob1.bind('right', sb.action_inc)
-    sb.button1.bind('tap', sb.action_do)
-    sb.button1.bind('hold', sb.action_back)
     sb.lcd.clear()
 
     last = 0
@@ -79,7 +75,8 @@ def main():
                 last = len(glyphs)
                 glyphs[name] = edit_glyph(name, "-" * 40)
         elif choice == "Save Changes":
-            save_state(CONFIG_PATH, CONFIG.update(glyphs_5x8=glyphs))
+            CONFIG.update(glyphs_5x8=glyphs)
+            save_state(CONFIG_PATH, CONFIG)
             sb.lcd.write("changes saved".rjust(COLS), row=1)
             sb.get_action(timeout=MENU_TIME)
         elif choice == "LCD Settings..":

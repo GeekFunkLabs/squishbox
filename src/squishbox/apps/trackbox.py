@@ -186,7 +186,7 @@ def show_tracklist(startrow, end=0):
                 if crow < 0:
                     crow = 0
                     irow = max(irow - 1, 0)
-            case "do":
+            case "select":
                 i = irow + crow
                 if irow + crow == len(tracks):
                     name = ""
@@ -203,10 +203,6 @@ def show_tracklist(startrow, end=0):
 
 # start squishbox
 sb = squishbox.SquishBox()
-sb.knob1.bind("left", sb.action_dec)
-sb.knob1.bind("right", sb.action_inc)
-sb.button1.bind("tap", sb.action_do)
-sb.button1.bind("hold", sb.action_back)
 sb.lcd.clear()
 
 # add some glyphs
@@ -297,7 +293,7 @@ while True:
     player.statuscallback = sb.add_action
     eoscallback = sb.add_action
     match sb.get_action():
-        case "do":
+        case "select":
             player.playing = False if player.playing else True
         case "inc" | "dec" as d if pos >=0 and dur >= 0:
             player.statuscallback = lambda x: None

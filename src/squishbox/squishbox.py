@@ -30,20 +30,42 @@ class SquishBox:
                 CONFIG["lcd_enable"],
                 CONFIG["lcd_data"]
             )
-            obj.backlight = hardware.PWMOutput(
-                CONFIG["lcd_backlight"], level=CONFIG["backlight_level"]
-            )
-            obj.contrast = hardware.PWMOutput(
-                CONFIG["lcd_contrast"], level=CONFIG["contrast_level"]
-            )
-            # add encoder/pushbutton controls
-            obj.knob1 = hardware.Encoder(
-                CONFIG["rotary_left"],
-                CONFIG["rotary_right"]
-            )
-            obj.button1 = hardware.Button(
-                CONFIG["rotary_button"]
-            )
+            # add controls
+            obj.controls = {}
+            for name, spec in CONFIG["controls"].items():
+                if spec["type"] == "button":
+                    obj.controls[name] = hardware.Button(
+                        spec["pin"],
+                        pull_up=spec.get("pull_up", CONFIG["pull_up"])
+                    )
+                elif spec["type"] == "encoder":
+                    obj.controls[name] = hardware.Encoder(
+                        spec["pins"][0],
+                        spec["pins"][1],
+                        pull_up=spec.get("pull_up", CONFIG["pull_up"])
+                    )
+                else:
+                    continue
+                for event, action in spec["events"].items():
+                    obj.controls[name].bind(
+                        event, lambda a=action: obj.add_action(a)
+                    )
+            # add outputs
+            obj.outputs = {}                
+            for name, spec in CONFIG["outputs"].items():
+                if spec["type"] == "binary":
+                    obj.outputs[name] = hardware.Output(
+                        spec["pin"],
+                        on=spec.get("on", False)
+                    )
+                elif spec["type"] == "pwm":
+                    obj.outputs[name] = hardware.PWMOutput(
+                        spec["pin"],
+                        freq=spec.get("freq", 2000),
+                        level=spec.get("level", 0)
+                    )
+                else:
+                    continue
             obj._wifienabled = obj.shell_cmd("nmcli radio wifi") == "enabled"
             sys.excepthook = lambda _, e, __: obj.display_error(e)
             cls._instance = obj
@@ -82,7 +104,7 @@ class SquishBox:
                     i = min(i + 1, len(opts) - 1)
                 case "dec":
                     i = max(i - 1, 0)
-                case "do":
+                case "select":
                     self.lcd.write(" " * COLS, row)
                     return i, opts[i]
                 case "back":
@@ -112,7 +134,7 @@ class SquishBox:
             match self.get_action(timeout=timeout):
                 case "inc" | "dec":
                     c = not c
-                case "do":
+                case "select":
                     self.lcd.write(" "  * COLS, row)
                     return c
                 case "back" | None:
@@ -167,7 +189,7 @@ class SquishBox:
                     if i > 0:
                         text[i - 1:] = text[i:]
                         i -= 1
-                case "do" | ("key", "insert"):
+                case "select" | ("key", "insert"):
                     mode = "blink" if mode == "line" else "line"
                     self.lcd.setcursormode(mode)
                 case "back" | ("key", "done"):
@@ -234,6 +256,30 @@ class SquishBox:
             else:
                 return paths[i]
 
+    @property
+    def contrast_level(self):
+        if "contrast" in self.outputs:
+            return self.outputs["contrast"].level
+        else:
+            return 100
+
+    @contrast_level.setter
+    def contrast_level(self, level):
+        if "contrast" in self.outputs:
+            self.outputs["contrast"].level = level
+
+    @property
+    def backlight_level(self):
+        if "backlight" in self.outputs:
+            return self.outputs["backlight"].level
+        else:
+            return CONFIG["backlight_level"]
+
+    @backlight_level.setter
+    def backlight_level(self, level):
+        if "backlight" in self.outputs:
+            self.outputs["backlight"].level = level
+
     def menu_lcdsettings(self, row=ROWS - 2, timeout=MENU_TIME):
         """Menu for setting backlight and contrast levels
         
@@ -248,26 +294,26 @@ class SquishBox:
         slider = [self.lcd["solid"] * i for i in range(COLS + 1)]
         while True:
             self.lcd.write("Contrast".ljust(COLS), row)
-            ival = round(self.contrast.level / d)
+            ival = round(self.contrast_level / d)
             i, res = self.menu_choose(
                 slider, row + 1, align="left",
                 i=ival, wrap=False, timeout=timeout,
-                func=lambda i: setattr(self.contrast, "level", i * d)
+                func=lambda i: setattr(self, "contrast_level", i * d)
             )
             if res == None:
                 break
             self.lcd.write("Brightness".ljust(COLS), row)
-            ival = round(self.backlight.level / d)
+            ival = round(self.backlight_level / d)
             i, res = self.menu_choose(
                 slider, row + 1, align="left",
                 i=ival, wrap=False, timeout=timeout,
-                func=lambda i: setattr(self.backlight, "level", i * d)
+                func=lambda i: setattr(self, "backlight_level", i * d)
             )
             if res == None:
                 break
         self.lcd.write(" "  * COLS, row)
-        CONFIG["contrast_level"] = self.contrast.level
-        CONFIG["backlight_level"] = self.backlight.level
+        CONFIG["outputs"]["contrast"]["level"] = self.contrast_level
+        CONFIG["outputs"]["backlight"]["level"] = self.backlight_level
         save_state(CONFIG_PATH, CONFIG)
 
     def menu_midisettings(self, row=ROWS - 2, timeout=0):
@@ -491,26 +537,6 @@ class SquishBox:
         traceback.print_exception(type(err), err, err.__traceback__)
         self.get_action()
 
-    def action_inc(self):
-        """Bind target - increment a value/choice
-        """
-        self._actions.append("inc")
-
-    def action_dec(self):
-        """Bind target - decrement a value/choice
-        """
-        self._actions.append("dec")
-
-    def action_do(self):
-        """Bind target - open/choose/enter/confirm things
-        """
-        self._actions.append("do")
-
-    def action_back(self):
-        """Bind target - cancel/escape/go back
-        """
-        self._actions.append("back")
-    
     def add_action(self, name):
         """Add an action to the stack"""
         self._actions.append(name)

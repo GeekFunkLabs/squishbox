@@ -12,6 +12,9 @@ def load_config(path, default_cfg=""):
         path.write_text(default_cfg)
         user_cfg = {}
     cfg = yaml.safe_load(default_cfg) | user_cfg
+    for key, val in list(cfg.items()):
+        if key.endswith("_path") and val is not None:
+            cfg[key] = Path(val)
     return cfg
 
 
@@ -31,7 +34,7 @@ yaml.add_representer(str, str_presenter, Dumper=yaml.SafeDumper)
 
 CONFIG_PATH = Path(os.getenv(
     "SQUISHBOX_CONFIG",
-    "~/SquishBox/squishbox/squishboxconf.yaml"
+    "~/SquishBox/config/squishboxconf.yaml"
 )).expanduser()
 
 DEFAULT_CFG = """\
@@ -50,13 +53,18 @@ lcd_regsel: 7
 lcd_enable: 16
 lcd_data: [26, 6, 5, 8]
 lcd_exec_time: 5.0e-05
-lcd_contrast: 12
-lcd_backlight: 13
-contrast_level: 100
-backlight_level: 100
-rotary_left: 22
-rotary_right: 27
-rotary_button: 17
+controls:
+  knob1:
+    type: encoder
+    pins: [22, 27]
+    events: {left: dec, right: inc}
+  knob1_button:
+    type: button
+    pin: 17
+    events: {tap: select, hold: back}
+outputs:
+  contrast: {type: pwm, pin: 12, level: 100}
+  backlight: {type: pwm, pin: 13, level: 100}
 pull_up: true
 active_high: true
 gpio_chip: /dev/gpiochip4

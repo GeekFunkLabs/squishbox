@@ -14,10 +14,6 @@ TOP_DIR = Path(squishbox.CONFIG.get("top_directory", Path.home()))
 
 def main(curfile = None):
     sb = squishbox.SquishBox()
-    sb.knob1.bind('left', sb.action_dec)
-    sb.knob1.bind('right', sb.action_inc)
-    sb.button1.bind('tap', sb.action_do)
-    sb.button1.bind('hold', sb.action_back)
     sb.lcd.clear()
 
     if curfile:
@@ -57,7 +53,7 @@ def main(curfile = None):
                 if crow < 0:
                     crow = 0
                     irow = max(irow - 1, 0)
-            case "do":
+            case "select":
                 i = irow + crow
                 contents[i] = sb.menu_entertext(contents[i], row=crow).rstrip()
             case "back":

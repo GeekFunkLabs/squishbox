@@ -39,7 +39,7 @@ def select_files(path):
                 if crow < 0:
                     crow = 0
                     irow = max(irow - 1, 0)
-            case "do":
+            case "select":
                 i = irow + crow
                 sel[i] = not sel[i]
             case "back":
@@ -59,10 +59,6 @@ def copy_unique(src, dest_dir):
 
 
 sb = squishbox.SquishBox()
-sb.knob1.bind('left', sb.action_dec)
-sb.knob1.bind('right', sb.action_inc)
-sb.button1.bind('tap', sb.action_do)
-sb.button1.bind('hold', sb.action_back)
 
 lastdir, src, dest = None, None, None
 while True:
@@ -164,7 +160,7 @@ while True:
                         if crow < 0:
                             crow = 0
                             irow = max(irow - 1, 0)
-                    case "do" | "back":
+                    case "select" | "back":
                         break
     elif choice == "Make Directory":
         sb.lcd.write("Make Directory:".ljust(COLS), row=ROWS - 2)
