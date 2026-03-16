@@ -15,7 +15,8 @@ Multi-Arch: foreign
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
- python3-evdev
+ python3-evdev,
+ python3-venv
 Description: SquishBox system services and MIDI tools
 
 Package: squishbox-full
@@ -32,8 +33,6 @@ Depends:
  gir1.2-gst-1.0,
  gstreamer1.0-plugins-base,
  gstreamer1.0-plugins-good,
- gstreamer1.0-plugins-bad,
- gstreamer1.0-plugins-ugly,
  gstreamer1.0-libav,
  gstreamer1.0-alsa 
 Description: Complete SquishBox installation
