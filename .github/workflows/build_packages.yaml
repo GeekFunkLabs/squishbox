@@ -1,0 +1,63 @@
+name: Build Debian packages
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    strategy:
+      matrix:
+        arch: [arm64, armhf]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential \
+            devscripts \
+            debhelper \
+            dpkg-dev \
+            gcc \
+            libasound2-dev \
+            fakeroot \
+            crossbuild-essential-${{ matrix.arch }}
+
+      - name: Update changelog
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          dch --newversion "$VERSION" "Release $VERSION"
+
+      - name: Build package
+        run: |
+          dpkg-buildpackage -us -uc -b -a${{ matrix.arch }}
+          mkdir repo
+          cp ../*.deb repo/
+          cd repo
+          dpkg-scanpackages . /dev/null | gzip -9 > Packages.gz
+
+      - name: Download soundfonts
+        run: |
+          wget https://geekfunklabs.com/soundfonts_collection.tar.gz
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: debs-${{ matrix.arch }}
+          path: |
+            repo/*
+            soundfonts_collection.tar.gz
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            repo/*
+            soundfonts_collection.tar.gz
+
