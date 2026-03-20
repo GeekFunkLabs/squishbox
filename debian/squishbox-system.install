@@ -6,3 +6,4 @@ debian/49-squishbox-udisks.rules etc/polkit-1/rules.d/
 
 ttymidi/ttymidi usr/bin
 
+src/squishbox/data/hardware_*.yaml usr/share/squishbox/hardware/

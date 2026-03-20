@@ -83,7 +83,7 @@ class Button(_Control):
         )
         t.start()
 
-    def _watch(self, line, pin, pull_up=CONFIG["pull_up"]):
+    def _watch(self, line, pin, pull_up):
         if pull_up:
             connect = gpiod.EdgeEvent.Type.FALLING_EDGE
             disconnect = gpiod.EdgeEvent.Type.RISING_EDGE

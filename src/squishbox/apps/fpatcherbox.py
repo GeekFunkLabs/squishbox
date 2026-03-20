@@ -481,28 +481,6 @@ sb.lcd.clear()
 
 fp = FluidPatcher(fluidlog=-1)
 
-default_cfg = """\
-fluidsettings:
-  audio.driver: alsa
-  audio.alsa.device: hw:sndrpihifiberry
-  audio.period-size: 64
-  audio.periods: 3
-  midi.autoconnect: 0
-  midi.portname: FluidSynth
-  player.reset-synth: 0
-  synth.audio-groups: 16
-  synth.cpu-cores: 4
-  synth.gain: 0.6
-  synth.ladspa.active: 1
-  synth.midi-channels: 16
-  synth.polyphony: 128
-banks_path: $SB_DIR/banks
-sounds_path: $SB_DIR/sounds
-midi_path: $SB_DIR/midi
-ladspa_path: /usr/lib/ladspa
-fpatcherbox_path: $SB_DIR/banks/testbank.yaml
-"""
-
 def main():
     FPBox().run()
 

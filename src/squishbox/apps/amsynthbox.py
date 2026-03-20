@@ -305,22 +305,7 @@ def refresh_display():
 sb = squishbox.SquishBox()
 sb.lcd.clear()
 
-default_cfg = """\
-midi_channel: 1
-sample_rate: 44100
-polyphony: 16
-pitch_bend_range: 2
-audio_driver: alsa
-alsa_audio_device: hw:sndrpihifiberry
-banks_path: ~/SquishBox/banks/amsynth
-currentbank_path: amsynth_factory.bank
-"""
-CONFIG_PATH = Path(os.getenv(
-    "AMSYNTHBOX_CONFIG",
-    "~/SquishBox/config/amsynthboxconf.yaml"
-)).expanduser()
-CONFIG = load_config(CONFIG_PATH, default_cfg)
-
+CONFIG = load_config("amsynthbox.yaml")
 if not CONFIG["banks_path"].exists():
     CONFIG["banks_path"].mkdir(parents=True, exist_ok=True)
     Path(CONFIG["banks_path"] / "presets").symlink_to(

@@ -1,0 +1,21 @@
+# v6 hardware overlay
+#  green rectangular PCB with sharp corners
+lcd_regsel: 2
+lcd_enable: 3
+lcd_data: [11, 5, 6, 13]
+controls:
+  knob1:
+    type: encoder
+    pins: [22, 10]
+    events: {left: dec, right: inc}
+  knob1_button:
+    type: button
+    pin: 9
+    events: {tap: select, hold: back}
+  stomp_left:
+    type: button
+    pin: 27
+    events: {down: stomp-left-down, up: stomp-left-up}
+outputs:
+  led_left: {type: binary, pin: 17}
+

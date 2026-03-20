@@ -1,0 +1,16 @@
+# v2 hardware overlay
+#  Hackaday build (https://hackaday.io/project/9097-squishbox)
+lcd_regsel: 15
+lcd_enable: 23
+lcd_data: [24, 25, 8, 7]
+controls:
+  button_right:
+    type: button
+    pin: 22
+    events: {tap: inc, hold: select}
+  button_left:
+    type: button
+    pin: 27
+    events: {tap: dec, hold: back}
+pull_up: false
+

@@ -3,17 +3,6 @@ from pathlib import Path
 from threading import Thread
 import time
 
-"""
-sudo apt install \
-  python3-gi \
-  gir1.2-gst-1.0 \
-  gstreamer1.0-plugins-base \
-  gstreamer1.0-plugins-good \
-  gstreamer1.0-libav \
-  gstreamer1.0-alsa \
-  gstreamer1.0-tools
-"""
-
 import gi
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst, GLib
@@ -21,7 +10,7 @@ from gi.repository import Gst, GLib
 import yaml
 
 import squishbox
-from squishbox.config import load_config, save_state
+from squishbox.config import load_config, save_state, CONFIG_PATH
 
 
 Gst.init(None)
@@ -245,34 +234,15 @@ XXXXX
 for i in (2, 4, 6):
     sb.lcd[f"L{i}"] = "-----" * (8 - i) + "XXXXX" * i
 
-# set up config
-default_cfg = """\
-tracklists_path: ~/SquishBox/tracklists
-tracks_head: ~/SquishBox/music
-"""
-CONFIG_PATH = Path(os.getenv(
-    "TRACKBOX_CONFIG",
-    "~/SquishBox/trackboxconf.yaml"
-)).expanduser()
-CONFIG = load_config(CONFIG_PATH, default_cfg)
-TRACKLISTS_PATH = Path(CONFIG["tracklists_path"]).expanduser()
-TRACKS_HEAD = Path(CONFIG["tracks_head"]).expanduser()
+# load config
+CONFIG = load_config("trackboxconf.yaml")
+TRACKLISTS_PATH = CONFIG["tracklists_path"]
+TRACKROOT_PATH = CONFIG["trackroot_path"]
 
 # load the tracklist
 if "current_tracklist" not in CONFIG:
-    f = sb.menu_choosefile(topdir=TRACKS_HEAD)
-    if f.is_file():
-        tracklist = {
-            "tracks": [{"file": str(f.relative_to(TRACKS_HEAD))}]
-        }
-    else:
-        sys.exit()
-else:
-    tracklist = yaml.safe_load(Path(
-        TRACKLISTS_PATH,
-        CONFIG["current_tracklist"]
-    ).read_text())
-tracks_path = TRACKS_HEAD / tracklist.get("tracks_path", "")
+    f = sb.menu_choosefile(topdir=HEAD
+tracks_path = TRACKROOT_PATH / tracklist.get("tracks_path", "")
 tracks = tracklist["tracks"]
 track = type("TrackState", (), dict(
     i=tracklist.get("start", tracklist.get("position", 0)),
@@ -361,7 +331,7 @@ while True:
                     else:
                         CONFIG["current_tracklist"] = f.relative_to(TRACKLISTS_PATH).as_posix()
                         save_state(CONFIG_PATH, CONFIG)
-                        tracks_path = TRACKS_HEAD / tracklist.get("tracks_path", "")
+                        tracks_path = TRACKROOT_PATH / tracklist.get("tracks_path", "")
                         tracks = tracklist["tracks"]
                         track.i = tracklist.get("start", tracklist.get("position", 0))
                         play_track(track.i)
@@ -448,7 +418,7 @@ while True:
                         if t == track.i:
                             play_track(track.i % len(tracks))
                     elif choice == "Add":
-                        f = sb.menu_choosefile(topdir=TRACKS_HEAD, start=tracks_path)
+                        f = sb.menu_choosefile(topdir=TRACKROOT_PATH, start=tracks_path)
                         if f.is_file():
                             t = len(tracks)
                             tracks.append({"file": str(f.relative_to(tracks_path))})

@@ -1,0 +1,86 @@
+lcd_rows: 2
+lcd_cols: 16
+menu_time: 3
+hold_time: 1.0
+scroll_time: 0.2
+scroll_pause: 3
+menu_timeout: 3.0
+frame_time: 0.1
+poll_time: 0.01
+button_debounce: 0.02
+encoder_debounce: 0.002
+gpio_chip: /dev/gpiochip4
+pull_up: true
+lcd_regsel: 7
+lcd_enable: 16
+lcd_data: [26, 6, 5, 8]
+lcd_exec_time: 5.0e-05
+controls:
+  knob1:
+    type: encoder
+    pins: [22, 27]
+    events: {left: dec, right: inc}
+  knob1_button:
+    type: button
+    pin: 17
+    events: {tap: select, hold: back}
+  stomp_left:
+    type: button
+    pin: 9
+    events: {down: stomp-left-down, up: stomp-left-up}
+  stomp_right:
+    type: button
+    pin: 11
+    events: {down: stomp-right-down, up: stomp-right-up}
+outputs:
+  contrast: {type: pwm, pin: 12, level: 100}
+  backlight: {type: pwm, pin: 13, level: 100}
+  led_left: {type: binary, pin: 4}
+  led_right: {type: binary, pin: 23}
+glyphs_5x8:
+  check: |
+    -----
+    ----X
+    ---XX
+    X-XX-
+    XXX--
+    -X---
+    -----
+    -----
+  cross: |
+    -----
+    XX-XX
+    -XXX-
+    --X--
+    -XXX-
+    XX-XX
+    -----
+    -----
+  wifi_on: |
+    -XXX-
+    X---X
+    --X--
+    -X-X-
+    -----
+    --X--
+    -----
+    -----
+  wifi_off: |
+    -X-X-
+    --X--
+    -X-X-
+    -----
+    --X--
+    -----
+    --X--
+    -----
+  note: |
+    --X--
+    --XX-
+    --X-X
+    --X-X
+    --X--
+    XXX--
+    XXX--
+    -----
+
