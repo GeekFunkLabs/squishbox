@@ -94,19 +94,6 @@ check_os_version() {
 }
 
 ########################################
-# Legacy Hardware
-########################################
-
-configure_legacy_hw() {
-    if [[ "$LEGACY_HW" == "yes" ]]; then
-        log "Applying legacy GPIO configuration..."
-        # You will inject modified config here after squishbox install
-        # Placeholder:
-        sudo sed -i 's/^lcd_regsel:.*/lcd_regsel: 7/' "$SB_DIR/squishboxconf.yaml" || true
-    fi
-}
-
-########################################
 # GPIO Chip Detection
 ########################################
 
@@ -115,6 +102,18 @@ detect_gpio_chip() {
         log "Older GPIO detected, updating config..."
         sudo sed -i 's|^gpio_chip:.*|gpio_chip: /dev/gpiochip4|' \
             "$SB_DIR/squishboxconf.yaml" || true
+    fi
+}
+
+########################################
+# Legacy Hardware
+########################################
+
+configure_legacy_hw() {
+    if [[ $HARDWARE != "current" ]]; then
+        mkdir -p "$SB_DIR/config/squishboxconf.d"
+        cp "/usr/share/squishbox/hardware/$HARDWARE.yaml" \
+            "$SB_DIR/config/squishboxconf.d/10-hardware.yaml"
     fi
 }
 
@@ -151,7 +150,6 @@ install_full() {
     "$VENV_DIR/bin/pip" install fluidpatcher
 
     mkdir -p "$SB_DIR/sounds"
-
     log "Downloading soundfont collection..."
     curl -L "$BASE/soundfonts_collection.tar.gz" | \
         tar -xzC "$SB_DIR/sounds"
@@ -168,8 +166,7 @@ configure_user() {
         grep -qxF "$1" "$HOME/.bashrc" || echo "$1" >> "$HOME/.bashrc"
     }
 
-    bashrc_add "SQUISHBOX_CONFIG=$HOME/SquishBox/config/squishboxconf.yaml"
-    bashrc_add "FLUIDPATCHER_CONFIG=$HOME/SquishBox/config/fluidpatcherconf.yaml"
+    bashrc_add "FLUIDPATCHER_CONFIG=$HOME/SquishBox/config/fpatcherboxconf.yaml"
     bashrc_add "squishbox-launcher=$VENV_DIR/bin/python -m squishbox.apps.launcher"
     bashrc_add "squishbox-python=$VENV_DIR/bin/python"
     bashrc_add "squishbox-pip=$VENV_DIR/bin/pip"
@@ -258,17 +255,17 @@ fi
 echo "Select your SquishBox hardware:"
 select HW in \
     "Green PCB with rounded corners (v8 - current)" \
-    "Green rectangular PCB (v6)" \
+    "Green PCB with sharp corners (v6)" \
     "Purple PCB, has 2 resistors and LED (v4)" \
     "Purple PCB, has 1 resistor (v3)" \
     "Hackaday/perfboard build (v2)" \
     "Cancel"; do
     case $REPLY in
-        1) HARDWARE=current ;;
-        2) HARDWARE=v6 ;;
-        3) HARDWARE=v4 ;;
-        4) HARDWARE=v3 ;;
-        5) HARDWARE=v2 ;;
+        1) HARDWARE=current; break ;;
+        2) HARDWARE=v6; break ;;
+        3) HARDWARE=v4; break ;;
+        4) HARDWARE=v3; break ;;
+        5) HARDWARE=v2; break ;;
         6) echo "Installation cancelled."; exit 0 ;;
         *) echo "Invalid selection." ;;
     esac
