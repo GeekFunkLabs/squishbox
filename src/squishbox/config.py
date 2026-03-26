@@ -10,14 +10,31 @@ CONFIG_PATH = Path(os.getenv(
 )).expanduser()
 
 
-def load_config(name):
+def load_config(name, default_cfg={}):
+    """Load configuration data
+    
+    Loads config from YAML files, including drop-in configs if found.
+    Creates a default config if target doesn't exist. Returns config as
+    a dict after performing Path conversion on items with keys ending
+    in ``_path``.
+    
+    Args:
+      name (str|Path):
+        config file relative to CONFIG_PATH or absolute
+      default_cfg (dict):
+        overrides for initial config values
+
+    Returns:
+      (dict): config data
+    """
     path = CONFIG_PATH.parent / name
     sys_default = Path("/usr/share/squishbox/defaults") / path.name
+    pkg_default = res.files("squishbox.data.defaults") / path.name
     if sys_default.exists():
         cfg = yaml_safe_load(system_default.read_text())
-    else:
-        pkg_default = res.files("squishbox.data.defaults") / path.name
+    elif pkg_default.exists():
         cfg = yaml_safe_load(pkg_default.read_text())
+    cfg |= default_cfg
 
     if path.exists():
         cfg |= yaml.safe_load(path.read_text())
@@ -37,7 +54,16 @@ def load_config(name):
     return cfg
     
     
-def save_state(path, cfg):
+def save_state(name, cfg):
+    """Write config data back to a file
+    
+    Args:
+      name (str|Path):
+        config file relative to CONFIG_PATH or absolute
+      cfg (dict):
+        the current config state
+    """
+    path = CONFIG_PATH.parent / name
     cfg_posix = {k: v.as_posix() if isinstance(v, Path) else v
                  for k, v in cfg.items()}
     path.write_text(yaml.safe_dump(cfg_posix, sort_keys=False))
