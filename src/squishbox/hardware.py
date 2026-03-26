@@ -1,23 +1,15 @@
 #!/usr/bin/env python3
-"""SquishBox Raspberry Pi interface
+"""SquishBox Raspberry Pi hardware interface.
 
-This module provides classes and functions for creating python applications
-for the `SquishBox <https://www.geekfunklabs.com/products/squishbox>`_ ,
-a Raspberry Pi add-on that provides an LCD, pushbutton rotary encoder,
-PCM5102-based sound card, and MIDI minijacks. Running this module as a
-script starts a shell application that lets the user run other applications
-and change system-wide settings.
+Provides low-level access to GPIO-backed hardware components used by
+SquishBox, including buttons, rotary encoders, LCD display, and outputs.
 
-Module-level constants:
-  squishbox_cfgpath - yaml configuration file Path
-  squishbox_cfg - dict of config values
-  squishbox_hardware - singleton instance of SquishBox() class
+Also implements event-driven input handling and a buffered LCD rendering
+system with support for scrolling, blinking, and custom glyphs.
 
 Requires:
-- gpiod
-- yaml
+    - gpiod
 """
-
 from contextlib import contextmanager
 from datetime import timedelta
 from threading import Thread
@@ -33,29 +25,53 @@ COLS = CONFIG["lcd_cols"]
 
 
 class _Control:
+    """Base class for input controls with event binding.
+
+    Provides a simple event → callback mapping. Subclasses trigger
+    events (e.g. "tap", "left") which invoke the bound functions.
+    """
 
     def __getitem__(self, val):
+        """Return the bound callback for an event (or no-op if unbound)."""
         return self._actions.get(val, lambda: None)
 
     def bind(self, event, func):
+        """Bind a callback function to an event.
+
+        Args:
+            event: Event name (string).
+            func: Callable to invoke, or None to remove binding.
+        """
         if func == None:
             self._actions.pop(event, None)
         else:
             self._actions[event] = func
 
     def clear_binds(self):
+        """Remove all event bindings."""
         self._actions = {}
 
 
 class Button(_Control):
-    """A rotary encoder
-    
-    Binds to: up, down, tap, hold
-    """
+    """GPIO button with tap/hold detection.
 
+    Monitors a GPIO input line and emits events based on press duration.
+
+    Events:
+        "down": button pressed
+        "up": button released
+        "tap": short press
+        "hold": long press (duration >= CONFIG["hold_time"])
+    """
     UP, DOWN, HELD = 0, 1, 2
 
     def __init__(self, pin, pull_up=CONFIG["pull_up"]):
+        """Initialize button input and start event watcher thread.
+
+        Args:
+            pin: GPIO pin number.
+            pull_up: Whether to enable pull-up (else pull-down).
+        """
         if pull_up:
             bias = gpiod.line.Bias.PULL_UP
         else:
@@ -106,11 +122,23 @@ class Button(_Control):
 
 
 class Encoder(_Control):
-    """A rotary encoder
-    
-    Binds to: left, right
+    """Quadrature rotary encoder.
+
+    Detects rotation direction using two GPIO inputs.
+
+    Events:
+        "left": counterclockwise rotation
+        "right": clockwise rotation
     """
+    
     def __init__(self, pin1, pin2, pull_up=CONFIG["pull_up"]):
+        """Initialize encoder inputs and start watcher thread.
+
+        Args:
+            pin1: First GPIO pin.
+            pin2: Second GPIO pin.
+            pull_up: Whether to enable pull-up resistors.
+        """
         if pull_up:
             bias = gpiod.line.Bias.PULL_UP
         else:
@@ -153,8 +181,15 @@ class Encoder(_Control):
 
 
 class Output:
+    """Digital (on/off) GPIO output."""
 
     def __init__(self, pin, on=False):
+        """Initialize output pin.
+
+        Args:
+            pin: GPIO pin number.
+            on: Initial state (True = active).
+        """
         self._pin = pin
         if on:
             val = gpiod.line.Value.ACTIVE
@@ -172,15 +207,29 @@ class Output:
         )
 
     def on(self):
+        """Set output to active (HIGH)."""
         self._line.set_value(self._pin, gpiod.line.Value.ACTIVE)
         
     def off(self):
+        """Set output to inactive (LOW)."""
         self._line.set_value(self._pin, gpiod.line.Value.INACTIVE)
 
 
 class PWMOutput:
+    """Software PWM output using a background thread.
+
+    Generates a PWM signal by toggling a GPIO line at a fixed frequency.
+    Duty cycle is controlled via the `level` attribute (0–100).
+    """
 
     def __init__(self, pin, freq=2000, level=0):
+        """Initialize PWM output and start PWM thread.
+
+        Args:
+            pin: GPIO pin number.
+            freq: PWM frequency in Hz.
+            level: Duty cycle percentage (0–100).
+        """
         self.freq = freq
         self.level = level
         self._line = gpiod.request_lines(
@@ -209,7 +258,17 @@ class PWMOutput:
 
 
 class LCD_HD44780:
+    """HD44780-compatible character LCD driver.
 
+    Provides buffered text rendering with support for:
+      - Static text
+      - Scrolling text (for long lines)
+      - Timed/blinking overlays
+      - Custom glyphs (up to 8 hardware slots)
+
+    Rendering is layered and only updates changed characters to
+    minimize GPIO traffic.
+    """
     _printable = """\
 abcdefghijklmnopqrstuvwxyz\
 ABCDEFGHIJKLMNOPQRSTUVWXYZ\
@@ -266,16 +325,32 @@ X--X-
         self._used = []
 
     def printable(self):
+        """Return full set of printable characters supported by the LCD."""
         return self._printable + self["backslash"] + self["tilde"] + " "
 
     def fnchars(self):
+       """Return reduced character set suitable for filenames."""
         return self._printable[:67] + self["backslash"] + " "
 
     def __setitem__(self, name, text):
+        """Define or update a custom glyph.
+
+        Args:
+            name: Glyph name.
+            text: 5x8 bitmap string using 'X' (on) and '-' (off).
+        """
         self._glyphs[name] = text
         self._chars.pop(name, None)
 
     def __getitem__(self, name):
+        """Return character for a named glyph.
+
+        Loads the glyph into LCD memory if not already present.
+        Uses LRU replacement when all 8 custom slots are occupied.
+
+        Returns:
+            Single-character string usable in display text.
+        """
         if name not in self._chars:
             free = set(range(8)) - set(self._chars.values())
             if free:
@@ -293,7 +368,10 @@ X--X-
         return chr(self._chars[name])
 
     def clear(self):
-        """Clear the LCD, initialize layers"""
+        """Clear the display and reset all rendering layers.
+
+        Also resets scrolling state, blinking timers, and cursor position.
+        """
         self._send(0x01)
         self.setcursorpos(0, 0)
         time.sleep(40 * CONFIG["lcd_exec_time"])
@@ -304,19 +382,20 @@ X--X-
         self._scrolltimer = time.time()
 
     def write(self, text, row, col=0, align="", timeout=0, force=True):
-        """Writes text to the LCD
-        
-        Writes text to the LCD starting at row, col.
-        Text wider than the LCD will be scrolled.
-        Specifying a timeout writes temporary text.
+        """Write text to the LCD using layered rendering.
+
+        Behavior depends on text length and parameters:
+          - Long text is placed in scroll buffer
+          - timeout > 0 creates temporary (blinking) overlay
+          - Otherwise writes to static layer
 
         Args:
-          text: string to write
-          row: the row at which to start writing
-          col: the column at which to start writing
-          align: place text against "left" or "right" edge of LCD
-          timeout: seconds to keep text
-          force: write over other timed text
+            text: String to display.
+            row: Target row.
+            col: Starting column.
+            align: "left", "right", or default (no alignment).
+            timeout: Duration for temporary text (seconds).
+            force: Overwrite existing timed text if True.
         """
         for name, char in self.glyph2char:
             text = text.replace(char, self[name])
@@ -356,7 +435,15 @@ X--X-
             self.update()
 
     def update(self):
-        """Updates the LCD"""
+        """Render buffered content to the LCD.
+
+        Handles:
+          - Scrolling updates
+          - Expiring timed/blinking text
+          - Layer compositing
+
+        Does nothing if activity spinner is active.
+        """
         if self._spinning:
             return
         t = time.time()
@@ -383,13 +470,25 @@ X--X-
             self._scrolltimer += CONFIG["scroll_time"]
 
     def setcursorpos(self, row, col):
-        """set the cursor row and column"""
+        """Set cursor position.
+
+        Args:
+            row: Row index.
+            col: Column index.
+        """
         if row < ROWS and col < COLS:
             offset = (0x00, 0x40, COLS, 0x40 + COLS)
             self._send(0x80 | offset[row] + col)
 
     def setcursormode(self, mode):
-        """set cursor to blink, line, or hide"""
+        """Set cursor display mode.
+
+        Args:
+            mode: One of:
+                "hide"  – no cursor
+                "blink" – blinking block cursor
+                "line"  – underline cursor
+        """
         if mode == "hide":
             self._send(0x0c)
         elif mode == "blink":
