@@ -35,5 +35,16 @@ Depends:
  gstreamer1.0-plugins-good,
  gstreamer1.0-libav,
  gstreamer1.0-alsa 
-Description: Complete SquishBox installation
+Description: Complete SquishBox audio stack installation
+
+Package: squishbox-web
+Architecture: all
+Depends:
+ ${misc:Depends},
+ nginx,
+ php,
+ php-fpm
+Recommends:
+ squishbox-full
+Description: Web-based file manager for SquishBox
 

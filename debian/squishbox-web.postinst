@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+# Enable nginx site
+ln -sf /etc/nginx/sites-available/squishbox /etc/nginx/sites-enabled/squishbox
+rm -f /etc/nginx/sites-enabled/default || true
+
+# Configure PHP upload limits (all versions)
+for dir in /etc/php/*/fpm/conf.d; do
+    [ -d "$dir" ] || continue
+    cat > "$dir/99-squishbox.ini" <<EOF
+upload_max_filesize = 5G
+post_max_size = 5G
+memory_limit = 256M
+upload_tmp_dir = /var/www/tmp
+EOF
+done
+
+# Reload services (non-fatal if unavailable)
+systemctl reload nginx 2>/dev/null || true
+systemctl reload php*-fpm 2>/dev/null || true
+
+exit 0
