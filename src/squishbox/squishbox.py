@@ -89,7 +89,7 @@ class SquishBox:
         return cls._instance
 
     def menu_choose(self, opts, row=ROWS-1, align="right", i=0, wrap=True,
-                    timeout=MENU_TIME, func=lambda i: None):
+                    timeout=MENU_TIME, func=None):
         """Display a scrolling selection menu on the LCD.
 
         The user navigates options via bound input actions ("inc", "dec",
@@ -97,13 +97,13 @@ class SquishBox:
         selection index changes.
 
         Args:
-            opts: Sequence of selectable items (displayed via str()).
-            row: LCD row to render the menu.
-            align: "left" or "right" text alignment.
-            i: Initial index.
-            wrap: If True, selection wraps around at ends.
-            timeout: Seconds to wait for input (0 = wait indefinitely).
-            func: Callback invoked as func(index) on selection change.
+            opts (list): Sequence of selectable items (displayed via str()).
+            row (int): LCD row to render the menu.
+            align (str): "left" or "right" text alignment.
+            i (int): Initial index.
+            wrap (bool): If True, selection wraps around at ends.
+            timeout (float): Seconds to wait for input (0 = wait indefinitely).
+            func (callable): Callback invoked as func(index) on selection change.
 
         Returns:
             (index, item) on selection
@@ -117,7 +117,8 @@ class SquishBox:
                 self.lcd.write(str(opts[i]).ljust(COLS), row)
             else:
                 self.lcd.write(str(opts[i]).rjust(COLS), row)
-            func(i)
+            if func:
+                func(i)
             match self.get_action(timeout=timeout):
                 case "inc" if wrap:
                     i = (i + 1) % len(opts)
@@ -144,9 +145,9 @@ class SquishBox:
         using "inc"/"dec", and confirms with "select".
 
         Args:
-            text: Prompt text.
-            row: LCD row to render the prompt.
-            timeout: Seconds to wait (0 = wait indefinitely).
+            text (str): Prompt text.
+            row (int): LCD row to render the prompt.
+            timeout (float): Seconds to wait (0 = wait indefinitely).
 
         Returns:
             True if confirmed
@@ -187,15 +188,15 @@ class SquishBox:
           - Key events via keys_dispatch()
 
         Args:
-            text: Initial text buffer.
-            row: LCD row to render input.
-            i: Initial cursor index (negative values index from end).
-            timeout: Seconds to wait for input (0 = wait indefinitely).
-            charset: Allowed characters; defaults to LCD printable set.
+            text (str): Initial text buffer.
+            row (int): LCD row to render input.
+            i (int): Initial cursor index (negative values index from end).
+            timeout (float): Seconds to wait for input (0 = wait indefinitely).
+            charset (str): Allowed characters; defaults to LCD printable set.
 
         Returns:
-            Final edited string on completion
-            other if an unhandled action is received
+            Final edited string on completion. If an unhandled action
+            is received, passes it back to the caller for handling.
         """
         if charset == "":
             charset = self.lcd.printable()
@@ -257,15 +258,14 @@ class SquishBox:
         entry where applicable.
 
         Args:
-            topdir: Root directory (user cannot navigate above this).
-            start: Optional starting file or directory (relative to topdir).
-            ext: List of allowed file extensions (empty = show all).
-            row: Starting LCD row (uses two rows).
-            timeout: Seconds to wait (0 = wait indefinitely).
+            topdir (Path): Root directory (user cannot navigate above this).
+            start (Path): Optional starting file or directory (relative to topdir).
+            ext (list): List of allowed file extensions (empty = show all).
+            row (int): Starting LCD row (uses two rows).
+            timeout (float): Seconds to wait (0 = wait indefinitely).
 
         Returns:
-            Path to selected file
-            Path to current directory if canceled (allows "save here" flows)
+            Path: selected file, or last directory if canceled
         """
         curdir = topdir
         if start:
@@ -336,8 +336,8 @@ class SquishBox:
         written back to the config file on exit.
 
         Args:
-            row: Starting LCD row (uses two rows).
-            timeout: Seconds to wait (0 = wait indefinitely).
+            row (int): Starting LCD row (uses two rows).
+            timeout (float): Seconds to wait (0 = wait indefinitely).
         """
         d = 100 / COLS
         slider = [self.lcd["solid"] * i for i in range(COLS + 1)]
@@ -373,8 +373,8 @@ class SquishBox:
         restored automatically on startup.
 
         Args:
-            row: Starting LCD row (uses two rows).
-            timeout: Seconds to wait (0 = wait indefinitely).
+            row (int): Starting LCD row (uses two rows).
+            timeout (float): Seconds to wait (0 = wait indefinitely).
         """
         srcnames = list(midi_ports(input=True))
         destnames = list(midi_ports(output=True))
@@ -419,15 +419,11 @@ class SquishBox:
 
     @property
     def wifienabled(self):
-        """Whether WiFi radio is currently enabled."""
+        """Get/set WiFi radio state"""
         return self._wifienabled
 
     @wifienabled.setter
     def wifienabled(self, enable):
-        """Enable or disable WiFi via nmcli.
-
-        Updates internal state after issuing the command.
-        """
         if enable:
             self.shell_cmd("sudo nmcli radio wifi on")
         else:
@@ -446,8 +442,8 @@ class SquishBox:
         Displays connection status and IP address when available.
 
         Args:
-            row: Starting LCD row (uses two rows).
-            timeout: Seconds to wait (0 = wait indefinitely).
+            row (int): Starting LCD row (uses two rows).
+            timeout (float): Seconds to wait (0 = wait indefinitely).
         """
         self._wifienabled = self.shell_cmd("nmcli radio wifi") == "enabled"
         aps = self.shell_cmd("nmcli -g IN-USE,SSID dev wifi").splitlines()
@@ -519,8 +515,8 @@ class SquishBox:
           - Exit to shell
 
         Args:
-            row: Starting LCD row (uses two rows).
-            timeout: Seconds to wait (0 = wait indefinitely).
+            row (int): Starting LCD row (uses two rows).
+            timeout (float): Seconds to wait (0 = wait indefinitely).
 
         Returns:
             "shell" if shell option is selected
@@ -549,12 +545,11 @@ class SquishBox:
         Provides access to LCD, MIDI, WiFi, and exit options.
 
         Args:
-            row: Starting LCD row (uses two rows).
-            timeout: Seconds to wait (0 = wait indefinitely).
+            row (int): Starting LCD row (uses two rows).
+            timeout (float): Seconds to wait (0 = wait indefinitely).
 
         Returns:
-            "shell" if user selects exit-to-shell
-            None otherwise
+            str | None: "shell" if user selects exit-to-shell, otherwise None
         """
         self.lcd.write("System Menu".ljust(COLS), row)
         match self.menu_choose([
@@ -584,11 +579,11 @@ class SquishBox:
         KeyboardInterrupt exits immediately.
 
         Args:
-            err: Exception instance
-            msg: Optional prefix message
-            row: Starting LCD row (uses two rows)
+            err (Exception): Exception instance
+            msg (str): Optional prefix message
+            row (int): Starting LCD row (uses two rows)
         """
-       if isinstance(err, KeyboardInterrupt):
+        if isinstance(err, KeyboardInterrupt):
             sys.exit()
 
         tb = traceback.extract_tb(err.__traceback__)
@@ -627,15 +622,14 @@ class SquishBox:
         Continuously updates the LCD while polling for actions.
 
         Args:
-            idle: Delay between polling iterations.
-            timeout: Seconds to wait (0 = wait indefinitely).
+            idle (float): Delay in seconds between polling iterations.
+            timeout (float): Seconds to wait (0 = wait indefinitely).
 
         Returns:
-            Next action from the queue
-            None if timeout is reached
+            object: Next action from the queue, None if timed out
         """
         t0 = time.time()
-	        self._scrolltimer = t0
+        self._scrolltimer = t0
         self.lcd.buffered = True
         while not self._actions:
             self.lcd.update()
@@ -657,11 +651,11 @@ class SquishBox:
           - strips trailing newline
 
         Args:
-            cmd: Command string (or list if shell=False is passed)
-            **kwargs: Passed through to subprocess.run
+            cmd (str | list): Command string (or list if shell=False)
+            **kwargs (dict): Passed through to subprocess.run
 
         Returns:
-            Command stdout as a stripped string
+            str: Command stdout as a stripped string
 
         Raises:
             subprocess.CalledProcessError on failure (unless overridden)

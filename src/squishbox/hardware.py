@@ -24,7 +24,7 @@ ROWS = CONFIG["lcd_rows"]
 COLS = CONFIG["lcd_cols"]
 
 
-class _Control:
+class Control:
     """Base class for input controls with event binding.
 
     Provides a simple event → callback mapping. Subclasses trigger
@@ -39,8 +39,8 @@ class _Control:
         """Bind a callback function to an event.
 
         Args:
-            event: Event name (string).
-            func: Callable to invoke, or None to remove binding.
+            event (hashable): Event identifier
+            func (callable): function to invoke, or None to remove binding.
         """
         if func == None:
             self._actions.pop(event, None)
@@ -52,7 +52,7 @@ class _Control:
         self._actions = {}
 
 
-class Button(_Control):
+class Button(Control):
     """GPIO button with tap/hold detection.
 
     Monitors a GPIO input line and emits events based on press duration.
@@ -69,8 +69,8 @@ class Button(_Control):
         """Initialize button input and start event watcher thread.
 
         Args:
-            pin: GPIO pin number.
-            pull_up: Whether to enable pull-up (else pull-down).
+            pin (int): GPIO pin number.
+            pull_up (bool): Whether to enable pull-up (else pull-down).
         """
         if pull_up:
             bias = gpiod.line.Bias.PULL_UP
@@ -121,7 +121,7 @@ class Button(_Control):
                     self._state = self.UP
 
 
-class Encoder(_Control):
+class Encoder(Control):
     """Quadrature rotary encoder.
 
     Detects rotation direction using two GPIO inputs.
@@ -135,9 +135,9 @@ class Encoder(_Control):
         """Initialize encoder inputs and start watcher thread.
 
         Args:
-            pin1: First GPIO pin.
-            pin2: Second GPIO pin.
-            pull_up: Whether to enable pull-up resistors.
+            pin1 (int): First GPIO pin.
+            pin2 (int): Second GPIO pin.
+            pull_up (bool): Whether to enable pull-up resistors.
         """
         if pull_up:
             bias = gpiod.line.Bias.PULL_UP
@@ -187,8 +187,8 @@ class Output:
         """Initialize output pin.
 
         Args:
-            pin: GPIO pin number.
-            on: Initial state (True = active).
+            pin (int): GPIO pin number.
+            on (bool): Initial state (True = active).
         """
         self._pin = pin
         if on:
@@ -220,15 +220,18 @@ class PWMOutput:
 
     Generates a PWM signal by toggling a GPIO line at a fixed frequency.
     Duty cycle is controlled via the `level` attribute (0–100).
+    
+    Attributes:
+        level (float): Duty cycle percentage (0-100)
     """
 
     def __init__(self, pin, freq=2000, level=0):
         """Initialize PWM output and start PWM thread.
 
         Args:
-            pin: GPIO pin number.
-            freq: PWM frequency in Hz.
-            level: Duty cycle percentage (0–100).
+            pin (int): GPIO pin number.
+            freq (float): PWM frequency in Hz.
+            level (float): Initial duty cycle.
         """
         self.freq = freq
         self.level = level
@@ -299,6 +302,13 @@ X--X-
     )
 
     def __init__(self, regsel, enable, data):
+        """Create and initialize LCD
+
+        Args:
+            regsel (int): Register select pin.
+            enable (int): Enable pin.
+            data (list[4]): Data pins.
+        """        
         self.regsel = regsel
         self.enable = enable
         self.data = data
@@ -329,15 +339,15 @@ X--X-
         return self._printable + self["backslash"] + self["tilde"] + " "
 
     def fnchars(self):
-       """Return reduced character set suitable for filenames."""
+        """Return reduced character set suitable for filenames."""
         return self._printable[:67] + self["backslash"] + " "
 
     def __setitem__(self, name, text):
         """Define or update a custom glyph.
 
         Args:
-            name: Glyph name.
-            text: 5x8 bitmap string using 'X' (on) and '-' (off).
+            name (str): Glyph name.
+            text (str): 5x8 bitmap string using 'X' (on) and '-' (off).
         """
         self._glyphs[name] = text
         self._chars.pop(name, None)
@@ -348,8 +358,11 @@ X--X-
         Loads the glyph into LCD memory if not already present.
         Uses LRU replacement when all 8 custom slots are occupied.
 
+        Args:
+            name (str): Glyph name.
+
         Returns:
-            Single-character string usable in display text.
+            str: Single-character string usable in display text.
         """
         if name not in self._chars:
             free = set(range(8)) - set(self._chars.values())
@@ -390,12 +403,12 @@ X--X-
           - Otherwise writes to static layer
 
         Args:
-            text: String to display.
-            row: Target row.
-            col: Starting column.
-            align: "left", "right", or default (no alignment).
-            timeout: Duration for temporary text (seconds).
-            force: Overwrite existing timed text if True.
+            text (str): String to display.
+            row (int): Target row.
+            col (int): Starting column.
+            align (str): "left", "right", or default (no alignment).
+            timeout (float): Duration for temporary text (seconds).
+            force (bool): Overwrite existing timed text if True.
         """
         for name, char in self.glyph2char:
             text = text.replace(char, self[name])
@@ -473,8 +486,8 @@ X--X-
         """Set cursor position.
 
         Args:
-            row: Row index.
-            col: Column index.
+            row (int): Row index.
+            col (int): Column index.
         """
         if row < ROWS and col < COLS:
             offset = (0x00, 0x40, COLS, 0x40 + COLS)
@@ -484,7 +497,7 @@ X--X-
         """Set cursor display mode.
 
         Args:
-            mode: One of:
+            mode (str): One of:
                 "hide"  – no cursor
                 "blink" – blinking block cursor
                 "line"  – underline cursor
@@ -505,7 +518,7 @@ X--X-
         long-running process completes.
 
         Args:
-          msg: text to display
+          msg (str): text to display
         """
         if msg:
             self.write(msg, row=ROWS - 1)
