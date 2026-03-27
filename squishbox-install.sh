@@ -209,23 +209,30 @@ configure_boot_files() {
 install_web_manager() {
     [[ "$INSTALL_WEB" == "no" ]] && return
 
-    sudo apt install -y nginx php php-fpm
+    sudo apt install -y squishbox-web
 
-    read -rp "Web username [squishbox]: " WEBUSER
-    WEBUSER=${WEBUSER:-squishbox}
-    read -rp "Web password [geekfunklabs]: " WEBPASS
-    WEBPASS=${WEBPASS:-geekfunklabs}
+    HASH=$(php -r "echo password_hash('$WEBPASS', PASSWORD_DEFAULT);")
+    ESCAPED_HASH=$(printf '%s\n' "$HASH" | sed 's/[&/\]/\\&/g')
+    ESCAPED_USER=$(printf '%s\n' "$WEBUSER" | sed 's/[&/\]/\\&/g')
+    ESCAPED_ROOT=$(printf '%s\n' "$SB_DIR" | sed 's/[&/\]/\\&/g')
+    sudo sed \
+        -e "s/__USERNAME__/$ESCAPED_USER/" \
+        -e "s#__PASSWORD_HASH__#$ESCAPED_HASH#" \
+        -e "s#__ROOT_PATH__#$ESCAPED_ROOT#" \
+        /usr/share/squishbox-web/index.php \
+        > /tmp/squishbox-index.php
+    sudo install -D -m 0644 /tmp/squishbox-index.php /var/www/html/index.php
 
-    sudo mkdir -p /var/www/html
-    curl -L https://github.com/prasathmani/tinyfilemanager/archive/master.tar.gz \
-        -o /tmp/tfm.tar.gz
+    sudo mkdir -p /var/www/tmp
+    sudo chown www-data:www-data /var/www/tmp
+    sudo chmod 770 /var/www/tmp
 
-    sudo tar -xzf /tmp/tfm.tar.gz -C /var/www/html --strip-components=1
-
-    sudo chown -R "$USER_NAME:www-data" "$SB_DIR"
-    sudo find "$SB_DIR" -type d -exec chmod g+s {} +
-
-    sudo usermod -aG www-data "$USER_NAME"
+    sudo usermod -aG www-data "$USER"
+    sudo chown -R "$USER":www-data "$HOME"/SquishBox
+    find "$HOME"/SquishBox -type d -exec chmod 2775 {} +
+    find "$HOME"/SquishBox -type f -exec chmod 664 {} +
+    sudo setfacl -R -m g:www-data:rwx "$HOME"/SquishBox
+    sudo setfacl -d -m g:www-data:rwx "$HOME"/SquishBox
 }
 
 ########################################
@@ -272,8 +279,15 @@ select HW in \
 done
 
 if [[ "$INSTALL_WEB" == "ask" ]]; then
-    ask_yes_no "Install web file manager?" no \
-        && INSTALL_WEB="yes" || INSTALL_WEB="no"
+    if ask_yes_no "Install web file manager?" no; then
+        INSTALL_WEB="yes"
+        read -rp "Web username [squishbox]: " WEBUSER
+        WEBUSER=${WEBUSER:-squishbox}
+        read -rp "Web password [geekfunklabs]: " WEBPASS
+        WEBPASS=${WEBPASS:-geekfunklabs}
+    else
+        INSTALL_WEB="no"
+    fi
 fi
 
 configure_boot_files
