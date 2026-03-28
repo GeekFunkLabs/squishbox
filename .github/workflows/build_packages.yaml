@@ -1,6 +1,9 @@
 name: Build Debian packages
 
 on:
+  workflow_dispatch:
+  push:
+    branches: [v0.9-dev]
   release:
     types: [published]
 
@@ -32,6 +35,8 @@ jobs:
       - name: Update changelog
         run: |
           VERSION=${GITHUB_REF_NAME#v}
+          export DEBFULLNAME="GitHub Actions"
+          export DEBEMAIL="actions@github.com"
           dch --newversion "$VERSION" "Release $VERSION"
 
       - name: Build package
