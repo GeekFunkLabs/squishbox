@@ -1,5 +1,5 @@
-squishbox (1.0.0) bookworm; urgency=medium
+squishbox (0.9~dev1) trixie; urgency=medium
 
-  * Initial release.
+  * Development version.
 
- --  Bill Peterson <bill@geekfunklabs.com>  Thu, 05 Mar 2026 10:27:55 -0600
+ -- Bill Peterson <bill@geekfunklabs.com>  Thu, 05 Mar 2026 10:27:55 -0600
