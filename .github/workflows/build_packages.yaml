@@ -32,7 +32,7 @@ jobs:
           dpkg --add-architecture ${{ matrix.arch }}
           apt-get update
 
-          apt-get build-dep -y . -a${{ matrix.arch }}
+          apt-get build-dep -y .
           apt-get install -y crossbuild-essential-${{ matrix.arch }}
 
       - name: Update changelog
