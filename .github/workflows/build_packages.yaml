@@ -9,7 +9,8 @@ on:
 
 jobs:
   build:
-    runs-on: debian:trixie
+    runs-on: ubuntu-latest
+    container: debian:latest
 
     strategy:
       matrix:
@@ -67,4 +68,3 @@ jobs:
           files: |
             repo/*
             soundfonts_collection.tar.gz
-
