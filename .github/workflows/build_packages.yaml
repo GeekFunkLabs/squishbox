@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    container: ubuntu:24.04
+    runs-on: debian:trixie
 
     strategy:
       matrix:
@@ -21,10 +21,18 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          sudo dpkg --add-architecture ${{ matrix.arch }}
-          sudo apt update
-          sudo apt-get build-dep -y . -a${{ matrix.arch }}
-          sudo apt install -y crossbuild-essential-${{ matrix.arch }}
+          apt-get update
+          apt-get install -y \
+            devscripts \
+            debhelper \
+            dpkg-dev \
+            fakeroot
+
+          dpkg --add-architecture ${{ matrix.arch }}
+          apt-get update
+
+          apt-get build-dep -y . -a${{ matrix.arch }}
+          apt-get install -y crossbuild-essential-${{ matrix.arch }}
 
       - name: Update changelog
         run: |
