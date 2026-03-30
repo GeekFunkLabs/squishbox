@@ -25,17 +25,12 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y \
-            devscripts \
-            debhelper \
-            dpkg-dev \
-            fakeroot \
-            gcc \
-            pkgconf \
+            devscripts debhelper dpkg-dev fakeroot gcc pkgconf \
             libasound2-dev
           
           dpkg --add-architecture ${{ matrix.arch }}
+
           apt-get update
-          
           apt-get install -y \
             crossbuild-essential-${{ matrix.arch }} \
             libc6:${{ matrix.arch }} \
@@ -53,7 +48,7 @@ jobs:
         run: |
           dpkg-buildpackage -us -uc -b -a${{ matrix.arch }} -Pcross
           mkdir repo
-          cp ../*.deb repo/
+          cp ../*_$(dpkg-architecture -qDEB_HOST_ARCH).deb repo/
           cd repo
           dpkg-scanpackages . /dev/null | gzip -9 > Packages.gz
 
@@ -70,6 +65,7 @@ jobs:
             soundfonts_collection.tar.gz
 
       - name: Upload to release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: |
