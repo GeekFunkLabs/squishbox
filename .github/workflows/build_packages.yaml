@@ -59,7 +59,7 @@ jobs:
 
       - name: Download soundfonts
         run: |
-          wget https://geekfunklabs.com/soundfonts_collection.tar.gz
+          curl -LO https://geekfunklabs.com/soundfonts_collection.tar.gz
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
