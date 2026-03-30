@@ -46,6 +46,7 @@ jobs:
 
       - name: Build package
         run: |
+          export CC=$(dpkg-architecture -a${{ matrix.arch }} -qDEB_HOST_GNU_TYPE)-gcc
           dpkg-buildpackage -us -uc -b -a${{ matrix.arch }}
           mkdir repo
           cp ../*.deb repo/

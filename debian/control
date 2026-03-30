@@ -4,8 +4,9 @@ Priority: optional
 Maintainer: Bill Peterson <bill@geekfunklabs.com>
 Build-Depends:
  debhelper-compat (= 13),
- libasound2-dev:any,
- pkg-config
+ gcc,
+ pkg-config,
+ libasound2-dev:native
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
 
