@@ -48,7 +48,7 @@ jobs:
         run: |
           dpkg-buildpackage -us -uc -b -a${{ matrix.arch }} -Pcross
           mkdir repo
-          cp ../*_$(dpkg-architecture -qDEB_HOST_ARCH).deb repo/
+          cp ../*.deb repo/
           cd repo
           dpkg-scanpackages . /dev/null | gzip -9 > Packages.gz
 
