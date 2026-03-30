@@ -22,18 +22,20 @@ jobs:
 
       - name: Install build dependencies
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y \
             devscripts \
             debhelper \
             dpkg-dev \
-            fakeroot
-
+            fakeroot \
+            gcc \
+            libasound2-dev
+          
           dpkg --add-architecture ${{ matrix.arch }}
           apt-get update
-
-          apt-get build-dep -y .
-          apt-get install -y crossbuild-essential-${{ matrix.arch }} dpkg-cross
+          
+          apt-get install -y crossbuild-essential-${{ matrix.arch }}
 
       - name: Update changelog
         run: |
