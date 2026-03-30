@@ -4,5 +4,5 @@
 	dh $@
 
 override_dh_auto_build:
-	$(MAKE) -C ttymidi
+	$(MAKE) -C ttymidi CC=$(CC)
 
