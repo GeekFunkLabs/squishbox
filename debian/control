@@ -5,7 +5,7 @@ Maintainer: Bill Peterson <bill@geekfunklabs.com>
 Build-Depends:
  debhelper-compat (= 13),
  gcc:native,
- pkg-config:native,
+ pkgconf:native,
  libasound2-dev:native
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
