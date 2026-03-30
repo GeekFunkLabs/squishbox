@@ -30,6 +30,7 @@ jobs:
             dpkg-dev \
             fakeroot \
             gcc \
+            pkgconf \
             libasound2-dev
           
           dpkg --add-architecture ${{ matrix.arch }}
