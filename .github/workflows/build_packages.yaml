@@ -39,7 +39,7 @@ jobs:
           apt-get install -y \
             crossbuild-essential-${{ matrix.arch }} \
             libc6:${{ matrix.arch }} \
-            libasound2:${{ matrix.arch }}
+            libasound2t64:${{ matrix.arch }}
 
       - name: Update changelog
         run: |
