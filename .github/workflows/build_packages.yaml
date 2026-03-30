@@ -50,7 +50,7 @@ jobs:
 
       - name: Build package
         run: |
-          dpkg-buildpackage -us -uc -b -a${{ matrix.arch }}
+          dpkg-buildpackage -us -uc -b -a${{ matrix.arch }} -Pcross
           mkdir repo
           cp ../*.deb repo/
           cd repo
