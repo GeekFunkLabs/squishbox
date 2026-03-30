@@ -33,7 +33,7 @@ jobs:
           apt-get update
 
           apt-get build-dep -y .
-          apt-get install -y crossbuild-essential-${{ matrix.arch }}
+          apt-get install -y crossbuild-essential-${{ matrix.arch }} dpkg-cross
 
       - name: Update changelog
         run: |
