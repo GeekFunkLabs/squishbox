@@ -5,5 +5,5 @@
 
 override_dh_auto_build:
 	$(MAKE) -C ttymidi clean
-	dh_auto_build -- CC=$(DEB_HOST_GNU_TYPE)-gcc	
+	$(MAKE) -C ttymidi CC=$(DEB_HOST_GNU_TYPE)-gcc	
 
