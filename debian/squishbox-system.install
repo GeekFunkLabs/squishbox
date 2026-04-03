@@ -1,4 +1,3 @@
-debian/squishbox-system.service lib/systemd/system/
 debian/squishbox-ttymidi.service lib/systemd/system/
 debian/usb-mount@.service lib/systemd/system/
 
