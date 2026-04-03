@@ -1,8 +1,8 @@
-debian/squishbox-system.service lib/systemd/system/
-debian/squishbox-ttymidi.service lib/systemd/system/
-debian/usb-mount@.service lib/systemd/system/
+squishbox-system.service lib/systemd/system/
+squishbox-ttymidi.service lib/systemd/system/
+usb-mount@.service lib/systemd/system/
 
-debian/49-squishbox-udisks.rules etc/polkit-1/rules.d/
+49-squishbox-udisks.rules etc/polkit-1/rules.d/
 
 ttymidi/ttymidi usr/bin
 
