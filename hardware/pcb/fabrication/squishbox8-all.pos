@@ -1,0 +1,41 @@
+### Footprint positions - created on 2026-04-05T11:32:43 ###
+### Printed by KiCad version 10.0.0
+## Unit = mm, Angle = deg.
+## Side : All
+# Ref     Val                  Package                                                   PosX       PosY       Rot  Side
+C1        100_nF               C_0805_2012Metric                                     134.2500   -94.1000  180.0000  bottom
+C2        10_uF                C_0805_2012Metric                                     111.5766   -67.1832   90.0000  bottom
+C4        100_nF               C_0805_2012Metric                                     113.8626   -67.1832  -90.0000  bottom
+C5        2.2_uF               C_0805_2012Metric                                     124.1750   -66.7920  -90.0000  bottom
+C6        2.2_uF               C_0805_2012Metric                                     126.3340   -66.8174  -90.0000  bottom
+C7        100_nF               C_0805_2012Metric                                     123.4892   -73.9294  180.0000  bottom
+C8        10_uF                C_0805_2012Metric                                     123.4892   -76.2154  180.0000  bottom
+C9        2.2_nF               C_0805_2012Metric                                     128.3660   -66.8174   90.0000  bottom
+C10       2.2_nF               C_0805_2012Metric                                     127.3831   -74.1840  180.0000  bottom
+D1        1N4148WS             D_SOD-323                                             124.7140   -85.6320  -90.0000  bottom
+J1        Raspberry_Pi_2_3     PinSocket_2x20_P2.54mm_Vertical                        98.0825  -112.1225    0.0000  bottom
+J2        Conn_02x02_Odd_Even  PinHeader_2x02_P2.54mm_Vertical                       129.1750   -88.9250    0.0000  bottom
+J3        Conn_02x02_Odd_Even  PinHeader_2x02_P2.54mm_Vertical                       129.1750  -100.7250    0.0000  bottom
+J4        AudioJack4           Jack_3.5mm_KoreanHropartsElec_PJ-320D-4A_Horizontal   142.6460   -87.8320  180.0000  bottom
+J5        AudioJack4           Jack_3.5mm_KoreanHropartsElec_PJ-320D-4A_Horizontal   142.6460  -101.2940  180.0000  bottom
+L1        L_Ferrite            L_0603_1608Metric                                     130.3275   -82.2960    0.0000  bottom
+L2        L_Ferrite            L_0603_1608Metric                                     124.7140   -89.4080  -90.0000  bottom
+L3        L_Ferrite            L_0603_1608Metric                                     127.9905   -94.2340    0.0000  bottom
+L4        L_Ferrite            L_0603_1608Metric                                     129.8375  -104.7000    0.0000  bottom
+R1        470                  R_0805_2012Metric                                     127.3831   -70.1200    0.0000  bottom
+R2        470                  R_0805_2012Metric                                     127.3831   -72.1520    0.0000  bottom
+R3        1k                   R_0805_2012Metric                                     119.8880  -110.6405   90.0000  bottom
+R4        1k                   R_0805_2012Metric                                     122.1740  -110.6405   90.0000  bottom
+R5        22                   R_2010_5025Metric                                     124.9415  -104.6480    0.0000  bottom
+R6        22                   R_2010_5025Metric                                     122.6820   -93.4720    0.0000  bottom
+R7        220                  R_1206_3216Metric                                     126.0455   -82.2960    0.0000  bottom
+R8        220                  R_1206_3216Metric                                     116.6475   -93.4720  180.0000  bottom
+TRS1      AudioJack3_Switch    Jack_6.35mm_Neutrik_NMJ6HFD4_Horizontal                85.5000   -99.0000  180.0000  bottom
+TRS2      AudioJack3_Switch    Jack_6.35mm_Neutrik_NMJ6HFD4_Horizontal                85.5000   -75.0000  180.0000  bottom
+U1        PCM5102              TSSOP-20_4.4x6.5mm_P0.65mm                            119.0696   -69.2050  180.0000  bottom
+U3        H11L1                SMDIP-6_W9.53mm                                       116.5860   -86.8680  180.0000  bottom
+VR1       10k                  Potentiometer_Piher_PT-6-V_Vertical                    86.6140   -69.1300  180.0000  bottom
+ENC1      RotEnc_Sw            RotaryEncoder_Alps_EC11E-Switch_Vertical_H20mm        111.7200   -97.3980  -90.0000  top
+P1        Conn_01x14_Pin       PinHeader_1x14_P2.54mm_Vertical                       102.8700  -117.0940   90.0000  top
+U2        LCD1602              PinSocket_1x16_P2.54mm_Vertical                        77.0000   -59.0000   90.0000  top
+## End
