@@ -25,6 +25,27 @@ Insert through-hole components from the side matching the silkscreen outlines.
 
 Install the LCD module last, as it blocks access to several solder points.
 
+### P1 Header
+
+Unused pins from the Raspberry Pi GPIO header are broken out to P1 for attaching additional buttons/outputs. Pins 4 and 7 are connected to ground through 1k resistors, to allow connecting LEDs without additional components.
+
+| P1 pin | function        |
+|--------|-----------------|
+|  1     | 5V              |
+|  2     | 3.3V            |
+|  3     | GPIO4           |
+|  4     | 1k → GND        |
+|  5     | GPIO2 (I2C SDA) |
+|  6     | GPIO3 (I2C SCL) |
+|  7     | 1k → GND        |
+|  8     | GPIO23          |
+|  9     | GPIO24          |
+|  10    | GPIO10          |
+|  11    | GPIO25          |
+|  12    | GPIO9           |
+|  13    | GPIO11          |
+|  14    | GND             |
+
 ## Case Details
 
 All parts are designed to be printed flat-side down without supports.
