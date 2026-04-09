@@ -33,6 +33,8 @@ def load_config(name, default_cfg={}):
         cfg = yaml.safe_load(system_default.read_text())
     elif pkg_default.exists():
         cfg = yaml.safe_load(pkg_default.read_text())
+    else:
+        cfg = {}
     cfg |= default_cfg
 
     if path.exists():

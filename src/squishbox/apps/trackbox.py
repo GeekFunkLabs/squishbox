@@ -239,9 +239,20 @@ CONFIG = load_config("trackboxconf.yaml")
 TRACKLISTS_PATH = CONFIG["tracklists_path"]
 TRACKROOT_PATH = CONFIG["trackroot_path"]
 
-# load the tracklist
-if "current_tracklist" not in CONFIG:
-    f = sb.menu_choosefile(topdir=HEAD
+if "current_tracklist" in CONFIG:
+    # load the current tracklist
+    f = TRACKLISTS_PATH / CONFIG["current_tracklist"]
+    tracklist = yaml.safe_load(f).read_text())
+else:
+    # choose a single track to start a new list
+    f = sb.menu_choosefile(topdir=TRACKLISTS_PATH)
+    if f.is_file():
+        tracklist = {
+            "tracks": [{"file": str(f.relative_to(TRACKROOT_PATH))}]
+        }
+    else:
+        sys.exit()
+
 tracks_path = TRACKROOT_PATH / tracklist.get("tracks_path", "")
 tracks = tracklist["tracks"]
 track = type("TrackState", (), dict(
