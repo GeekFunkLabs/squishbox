@@ -1,6 +1,6 @@
 # SquishBox
 
-The SquishBox is a compact add-on card and enclosure for Raspberry Pi (primarily targeting Pi 3B+ or 4) that provides a pushbutton rotary encoder, a bright and easy-to-read 16x2 character LCD display, a high-quality sound card with 1/4" outputs, and MIDI in/out minijacks. Additional GPIO pins are broken out to allow adding more buttons, controls, LEDS, and other inputs/outputs. This makes it a highly portable embedded computer for audio applications, such as a synth/sound module or music player. The software package includes several pre-built applications for these purposes, as well as a simple python API for creating more.
+The SquishBox is a compact add-on card and enclosure for Raspberry Pi (primarily targeting Pi 3B+ or 4) that bundles a DAC, 1/4" ouputs, MIDI in/out with minijacks, a 16x2 character LCD, and a pushbutton rotary encoder. Additional GPIO pins are broken out to allow adding more buttons, controls, LEDS, and other inputs/outputs. This makes it a highly portable embedded computer for audio applications, such as a synth/sound module or music player. The software package includes several pre-built applications for these purposes, as well as a simple python API for creating more.
 
 - [Official Documentation](https://geekfunklabs.github.io/squishbox)
 - [Source Repository](https://github.com/GeekFunkLabs/squishbox)
