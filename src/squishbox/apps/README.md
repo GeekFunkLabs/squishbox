@@ -1,6 +1,8 @@
 # SquishBox Apps
 
-These scripts serve both as API coding examples and fully-supported programs providing the main functionality of the SquishBox. Report problems or make feature requests by opening a github issue.
+These scripts serve both as API coding examples and fully-supported programs
+providing the main functionality of the SquishBox. Report problems or make
+feature requests by opening a github issue.
 
 ## Utilities
 
@@ -11,7 +13,9 @@ These scripts serve both as API coding examples and fully-supported programs pro
 
 ## Sound Programs
 
-- *fpatcherbox.py* - highly versatile synth module that uses the FluidSynth engine via the FluidPatcher python package
+- *fpatcherbox.py* - highly versatile synth module that uses the
+    [FluidSynth](https://www.fluidsynth.org/) engine via the
+    [FluidPatcher](https://geekfunklabs.github.io/fluidpatcher/) python package
 - *amsynthbox.py* - wrapper built around the amsynth analog modelling synthesizer
 - *trackbox.py* - playlist-based music player with live cuts and reordering
 
