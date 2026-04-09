@@ -29,22 +29,22 @@ Install the LCD module last, as it blocks access to several solder points.
 
 Unused pins from the Raspberry Pi GPIO header are broken out to P1 for attaching additional buttons/outputs. Pins 4 and 7 are connected to ground through 1k resistors, to allow connecting LEDs without additional components.
 
-| P1 pin | function        |
-|--------|-----------------|
-|  1     | 5V              |
-|  2     | 3.3V            |
-|  3     | GPIO4           |
-|  4     | 1k → GND        |
-|  5     | GPIO2 (I2C SDA) |
-|  6     | GPIO3 (I2C SCL) |
-|  7     | 1k → GND        |
-|  8     | GPIO23          |
-|  9     | GPIO24          |
-|  10    | GPIO10          |
-|  11    | GPIO25          |
-|  12    | GPIO9           |
-|  13    | GPIO11          |
-|  14    | GND             |
+| P1 pin | pad shape | function        |
+|--------|-----------|-----------------|
+|  1     | diamond   | 5V              |
+|  2     | diamond   | 3.3V            |
+|  3     | circle    | GPIO4           |
+|  4     | notched   | 1k → GND        |
+|  5     | circle    | GPIO2 (I2C SDA) |
+|  6     | circle    | GPIO3 (I2C SCL) |
+|  7     | notched   | 1k → GND        |
+|  8     | circle    | GPIO23          |
+|  9     | circle    | GPIO24          |
+|  10    | circle    | GPIO10          |
+|  11    | circle    | GPIO25          |
+|  12    | circle    | GPIO9           |
+|  13    | circle    | GPIO11          |
+|  14    | square    | GND             |
 
 ## Case Details
 
