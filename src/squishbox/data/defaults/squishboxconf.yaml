@@ -1,5 +1,3 @@
-lcd_rows: 2
-lcd_cols: 16
 menu_time: 3
 hold_time: 1.0
 scroll_time: 0.2
@@ -11,6 +9,8 @@ button_debounce: 0.02
 encoder_debounce: 0.002
 gpio_chip: /dev/gpiochip4
 pull_up: true
+lcd_rows: 2
+lcd_cols: 16
 lcd_regsel: 7
 lcd_enable: 16
 lcd_data: [26, 6, 5, 8]

@@ -20,14 +20,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-fluidbox = ["fluidpatcher"]
-trackbox = ["gi"]
 full = ["fluidpatcher", "gi"]
 
 [project.urls]
 Homepage = "https://github.com/GeekFunkLabs/squishbox"
 Issues = "https://github.com/GeekFunkLabs/squishbox/issues"
 
-[project.scripts]
-squishbox-launcher = "squishbox.apps.launcher:main"
+[tool.setuptools.package-data]
+"squishbox.data" = ["**/*.yaml"]
 

@@ -8,7 +8,7 @@ feature requests by opening a github issue.
 
 - *launcher.py* - basic shell that can be used to launch other programs or modify system settings
 - *sbedit.py* - text editor that accepts input using the rotary encoder or any attached keyboard
-- *glyphedit.py* - utility for adding/editing the custom glyphs that can be used by the LCD
+- *glyphedit.py* - utility for creating/editing the custom glyphs that can be used by the LCD
 - *sbcommander.py* - file manager that can copy/move/rename/delete files and execute shell commands
 
 ## Sound Programs

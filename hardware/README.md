@@ -50,6 +50,7 @@ Unused pins from the Raspberry Pi GPIO header are broken out to P1 for attaching
 
 All parts are designed to be printed flat-side down without supports.
 
+* PLA is sufficient, other materials may be used for desired traits
 * Infill amount is not critical due to the small interior volume
 * Use at least 2–3 wall layers for adequate strength
 
