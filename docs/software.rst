@@ -1,119 +1,350 @@
 Software
 ========
 
-The FluidPatcher software for the SquishBox turns it into a customizable MIDI sound module. The software is installed on Raspberry Pi OS by running a script from the command line. This downloads the code that runs the synth and a few other software dependencies, and sets up the interface to run on startup. These changes aren’t drastic – you don’t have to sacrifice your Raspberry Pi computer or buy a new one to use exclusively with the SquishBox! You can install the software on a working OS without wiping anything, and you can easily pop the Pi out of the enclosure and use it for something else as you need. You can view the source code for FluidPatcher at https://github.com/GeekFunkLabs/fluidpatcher and learn how it works if that interests you.
+The SquishBox Python package makes it easy to build menu-driven hardware
+applications for Raspberry Pi audio projects.
 
-Setup
-------------
+Instead of dealing directly with GPIO timing, LCD protocols, encoder
+debouncing, and event handling, your program interacts with a single
+high-level object:
 
-If you’re using a brand new Raspberry Pi or just want to start fresh you can get OS images and instructions on installing at https://raspberrypi.org/software, and information on how to set up your Pi at https://raspberrypi.org/documentation.
+.. code-block:: python
 
-Log in, make sure your Pi is connected to the internet, and enter the following command::
+   import squishbox
+   sb = squishbox.SquishBox()
 
-   curl -sL geekfunklabs.com/squishbox | bash
+From there you can:
 
-This will download and run an install script that will query you for options, then do all the configuration and software installation automatically. The first time running the script you will see the message ::
+* Write text to the LCD
+* Read knob and button actions
+* Present menus and prompts
+* Edit text from the front panel
+* Control LEDs and outputs
+* Launch shell commands
+* Build complete standalone hardware applications
 
-   This script must reboot your computer to activate your sound card.
-   Once this is complete, run this script again to continue setup.
-   Reboot? ([y]/n)
+This page is a practical primer for customizing/writing SquishBox apps.
 
-Respond ``y`` to reboot, then enter the above command again. The script will now query you for install options. You can just press enter for each option to choose the defaults (enclosed in square brackets) to install everything, but here is an explanation of each of the options. ::
+Application Model
+-----------------
 
-   What are you setting up?
-   1. SquishBox
-   2. Naked Raspberry Pi Synth
+Most SquishBox programs follow a simple pattern:
 
-This software can be installed on a bare Raspberry Pi without the SquishBox add-ons, but you should choose option 1 here. The script may need to reboot your Pi in order to set up the sound card, after which you should run the script again to continue. ::
+1. Create the shared ``SquishBox()`` instance
+2. Draw something on the LCD
+3. Wait for user input
+4. Respond to that input
+5. Repeat until exit
 
-   What version of SquishBox hardware are you using?
-   v6 - Green PCB with SMT components
-   v4 - Purple PCB, has 2 resistors and LED
-   v3 - Purple PCB, has 1 resistor
-   v2 - Hackaday/perfboard build
+Example:
 
-Different versions of the PCB have slightly different wiring. The PCB used in these instructions is v6. ::
+.. code-block:: python
 
-   Enter Install location [/home/user]
+   import squishbox
 
-The code installs in your home directory by default, but can be installed in any location where you have write privileges. ::
+   sb = squishbox.SquishBox()
 
-   Which audio output would you like to use?
-   0. No change
-   1. Default
-   2. Headphones
-   3. sndrpihifiberry
-   4. vc4hdmi
-   Choose [3]
-   
-Choose sndrpihifiberry from the list. ::
+   sb.lcd.clear()
+   sb.lcd.write("Hello SquishBox", row=0)
 
-   Install/update synthesizer software? ([y]/n)
+   while True:
+       action = sb.get_action()
 
-This installs the base code that runs the SquishBox. You can also use this script to reconfigure some of the later optional extras, so if you want to do that without changing your code, reply no here. ::
+       if action == "inc":
+           sb.lcd.write("Turned Right ", row=1)
 
-   Set up web-based file manager? ([y]/n)
-   Please create a user name and password.
-   username:
-   password:
+       elif action == "dec":
+           sb.lcd.write("Turned Left  ", row=1)
 
-When the SquishBox is connected to a network, its web interface provides a convenient way of editing your patches, banks, and config files, as well as uploading soundfonts. Choose a good password to protect your SquishBox settings from other users on the same network. To log in to the file manager, connect a computer/tablet/phone to the same network as the SquishBox and point a web browser to the IP address of the SquishBox (see “WIFI Settings” below). ::
+       elif action == "select":
+           sb.lcd.write("Tapped       ", row=1)
 
-   Download and install ~400MB of additional soundfonts? (y/[n])
+       elif action == "back":
+           break
 
-Responding `y` downloads a collection of extra soundfonts in addition to the general MIDI soundfont that is downloaded by default. ::
+The default control mappings usually are:
 
-   Update/upgrade your operating system? ([y]/n)
+* ``inc`` — clockwise turn
+* ``dec`` — counterclockwise turn
+* ``select`` — encoder tap
+* ``back`` — encoder hold
 
-Any time you install new software on the Raspberry Pi, it’s a good idea to make sure your other software is all up to date, so you should probably say yes here. ::
+These mappings come from the hardware configuration and may be customized.
 
-   Option selection complete. Proceed with installation? ([y]/n)
+The Shared Singleton
+^^^^^^^^^^^^^^^^^^^^
 
-The terminal will start producing a bunch of output as it installs and configures the necessary software. ::
+``SquishBox()`` is a singleton. Creating it multiple times returns the same
+shared hardware interface.
 
-   This may take some time ... go make some coffee.
+.. code-block:: python
 
-If something does go wrong, this output can often be helpful in identifying the problem when seeking support, which can be found at geekfunklabs.com/support. Once finished, the software will ask if you would like to reboot. If you haven’t installed the Pi in the SquishBox yet, you can reply no and then enter sudo poweroff to safely shut down.
+   a = squishbox.SquishBox()
+   b = squishbox.SquishBox()
 
-If you want to use the Pi for something else, you can enter sudo systemctl disable squishbox at the command line to stop the synth from running on startup. If needed later, you can enter sudo systemctl enable squishbox to get it back again.
+   print(a is b)   # True
 
-Usage
------
+This allows helper modules or plugins to access the hardware safely without
+creating duplicate GPIO handlers.
 
-When you plug in the SquishBox, the Pi will boot and start the synthesizer software. A splash screen will appear briefly with the squishbox software and hardware (PCB) versions. The current patch name, number, and total patches available are displayed on the LCD. Rotating the encoder cycles through patches. The encoder can also be tapped to advance to the next patch. The stompbutton sends MIDI messages that can be routed in banks or patches to act as a pedal, effects control, or perform other actions. The messages sent are control change 30 with a value of 127 and 0 on press and release, and control change 31 toggling between 0 and 127 with each press.
-Holding down the rotary encoder for one second opens the menu. In menus the stompbutton does not send MIDI messages. Instead, rotating the encoder scrolls through options, or tapping the encoder advances to the next option and tapping the stompbutton goes back. This makes it easier to use the SquishBox with feet if it’s placed on the floor. Holding the encoder for one second selects options, and holding the stompbutton for one second cancels or exits. Most menus will time out after a few seconds with no input.
-Some menus have specific interaction modes:
+Configuration File
+^^^^^^^^^^^^^^^^^^
 
-* When asked to confirm a choice, it will be shown with a check mark or X next to it. Selecting the check mark confirms, X cancels. 
-* Some menus allow changing a numerical setting. Rotating the encoder adjusts the value, and holding the encoder confirms it.
-* Some menus allow entering text character-by-character. The cursor appears as an underline for changing position and a blinking square for changing the current character. Holding the encoder switches between cursor modes. Holding the stompbutton exits editing, after which you will be asked to confirm or cancel your entry.
+The SquishBox configuration file is loaded on import, and defines
+settings such as:
 
-Below is a list of the menu options, with short descriptions of what they do.
+* LCD configuration
+* UI timings
+* Inputs/Outputs and bindings
+* Custom LCD characters
 
-* Load Bank – Load a bank file from the list of available banks. The current bank is displayed first. 
-* Save Bank – Save the current bank. Changing the name saves as a new bank. 
-* Save Patch – Saves the current state of the synthesizer (instrument settings, control change values) to the current patch. Modify the name to create a new patch. 
-* Delete Patch – Erases the current patch from the bank, after asking for confirmation. 
-* Open Soundfont – Opens a single soundfont and switches to playing sounds from the soundfont's presets instead of the patches in the current bank. Holding the encoder creates a new patch in the current bank that uses the selected preset on MIDI channel 1, after prompting you for a new for the new patch.
-* Effects.. – Opens a menu that allows you to modify the settings of the chorus and reverb effects units, and the gain (maximum output volume) of the SquishBox. Changes affect all patches in the bank – save the bank to make them permanent. 
-* System Menu.. – Opens a menu with more system-related tasks: 
+The default path for the configuration file is: ::
 
-  * Power Down – To protect the memory card of the SquishBox, this option should be used before unplugging. Allow 30 seconds for complete shutdown. 
-  * MIDI Devices – This menu can be used to view the list of available MIDI devices, and to interconnect MIDI inputs and outputs. By default, the SquishBox automatically connects to all available MIDI devices, but this menu allows more control. It also includes a MIDI Monitor option that displays incoming MIDI messages on the screen. Pressing any button exits the MIDI monitor. 
-  * WIFI Settings – Displays the current IP Address of the SquishBox, and provides a menu to scan for and connect to available WIFI networks. You can also enable/disable the wifi adapter here. It is useful to turn off the wifi adapter when you are out of range of any known networks, to keep the Pi from wasting CPU doing scans.
-  * USB File Copy – Allows you to copy your banks, soundfonts, and config files back and forth between the SquishBox and a USB storage device. Files are copied to/from a SquishBox/ folder on the USB. The Sync with USB option will update the files to the newest available version on either device.  
+    $HOME/SquishBox/config/squishboxconf.yaml
+    
+Drop-in config files can be used for things such as
+hardware overlays (e.g. ``squishboxconf.d/v2.yaml``).
 
-The SquishBox software and soundfonts collection include several banks with useful patches, and a large selection of soundfonts. However, a powerful feature of the SquishBox is the ability to configure it the way you need and create and your own patches. For information on how to edit the config and bank files for your squishbox refer to the README at:
-
-github.com/GeekFunkLabs/fluidpatcher/blob/master/patcher/file_formats.md
-
-There you can also find a link to a series of lesson videos on editing and creating patches, uploading new sounds, and configuring your SquishBox.
-
-API Reference
+Using the LCD
 -------------
 
-The code in squishbox.py can be modified or imported to create other applications for the SquishBox. All the functionality is contained in the ``SquishBox`` class.
+The built-in LCD object is available as:
 
-.. autoclass:: squishbox.SquishBox
-   :members:
-   :special-members: __init__
+.. code-block:: python
+
+   sb.lcd
+
+Clear the display:
+
+.. code-block:: python
+
+   sb.lcd.clear()
+
+Set contrast/backlight levels:
+
+.. code-block:: python
+
+   sb.contrast_level = 70
+   sb.backlight_level = 40
+
+Write text:
+
+.. code-block:: python
+
+   sb.lcd.write("Patch Loaded", row=0)
+   sb.lcd.write("Grand Piano", row=1, align="right")
+
+Long text automatically scrolls when needed. Alignment is left by default.
+
+Custom Characters
+^^^^^^^^^^^^^^^^^
+
+Characters beyond the standard "ASCII Printable" set can be defined as
+custom characters in the configuration file:
+
+.. code-block:: yaml
+
+    glyphs_5x8:
+      wifi_on: |
+        -XXX-
+        X---X
+        --X--
+        -X-X-
+        -----
+        --X--
+        -----
+        -----
+
+A maximum of 8 unique custom characters can be displayed at once, but
+an arbitrary number can be defined in the LCD object. They are displayed
+using element access:
+
+.. code-block:: python
+
+   sb.lcd.write("WiFi status: " + sb.lcd["wifi_on"], row=0)
+
+Temporary Messages
+^^^^^^^^^^^^^^^^^^
+
+Use ``timeout=`` to overlay a message briefly:
+
+.. code-block:: python
+
+   sb.lcd.write("Saved", row=1, timeout=2)
+
+This is useful for confirmations and status notices.
+
+Menus
+-----
+
+The fastest way to build a usable front-panel interface is with the built-in
+menu helpers.
+
+Choice Menu
+^^^^^^^^^^^
+
+.. code-block:: python
+
+   i, option = sb.menu_choose(
+       ["Piano", "Organ", "Synth"],
+       row=1
+   )
+
+   if option:
+       sb.lcd.write(option, row=0)
+
+Returns:
+
+* selected index
+* selected item
+* item is returned as ``None`` if canceled
+
+Confirmation Prompt
+^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   if sb.menu_confirm("Delete file?"):
+       delete_file()
+
+Text Entry
+^^^^^^^^^^
+
+.. code-block:: python
+
+   name = sb.menu_entertext("New Patch")
+
+Useful for:
+
+* patch names
+* WiFi passwords
+* filenames
+* labels
+
+File Browser
+^^^^^^^^^^^^
+
+.. code-block:: python
+
+   path = sb.menu_choosefile("/home/pi/patches", ext=[".yaml"])
+
+This provides a simple two-line browser for selecting files.
+
+System Settings Menu
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    if sb.menu_systemsettings() == "shell":
+        sys.exit()
+
+This provides a unified system settings menu for LCD, WiFi, and MIDI
+settings. It also allows the user to shutdown/reboot the Pi, or exit
+the current program.
+
+Input/Output Access
+-------------------
+
+Controls and outputs are defined and bound to actions in the
+configuration file.
+
+.. code-block:: yaml
+
+    controls:
+      knob1:
+        type: encoder
+        pins: [22, 27]
+        events: {left: dec, right: inc}
+      knob1_button:
+        type: button
+        pin: 17
+        events: {tap: select, hold: back}    
+    outputs:
+      led_fader: {type: pwm, pin: 4, level: 60}
+      led_blinker: {type: binary, pin: 23}
+
+Reading Input Directly
+^^^^^^^^^^^^^^^^^^^^^^
+
+For games, meters, transport controls, or custom interfaces, use raw actions:
+
+.. code-block:: python
+
+   while True:
+       action = sb.get_action(timeout=0.1)
+
+       if action == "inc":
+           value += 1
+       elif action == "dec":
+           value -= 1
+       elif action == "back":
+           break
+
+``timeout`` allows your loop to continue running while waiting for input.
+
+Outputs and LEDs
+^^^^^^^^^^^^^^^^
+
+Configured outputs are available through:
+
+.. code-block:: python
+
+   sb.outputs
+
+Example:
+
+.. code-block:: python
+
+   sb.outputs["led1"].on()
+   sb.outputs["led1"].off()
+
+PWM duty cycles are controlled using a ``level`` property.
+
+Miscellaneous Toos
+------------------
+
+Running Shell Commands
+^^^^^^^^^^^^^^^^^^^^^^
+
+For integrating Linux utilities:
+
+.. code-block:: python
+
+   result = sb.shell_cmd("hostname -I")
+   sb.lcd.write(result, row=1)
+
+Useful for:
+
+* audio tools
+* system commands
+* WiFi utilities
+* file conversion
+* launching synth engines
+
+Long Running Tasks
+^^^^^^^^^^^^^^^^^^
+
+Use the activity spinner while work is in progress:
+
+.. code-block:: python
+
+   with sb.lcd.activity("Loading..."):
+       load_large_patch()
+
+This gives visual feedback on the LCD while your task runs.
+
+Error Handling
+^^^^^^^^^^^^^^
+
+Unhandled exceptions are automatically shown on the LCD with useful debug
+information.
+
+Still, for user-facing programs, catch expected errors:
+
+.. code-block:: python
+
+   try:
+       load_patch(name)
+   except Exception as e:
+       sb.display_error(e, "Load failed")
+
