@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Quick Start &#8212; SquishBox 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="User Guide" href="userguide.html" />
+    <link rel="prev" title="SquishBox Documentation" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="quick-start">
+<h1>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">¶</a></h1>
+<p>Follow the steps below to get a SquishBox up and running quickly. Some or all
+of the hardware steps can be skipped by purchasing a kit or fully assembled
+unit from the Geek Funk Labs <a class="reference external" href="https://geekfunklabs.com/store">store</a>.</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#fabricating-pcb-and-enclosure">Fabricating PCB and Enclosure</a></p></li>
+<li><p><a class="reference internal" href="#putting-it-together">Putting it Together</a></p></li>
+<li><p><a class="reference internal" href="#installing-the-software">Installing the Software</a></p></li>
+<li><p><a class="reference internal" href="#basic-usage">Basic Usage</a></p></li>
+</ol>
+<section id="fabricating-pcb-and-enclosure">
+<h2>Fabricating PCB and Enclosure<a class="headerlink" href="#fabricating-pcb-and-enclosure" title="Link to this heading">¶</a></h2>
+<p>The PCB fabrication files include only the surface-mount components for
+automated assembly. Through-hole components are intended to be sourced
+separately and soldered by hand.</p>
+<p>Load the enclosure model files in <code class="docutils literal notranslate"><span class="pre">hardware/enclosure/</span></code> into your preferred
+slicer software for 3D printing. All parts are designed to print flat-side
+down without supports.</p>
+<p>Three enclosure variants are provided:</p>
+<ul class="simple">
+<li><p><strong>basic</strong> — Fits Raspberry Pi 3 Model B+ and Raspberry Pi 4 Model B.
+A Raspberry Pi 5 can fit, but not with the standard fan installed.</p></li>
+<li><p><strong>deluxe</strong> — Fits Pi 3/4 and adds mounting points for two momentary
+footswitches and two LEDs, which can be connected to the P1 header on
+the SquishBox PCB.</p></li>
+<li><p><strong>mini</strong> — Fits Raspberry Pi Model A+, with an enlarged cutout to
+accommodate wide USB cables or adapters.</p></li>
+</ul>
+<p>Recommended print notes:</p>
+<ul class="simple">
+<li><p>PLA is sufficient, though other materials may be used for specific traits</p></li>
+<li><p>Infill is not critical due to the small internal volume</p></li>
+<li><p>Use at least 2–3 wall layers for good strength</p></li>
+</ul>
+</section>
+<section id="putting-it-together">
+<h2>Putting it Together<a class="headerlink" href="#putting-it-together" title="Link to this heading">¶</a></h2>
+<p>Insert the through-hole components from the side of the PCB with the matching
+silkscreen outlines, then solder them in place.</p>
+<p>Install the LCD module last, as it blocks access to several other solder
+points.</p>
+<p>Mount the completed PCB into the enclosure by passing the rotary encoder shaft
+and audio jacks through the corresponding openings, then secure them with the
+included washers and nuts.</p>
+<p>Install the Raspberry Pi by plugging its GPIO header into the 2x20 socket,
+then fasten the lid in place.</p>
+</section>
+<section id="installing-the-software">
+<h2>Installing the Software<a class="headerlink" href="#installing-the-software" title="Link to this heading">¶</a></h2>
+<p>Log in to the Raspberry Pi as a regular user and run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-sL<span class="w"> </span>geekfunklabs.com/squishbox<span class="w"> </span><span class="p">|</span><span class="w"> </span>bash
+</pre></div>
+</div>
+<p>Answer the prompts, wait for the installation to complete, then reboot the Pi
+to activate the LCD and control interface.</p>
+</section>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading">¶</a></h2>
+<p>On first boot, the SquishBox launches a menu system for starting apps or
+changing system settings.</p>
+<p>Controls:</p>
+<ul class="simple">
+<li><p>Turn the rotary encoder to move through menu items</p></li>
+<li><p>Tap the encoder to confirm a selection</p></li>
+<li><p>Press and hold the encoder to cancel or return to the previous screen</p></li>
+</ul>
+<p>To safely power down before disconnecting power, choose <strong>Shutdown</strong> from the
+<strong>Exit</strong> menu.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">SquishBox</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=GeekFunkLabs&repo=squishbox&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#fabricating-pcb-and-enclosure">Fabricating PCB and Enclosure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#putting-it-together">Putting it Together</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installing-the-software">Installing the Software</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assembly.html">Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html">Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Bill Peterson.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.0.4</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/quickstart.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

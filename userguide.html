@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>User Guide &#8212; SquishBox 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Assembly" href="assembly.html" />
+    <link rel="prev" title="Quick Start" href="quickstart.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="user-guide">
+<h1>User Guide<a class="headerlink" href="#user-guide" title="Link to this heading">¶</a></h1>
+<p>When powered on, the SquishBox starts a launcher that allows you to run
+applications, browse tools, or modify system settings.</p>
+<p>Navigation is designed to be simple and usable without a keyboard or display
+larger than the built-in LCD.</p>
+<section id="basic-controls">
+<h2>Basic Controls<a class="headerlink" href="#basic-controls" title="Link to this heading">¶</a></h2>
+<p>The primary control is the pushbutton rotary encoder.</p>
+<ul class="simple">
+<li><p>Turn the encoder to move through menus or adjust values</p></li>
+<li><p>Tap the encoder to confirm a selection</p></li>
+<li><p>Press and hold the encoder to cancel, go back, or exit the current screen</p></li>
+</ul>
+<p>Most built-in applications follow this same control scheme.</p>
+<section id="text-entry">
+<h3>Text Entry<a class="headerlink" href="#text-entry" title="Link to this heading">¶</a></h3>
+<p>The SquishBox includes an on-screen text entry mode for naming files,
+editing settings, and entering text without a keyboard.</p>
+<p>Pressing the encoder toggles between two cursor modes:</p>
+<ul class="simple">
+<li><p><strong>Blinking block cursor</strong> — Move the cursor position by turning the encoder</p></li>
+<li><p><strong>Blinking underline cursor</strong> — Change the current character by turning the encoder</p></li>
+</ul>
+<p>This allows text to be entered entirely from the front panel.</p>
+<p>If a USB or wireless keyboard is connected to the Raspberry Pi, keyboard input
+is also accepted anywhere text entry is available.</p>
+</section>
+<section id="safe-shutdown">
+<h3>Safe Shutdown<a class="headerlink" href="#safe-shutdown" title="Link to this heading">¶</a></h3>
+<p>To safely power down the system before disconnecting power, choose
+<strong>Shutdown</strong> from the <strong>Exit</strong> menu.</p>
+<p>This helps prevent filesystem corruption or SD card damage.</p>
+</section>
+</section>
+<section id="hardware-controls-and-connections">
+<h2>Hardware Controls and Connections<a class="headerlink" href="#hardware-controls-and-connections" title="Link to this heading">¶</a></h2>
+<section id="display-contrast-adjustment">
+<h3>Display Contrast Adjustment<a class="headerlink" href="#display-contrast-adjustment" title="Link to this heading">¶</a></h3>
+<p>The LCD contrast trimmer is accessible with the Raspberry Pi installed and the
+rear cover removed.</p>
+<p>Use a small screwdriver to adjust the trimmer for the best display clarity.</p>
+<p>Contrast is controlled by both:</p>
+<ul class="simple">
+<li><p>The hardware trimmer potentiometer</p></li>
+<li><p>Software contrast settings</p></li>
+</ul>
+<p>For best results, install the software first, then adjust the trimmer so the
+software setting has a useful adjustment range.</p>
+<figure class="align-default" id="id1">
+<img alt="screwdriver adjusting hardware contrast potentiometer" src="_images/contrast-pot-adjustment.jpg" />
+<figcaption>
+<p><span class="caption-text">Adjustment of hardware contrast</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="audio-outputs">
+<h3>Audio Outputs<a class="headerlink" href="#audio-outputs" title="Link to this heading">¶</a></h3>
+<p>The SquishBox provides two 1/4” audio output jacks.</p>
+<p>Physical orientation:</p>
+<ul class="simple">
+<li><p><strong>Rear jack</strong> = Left / Headphone output</p></li>
+<li><p><strong>Front jack</strong> = Right / Mono output</p></li>
+</ul>
+<p>(When viewed face-on, these appear on the left and right sides respectively.)</p>
+<p>Behavior:</p>
+<ul class="simple">
+<li><p>If only the <strong>Right / Mono</strong> jack is connected, left and right channels are
+summed to mono on that output.</p></li>
+<li><p>If only the <strong>Left / Headphone</strong> jack is connected, stereo audio is routed to
+the tip and sleeve of a TRS connector for headphone use.</p></li>
+</ul>
+<p>The PCB silkscreen also labels both jacks.</p>
+<figure class="align-default" id="id2">
+<img alt="1/4&quot; cable plugged into right audio port" src="_images/audio-jacks-mono.jpg" />
+<figcaption>
+<p><span class="caption-text">Audio ports in mono connection mode</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="midi-trs-ports">
+<h3>MIDI TRS Ports<a class="headerlink" href="#midi-trs-ports" title="Link to this heading">¶</a></h3>
+<p>The SquishBox includes MIDI input and output on 3.5 mm TRS minijacks.</p>
+<p>Physical orientation:</p>
+<ul class="simple">
+<li><p><strong>Front jack</strong> = MIDI Out</p></li>
+<li><p><strong>Rear jack</strong> = MIDI In</p></li>
+</ul>
+<p>(When viewed from the front, these appear on the left and right sides respectively.)</p>
+<p>The PCB silkscreen also identifies each port.</p>
+<p>Headers with jumper blocks allow the MIDI jacks to be configured for either
+TRS MIDI wiring standard:</p>
+<ul class="simple">
+<li><p><strong>Type A</strong> = horizontal jumper position ( = )</p></li>
+<li><p><strong>Type B</strong> = vertical jumper position ( ‖ )</p></li>
+</ul>
+<p>Set both jumpers to match the equipment you are connecting.</p>
+<figure class="align-default" id="id3">
+<img alt="1/8&quot; TRS cable plugged into right minijack" src="_images/midi-minijacks-in.jpg" />
+<figcaption>
+<p><span class="caption-text">Connection to MIDI IN minijack</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+</section>
+<section id="included-apps">
+<h2>Included Apps<a class="headerlink" href="#included-apps" title="Link to this heading">¶</a></h2>
+<p>The included applications serve two purposes:</p>
+<ul class="simple">
+<li><p>Fully supported tools and audio programs for daily use</p></li>
+<li><p>Reference examples for developers using the SquishBox Python API</p></li>
+</ul>
+<p>Bug reports and feature requests can be submitted through the project GitHub
+issue tracker.</p>
+<section id="utilities">
+<h3>Utilities<a class="headerlink" href="#utilities" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">launcher.py</span></code></dt><dd><p>Main launcher used to start applications and access system settings.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">sbedit.py</span></code></dt><dd><p>Lightweight text editor that supports both encoder input and keyboards.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">glyphedit.py</span></code></dt><dd><p>Utility for creating and editing custom LCD glyph characters.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">sbcommander.py</span></code></dt><dd><p>File manager for copying, moving, renaming, deleting files, and running
+shell commands.</p>
+</dd>
+</dl>
+</section>
+<section id="sound-programs">
+<h3>Sound Programs<a class="headerlink" href="#sound-programs" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">fpatcherbox.py</span></code></dt><dd><p>Flexible synth and sound module built around the
+<a class="reference external" href="https://www.fluidsynth.org/">FluidSynth</a> engine using the
+<a class="reference external" href="https://geekfunklabs.github.io/fluidpatcher/">FluidPatcher</a> Python package.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">amsynthbox.py</span></code></dt><dd><p>Front-end wrapper for the amsynth analog-modeling synthesizer.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">trackbox.py</span></code></dt><dd><p>Playlist-based music player with live track reordering and quick cuts.</p>
+</dd>
+</dl>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">SquishBox</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=GeekFunkLabs&repo=squishbox&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">User Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-controls">Basic Controls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hardware-controls-and-connections">Hardware Controls and Connections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#included-apps">Included Apps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="assembly.html">Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html">Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Bill Peterson.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.0.4</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/userguide.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

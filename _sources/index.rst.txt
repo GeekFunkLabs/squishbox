@@ -1,24 +1,34 @@
-.. SquishBox documentation master file, created by
-   sphinx-quickstart on Sat Jan 13 10:24:24 2024.
+SquishBox Documentation
+=======================
 
-SquishBox Instructions
-======================
+The SquishBox is an add-on board for the Raspberry Pi 3B+/4 that bundles
+a DAC, 1/4" ouputs, MIDI in/out with minijacks, a 16x2 LCD, and a
+pushbutton rotary encoder.
+It is designed to be an embedded computer for audio applications,
+such as a synth module or audio player.
+It has a python API for easy access to buttons, LCD, and system functions.
+Several pre-built apps are included.
 
-The SquishBox is an enclosure for the Raspberry Pi combined with an add-on board that provides a DAC for audio output, a character LCD, a rotary encoder, and a momentary stompswitch. This makes it useful as a portable device for software audio applications like a synthesizer or audio player.
+* `Official Documentation <https://geekfunklabs.github.io/squishbox>`__
+* `Source Repository <https://github.com/GeekFunkLabs/squishbox>`__
 
-These instructions explain how to put together the SquishBox and install software. The SquishBox can be obtained fully-assembled, in which case skip to the :doc:`installation` section for instructions on installing a Raspberry Pi into the unit. Otherwise, start with :doc:`assembly`. The :doc:`software` section explains how to install for controlling the LCD and buttons, and some default applications. This can be done before or after installing the Raspberry Pi in the SquishBox.
+The SquishBox can be fabricated from scratch using the included design
+files, or obtained as a kit or fully assembled device from the
+Geek Funk Labs `store <https://geekfunklabs.com/store>`__.
+Software is installed in an existing Raspberry Pi OS using a
+command-line installer script.
+
+.. figure:: images/built-and-enclosure.jpg
+
+   Assembled SquishBox electronics (left) and enclosure (right)
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   quickstart
+   userguide
    assembly
-   installation
    software
+   reference
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

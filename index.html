@@ -5,15 +5,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>SquishBox Instructions &#8212; SquishBox 0.9 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
-    <script src="_static/documentation_options.js?v=049aceee"></script>
-    <script src="_static/doctools.js?v=9a2dae69"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <title>SquishBox Documentation &#8212; SquishBox 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Assembly" href="assembly.html" />
+    <link rel="next" title="Quick Start" href="quickstart.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -31,37 +32,67 @@
 
           <div class="body" role="main">
             
-  <section id="squishbox-instructions">
-<h1>SquishBox Instructions<a class="headerlink" href="#squishbox-instructions" title="Link to this heading">¶</a></h1>
-<p>The SquishBox is an enclosure for the Raspberry Pi combined with an add-on board that provides a DAC for audio output, a character LCD, a rotary encoder, and a momentary stompswitch. This makes it useful as a portable device for software audio applications like a synthesizer or audio player.</p>
-<p>These instructions explain how to put together the SquishBox and install software. The SquishBox can be obtained fully-assembled, in which case skip to the <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> section for instructions on installing a Raspberry Pi into the unit. Otherwise, start with <a class="reference internal" href="assembly.html"><span class="doc">Assembly</span></a>. The <a class="reference internal" href="software.html"><span class="doc">Software</span></a> section explains how to install for controlling the LCD and buttons, and some default applications. This can be done before or after installing the Raspberry Pi in the SquishBox.</p>
+  <section id="squishbox-documentation">
+<h1>SquishBox Documentation<a class="headerlink" href="#squishbox-documentation" title="Link to this heading">¶</a></h1>
+<p>The SquishBox is an add-on board for the Raspberry Pi 3B+/4 that bundles
+a DAC, 1/4” ouputs, MIDI in/out with minijacks, a 16x2 LCD, and a
+pushbutton rotary encoder.
+It is designed to be an embedded computer for audio applications,
+such as a synth module or audio player.
+It has a python API for easy access to buttons, LCD, and system functions.
+Several pre-built apps are included.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://geekfunklabs.github.io/squishbox">Official Documentation</a></p></li>
+<li><p><a class="reference external" href="https://github.com/GeekFunkLabs/squishbox">Source Repository</a></p></li>
+</ul>
+<p>The SquishBox can be fabricated from scratch using the included design
+files, or obtained as a kit or fully assembled device from the
+Geek Funk Labs <a class="reference external" href="https://geekfunklabs.com/store">store</a>.
+Software is installed in an existing Raspberry Pi OS using a
+command-line installer script.</p>
+<figure class="align-default" id="id1">
+<img alt="_images/built-and-enclosure.jpg" src="_images/built-and-enclosure.jpg" />
+<figcaption>
+<p><span class="caption-text">Assembled SquishBox electronics (left) and enclosure (right)</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="assembly.html">Assembly</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="assembly.html#components">Components</a></li>
-<li class="toctree-l2"><a class="reference internal" href="assembly.html#tools">Tools</a></li>
-<li class="toctree-l2"><a class="reference internal" href="assembly.html#electronics">Electronics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="assembly.html#hardware">Hardware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#fabricating-pcb-and-enclosure">Fabricating PCB and Enclosure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#putting-it-together">Putting it Together</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#installing-the-software">Installing the Software</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#basic-usage">Basic Usage</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide.html">User Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide.html#basic-controls">Basic Controls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide.html#hardware-controls-and-connections">Hardware Controls and Connections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide.html#included-apps">Included Apps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="assembly.html">Assembly</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="assembly.html#components">Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="assembly.html#electronics-assembly">Electronics Assembly</a></li>
+<li class="toctree-l2"><a class="reference internal" href="assembly.html#final-assembly">Final Assembly</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="software.html">Software</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="software.html#setup">Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="software.html#usage">Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="software.html#api-reference">API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="software.html#application-model">Application Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="software.html#using-the-lcd">Using the LCD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="software.html#menus">Menus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="software.html#input-output-access">Input/Output Access</a></li>
+<li class="toctree-l2"><a class="reference internal" href="software.html#miscellaneous-toos">Miscellaneous Toos</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#pcb">PCB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#api">API</a></li>
 </ul>
 </li>
 </ul>
 </div>
-</section>
-<section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h1>
-<ul class="simple">
-<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
-</ul>
 </section>
 
 
@@ -69,7 +100,7 @@
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="#">SquishBox</a></h1>
 
@@ -78,40 +109,33 @@
 
 
 
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=GeekFunkLabs&repo=squishbox&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
 
 
-<h3>Navigation</h3>
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="assembly.html">Assembly</a></li>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="software.html">Software</a></li>
-</ul>
 
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="#">Documentation overview</a><ul>
-      <li>Next: <a href="assembly.html" title="next chapter">Assembly</a></li>
-  </ul></li>
-</ul>
-</div>
+
+
+
 <search id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </search>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assembly.html">Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html">Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
+</ul>
 
 
         </div>
@@ -119,11 +143,11 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &#169;2024, Bill Peterson.
+      &#169;2026, Bill Peterson.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.0.4</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
       |
       <a href="_sources/index.rst.txt"
