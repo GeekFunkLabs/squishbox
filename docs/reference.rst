@@ -8,7 +8,7 @@ This section collects hardware documentation, fabrication references,
 and connector pinouts for users modifying or servicing the SquishBox.
 
 Download manufacturing files from
-https://github.com/GeekFunkLabs/squishbox/hardware/pcb/fabrication.
+https://github.com/GeekFunkLabs/squishbox/tree/main/hardware/pcb/fabrication.
 
 .. figure:: images/pcb-3drender.png
 
