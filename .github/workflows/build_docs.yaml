@@ -1,19 +1,49 @@
-name: Deploy Sphinx documentation to Pages
+name: Build and Deploy Docs
 
 on:
   push:
-    branches: [main] # branch to trigger deployment
-  workflow_dispatch:
+    branches: [main]
 
 jobs:
-  pages:
-    runs-on: ubuntu-20.04
+  docs:
+    runs-on: ubuntu-latest
+
     steps:
-    - id: deployment
-      uses: sphinx-notes/pages@v3
-      with:
-        publish: false
-    - uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ${{ steps.deployment.outputs.artifact }}
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python deps
+        run: |
+          pip install sphinx alabaster
+
+      - name: Install LaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            latexmk
+
+      - name: Build HTML
+        run: sphinx-build -b html docs docs/_build/html
+
+      - name: Build PDF
+        run: |
+          sphinx-build -b latex docs docs/_build/latex
+          make -C docs/_build/latex
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/_build/html
+
+      - name: Upload PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: squishbox-pdf
+          path: docs/_build/latex/*.pdf

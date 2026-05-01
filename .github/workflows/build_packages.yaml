@@ -3,7 +3,7 @@ name: Build Debian packages
 on:
   workflow_dispatch:
   push:
-    branches: [v0.9-dev]
+    branches: [main]
   release:
     types: [published]
 
