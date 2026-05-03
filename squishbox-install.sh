@@ -1,39 +1,27 @@
 #!/usr/bin/env bash
 #
-# SquishBox Production Installer
+# SquishBox Installer
 #
 
 set -euo pipefail
 
-########################################
-# Defaults
-########################################
-
-MODE="ask"                  # minimal | full
-INSTALL_WEB="ask"
-LEGACY_HW="ask"
-NONINTERACTIVE=0
+MODE="full"
+HARDWARE="current"
+INSTALL_WEB="no"
 
 BASE="https://github.com/geekfunklabs/squishbox/releases/latest/download"
-VENV_DIR="/opt/squishbox/venv"
 SB_DIR="$HOME/SquishBox"
+VENV_DIR="/opt/squishbox/venv"
 
-INTERACTIVE=1
-
-########################################
-# Utility
-########################################
+# Utility Functions
 
 log() { echo -e "\n[SquishBox] $*\n"; }
+
 die() { echo "Error: $*" >&2; exit 1; }
 
 ask_yes_no() {
     local prompt="$1"
     local default="$2"
-
-    if [[ $INTERACTIVE -eq 0 ]]; then
-        [[ "$default" == "yes" ]] && return 0 || return 1
-    fi
 
     while true; do
         if [[ "$default" == "yes" ]]; then
@@ -51,32 +39,7 @@ ask_yes_no() {
     done
 }
 
-########################################
-# Argument Parsing
-########################################
-
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --minimal) MODE="minimal"; shift ;;
-        --full) MODE="full"; shift ;;
-        --web) INSTALL_WEB="yes"; shift ;;
-        --no-web) INSTALL_WEB="no"; shift ;;
-        -y|--yes) NONINTERACTIVE=1; shift ;;
-        -h|--help)
-            echo "Usage: $0 [--minimal|--full] [--web] [-y]"
-            exit 0
-            ;;
-        *) die "Unknown option: $1" ;;
-    esac
-done
-
-if [[ ! -t 0 || $NONINTERACTIVE -eq 1 ]]; then
-    INTERACTIVE=0
-fi
-
-########################################
 # Platform Checks
-########################################
 
 check_raspberry_pi() {
     if ! grep -qi raspberry /proc/device-tree/model 2>/dev/null; then
@@ -93,33 +56,7 @@ check_os_version() {
     fi
 }
 
-########################################
-# GPIO Chip Detection
-########################################
-
-detect_gpio_chip() {
-    if [[ -e /dev/gpiochip4 ]]; then
-        log "Older GPIO detected, updating config..."
-        sudo sed -i 's|^gpio_chip:.*|gpio_chip: /dev/gpiochip4|' \
-            "$SB_DIR/squishboxconf.yaml" || true
-    fi
-}
-
-########################################
-# Legacy Hardware
-########################################
-
-configure_legacy_hw() {
-    if [[ $HARDWARE != "current" ]]; then
-        mkdir -p "$SB_DIR/config/squishboxconf.d"
-        cp "/usr/share/squishbox/hardware/$HARDWARE.yaml" \
-            "$SB_DIR/config/squishboxconf.d/10-hardware.yaml"
-    fi
-}
-
-########################################
 # Core Installation
-########################################
 
 install_minimal() {
     log "Installing base system..."
@@ -155,56 +92,15 @@ install_full() {
         tar -xzC "$SB_DIR/sounds"
 }
 
-########################################
-# User Config
-########################################
+# Legacy Hardware
 
-configure_user() {
-    sudo usermod -aG input,audio,plugdev "$USER_NAME"
-    
-    bashrc_add() {
-        grep -qxF "$1" "$HOME/.bashrc" || echo "$1" >> "$HOME/.bashrc"
-    }
-
-    bashrc_add "FLUIDPATCHER_CONFIG=$HOME/SquishBox/config/fpatcherboxconf.yaml"
-    bashrc_add "squishbox-launcher=$VENV_DIR/bin/python -m squishbox.apps.launcher"
-    bashrc_add "squishbox-python=$VENV_DIR/bin/python"
-    bashrc_add "squishbox-pip=$VENV_DIR/bin/pip"
+configure_legacy_hw() {
+    mkdir -p "$SB_DIR/config/squishboxconf.d"
+    cp "/usr/share/squishbox/hardware/$HARDWARE.yaml" \
+        "$SB_DIR/config/squishboxconf.d/10-hardware.yaml"
 }
 
-########################################
-# Boot Firmware Configuration
-########################################
-
-configure_boot_files() {
-
-    BOOT=/boot/firmware
-    [ -d "$BOOT" ] || BOOT=/boot
-
-    CMDLINE="$BOOT/cmdline.txt"
-    CONFIG="$BOOT/config.txt"
-
-    echo "Configuring boot files in $BOOT"
-
-    # remove serial console
-    sed -i -E 's/console=serial[0-9]+,[0-9]+ ?//g' "$CMDLINE"
-
-    # ensure tty1 console
-    grep -q "console=tty1" "$CMDLINE" || \
-        sed -i '1 s/$/ console=tty1/' "$CMDLINE"
-
-    add_overlay() {
-        grep -qxF "$1" "$CONFIG" || echo "$1" >> "$CONFIG"
-    }
-
-    add_overlay "dtoverlay=hifiberry-dac"
-    add_overlay "dtoverlay=midi-uart0"
-    add_overlay "dtoverlay=miniuart-bt"
-}
-
-########################################
 # TinyFileManager (Optional)
-########################################
 
 install_web_manager() {
     [[ "$INSTALL_WEB" == "no" ]] && return
@@ -235,29 +131,87 @@ install_web_manager() {
     sudo setfacl -d -m g:www-data:rwx "$HOME"/SquishBox
 }
 
-########################################
-# Shutdown/Reboot Prompt
-########################################
+# GPIO Chip Detection
 
-finish_prompt() {
-    if ask_yes_no "Reboot now?" yes; then
-        sudo reboot
-    else
-        log "Installation complete. Please reboot manually."
+detect_gpio_chip() {
+    if [[ -e /dev/gpiochip4 ]]; then
+        log "Older GPIO detected, updating config..."
+        sudo sed -i 's|^gpio_chip:.*|gpio_chip: /dev/gpiochip4|' \
+            "$SB_DIR/squishboxconf.yaml" || true
     fi
 }
 
-########################################
-# Execution
-########################################
+# Boot Firmware Configuration
+
+configure_boot_files() {
+
+    BOOT=/boot/firmware
+    [ -d "$BOOT" ] || BOOT=/boot
+
+    CMDLINE="$BOOT/cmdline.txt"
+    CONFIG="$BOOT/config.txt"
+
+    echo "Configuring boot files in $BOOT"
+
+    # remove serial console
+    sudo sed -i -E 's/console=serial[0-9]+,[0-9]+ ?//g' "$CMDLINE"
+
+    # ensure tty1 console
+    if ! grep -q "console=tty1" "$CMDLINE"; then
+        sudo sed -i '1 s/$/ console=tty1/' "$CMDLINE"
+    fi
+
+    add_overlay() {
+        local line="$1"
+        if ! grep -qxF "$line" "$CONFIG"; then
+            echo "$line" | sudo tee -a "$CONFIG" > /dev/null
+        fi
+    }
+
+    add_overlay "dtoverlay=hifiberry-dac"
+    add_overlay "dtoverlay=midi-uart0"
+    add_overlay "dtoverlay=miniuart-bt"
+}
+
+# User Config
+
+configure_user() {
+    sudo usermod -aG input,audio,plugdev "$USER"
+
+    bashrc_add() {
+        grep -qxF "$1" "$HOME/.bashrc" || echo "$1" >> "$HOME/.bashrc"
+    }
+
+    # Environment + aliases
+    bashrc_add "export FLUIDPATCHER_CONFIG=\$HOME/SquishBox/config/fpatcherboxconf.yaml"
+    bashrc_add "alias squishbox-launcher='$VENV_DIR/bin/python -m squishbox.apps.launcher'"
+    bashrc_add "alias squishbox-python='$VENV_DIR/bin/python'"
+    bashrc_add "alias squishbox-pip='$VENV_DIR/bin/pip'"
+
+    # Service control aliases (note: system-level, so sudo required)
+    bashrc_add "alias squishbox-service-start='sudo systemctl start squishbox-system@$USER'"
+    bashrc_add "alias squishbox-service-stop='sudo systemctl stop squishbox-system@$USER'"
+    bashrc_add "alias squishbox-service-restart='sudo systemctl restart squishbox-system@$USER'"
+    bashrc_add "alias squishbox-service-status='systemctl status squishbox-system@$USER'"
+
+    # Enable service at boot
+    sudo systemctl enable --now "squishbox-system@$USER.service"
+}
+
+### Execution
 
 check_raspberry_pi
 check_os_version
 
-if [[ "$MODE" == "ask" ]]; then
-    ask_yes_no "Full install (no=base system only)?" yes \
-        && MODE="full" || MODE="minimal"
-fi
+# Get User Input
+
+log "Requesting administrator privileges..."
+sudo -v || die "This installer requires sudo privileges."
+( while true; do sudo -n true; sleep 60; done ) &
+trap 'kill $!' EXIT
+
+ask_yes_no "Full install (no=base system only)?" yes \
+    && MODE="full" || MODE="minimal"
 
 echo "Select your SquishBox hardware:"
 select HW in \
@@ -278,26 +232,35 @@ select HW in \
     esac
 done
 
-if [[ "$INSTALL_WEB" == "ask" ]]; then
-    if ask_yes_no "Install web file manager?" no; then
-        INSTALL_WEB="yes"
-        read -rp "Web username [squishbox]: " WEBUSER
-        WEBUSER=${WEBUSER:-squishbox}
-        read -rp "Web password [geekfunklabs]: " WEBPASS
-        WEBPASS=${WEBPASS:-geekfunklabs}
-    else
-        INSTALL_WEB="no"
-    fi
+if ask_yes_no "Install web file manager?" no; then
+    INSTALL_WEB="yes"
+    read -rp "Web username [squishbox]: " WEBUSER
+    WEBUSER=${WEBUSER:-squishbox}
+    read -rp "Web password [geekfunklabs]: " WEBPASS
+    WEBPASS=${WEBPASS:-geekfunklabs}
+else
+    INSTALL_WEB="no"
 fi
 
-configure_boot_files
+# Perform Setup Tasks
+
 install_minimal
-detect_gpio_chip
-configure_legacy_hw
 if [[ "$MODE" == "full" ]]; then
-    install_full_extras
+    install_full
 fi
+if [[ $HARDWARE != "current" ]]; then
+    configure_legacy_hw
+fi
+if [[ "$INSTALL_WEB" == "yes" ]]; then
+    install_web_manager
+fi
+detect_gpio_chip
+configure_boot_files
 configure_user
-install_web_manager
 
-finish_prompt
+if ask_yes_no "Reboot now?" yes; then
+    sudo reboot
+else
+    log "Installation complete. Please reboot manually."
+fi
+
