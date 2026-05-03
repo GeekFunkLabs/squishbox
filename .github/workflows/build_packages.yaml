@@ -21,7 +21,16 @@ jobs:
           apt-get update
           apt-get install -y \
             devscripts debhelper dpkg-dev fakeroot gcc pkgconf \
-            libasound2-dev crossbuild-essential-arm64
+            libasound2-dev
+            
+          dpkg --add-architecture arm64
+          
+          apt-get update
+          apt-get install -y \
+            crossbuild-essential-arm64 \
+            libc6:arm64 \
+            libasound2t64:arm64 \
+            libasound2-dev:arm64
 
       - name: Update changelog
         run: |
