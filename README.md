@@ -65,16 +65,12 @@ sb = squishbox.SquishBox()
 
 sb.lcd.clear()
 sb.lcd.write("Audio Test", row=0)
-
 while True:
     i, option = sb.menu_choose(["Noise", "Sine", "Exit"], row=1)
-
     if option == "Noise":
         sb.shell_cmd("speaker-test -l2 -c2")
-
     elif option == "Sine":
         sb.shell_cmd("speaker-test -l2 -c2 -tsine")
-
     elif option == "Exit":
         break
 ```
