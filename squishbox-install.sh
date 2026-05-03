@@ -3,6 +3,12 @@
 # SquishBox Installer
 #
 
+if [ -t 0 ]; then
+    :
+else
+    exec < /dev/tty
+fi
+
 set -euo pipefail
 
 MODE="full"
@@ -64,7 +70,7 @@ install_minimal() {
     # add mini apt repo to sources
     echo "deb [trusted=yes] $BASE ./" | \
         sudo tee /etc/apt/sources.list.d/squishbox.list    
-    sudo apt udpate
+    sudo apt update
     sudo apt install -y squishbox-system
 
     # install python package
@@ -207,7 +213,7 @@ check_os_version
 
 log "Requesting administrator privileges..."
 sudo -v || die "This installer requires sudo privileges."
-( while true; do sudo -n true; sleep 60; done ) &
+( while true; do sudo -n true; sleep 60; done ) 2>/dev/null &
 trap 'kill $!' EXIT
 
 ask_yes_no "Full install (no=base system only)?" yes \
