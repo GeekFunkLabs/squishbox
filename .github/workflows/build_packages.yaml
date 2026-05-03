@@ -1,8 +1,6 @@
 name: Build Debian packages
 
 on:
-  push:
-    branches: [main]
   release:
     types: [published]
 
