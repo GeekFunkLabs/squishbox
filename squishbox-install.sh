@@ -15,9 +15,9 @@ MODE="full"
 HARDWARE="current"
 INSTALL_WEB="no"
 
-BASE="https://github.com/geekfunklabs/squishbox/releases/latest/download"
 SB_DIR="$HOME/SquishBox"
 VENV_DIR="/opt/squishbox/venv"
+TMP=$(mktemp -d)
 
 # Utility Functions
 
@@ -45,6 +45,16 @@ ask_yes_no() {
     done
 }
 
+api_find_url() {
+    local pattern="$1"
+
+    curl -s "https://api.github.com/repos/geekfunklabs/squishbox/releases/latest" \
+    | grep -o '"browser_download_url": *"[^"]*"' \
+    | cut -d '"' -f 4 \
+    | grep -E "$pattern" \
+    | head -n 1
+}
+
 # Platform Checks
 
 check_raspberry_pi() {
@@ -57,23 +67,32 @@ check_raspberry_pi() {
 check_os_version() {
     source /etc/os-release
     if [[ "$VERSION_ID" < "13" ]]; then
-        log "WARNING: Recommended OS is Raspberry Pi OS Trixie or newer."
+        log "WARNING: Detected linux version: $VERSION_ID"
+        log "Recommended Raspberry Pi OS is linux 13 (Debian Trixie)."
         ask_yes_no "Continue anyway?" no || exit 1
     fi
 }
 
-# Core Installation
+check_architecture() {
+    ARCH=$(dpkg --print-architecture)
 
-install_minimal() {
+    if [[ "$ARCH" != "arm64" ]]; then
+        log "WARNING: Detected architecture: $ARCH"
+        log "This installer requires Raspberry Pi OS (64-bit, arm64)."
+        ask_yes_no "Continue anyway?" no || exit 1
+    fi
+}
+
+# Package Installation
+
+install_base() {
     log "Installing base system..."
 
-    # add mini apt repo to sources
-    echo "deb [trusted=yes] $BASE ./" | \
-        sudo tee /etc/apt/sources.list.d/squishbox.list    
+    SYSTEM_URL=$(api_find_url squishbox-system_.*_arm64.deb)
+    curl -L "$SYSTEM_URL" -o "$TMP/system.deb"
     sudo apt update
-    sudo apt install -y squishbox-system
+    sudo apt install -y "$TMP/system.deb"
 
-    # install python package
     sudo python3 -m venv "$VENV_DIR" --system-site-packages
     "$VENV_DIR/bin/pip" install squishbox
 }
@@ -81,21 +100,16 @@ install_minimal() {
 install_full() {
     log "Installing full system..."
 
-    # add mini apt repo to sources
-    echo "deb [trusted=yes] $BASE ./" | \
-        sudo tee /etc/apt/sources.list.d/squishbox.list    
-    sudo apt udpate
-    sudo apt install -y squishbox-full
+    FULL_URL=$(api_find_url squishbox-full_.*_all.deb)
+    curl -L "$FULL_URL" -o "$TMP/full.deb"
+    sudo apt install -y "$TMP/full.deb"
 
-    # install python packages
-    sudo python3 -m venv "$VENV_DIR" --system-site-packages
-    "$VENV_DIR/bin/pip" install squishbox
     "$VENV_DIR/bin/pip" install fluidpatcher
 
     mkdir -p "$SB_DIR/sounds"
     log "Downloading soundfont collection..."
-    curl -L "$BASE/soundfonts_collection.tar.gz" | \
-        tar -xzC "$SB_DIR/sounds"
+    SOUNDS_URL=$(api_find_url soundfonts_collection.tar.gz)
+    curl -L "$SOUNDS_URL" | tar -xzC "$SB_DIR/sounds"
 }
 
 # Legacy Hardware
@@ -106,12 +120,12 @@ configure_legacy_hw() {
         "$SB_DIR/config/squishboxconf.d/10-hardware.yaml"
 }
 
-# TinyFileManager (Optional)
+# TinyFileManager Install and Config
 
 install_web_manager() {
-    [[ "$INSTALL_WEB" == "no" ]] && return
-
-    sudo apt install -y squishbox-web
+    WEB_URL=$(api_find_url squishbox-web_.*_all.deb)
+    curl -L "$WEB_URL" -o "$TMP/web.deb"
+    sudo apt install -y "$TMP/web.deb"
 
     HASH=$(php -r "echo password_hash('$WEBPASS', PASSWORD_DEFAULT);")
     ESCAPED_HASH=$(printf '%s\n' "$HASH" | sed 's/[&/\]/\\&/g')
@@ -141,7 +155,7 @@ install_web_manager() {
 
 detect_gpio_chip() {
     if [[ -e /dev/gpiochip4 ]]; then
-        log "Older GPIO detected, updating config..."
+        log "GPIO detected, updating config..."
         sudo sed -i 's|^gpio_chip:.*|gpio_chip: /dev/gpiochip4|' \
             "$SB_DIR/squishboxconf.yaml" || true
     fi
@@ -157,12 +171,10 @@ configure_boot_files() {
     CMDLINE="$BOOT/cmdline.txt"
     CONFIG="$BOOT/config.txt"
 
-    echo "Configuring boot files in $BOOT"
+    log "Configuring boot files in $BOOT"
 
-    # remove serial console
     sudo sed -i -E 's/console=serial[0-9]+,[0-9]+ ?//g' "$CMDLINE"
 
-    # ensure tty1 console
     if ! grep -q "console=tty1" "$CMDLINE"; then
         sudo sed -i '1 s/$/ console=tty1/' "$CMDLINE"
     fi
@@ -188,19 +200,16 @@ configure_user() {
         grep -qxF "$1" "$HOME/.bashrc" || echo "$1" >> "$HOME/.bashrc"
     }
 
-    # Environment + aliases
     bashrc_add "export FLUIDPATCHER_CONFIG=\$HOME/SquishBox/config/fpatcherboxconf.yaml"
     bashrc_add "alias squishbox-launcher='$VENV_DIR/bin/python -m squishbox.apps.launcher'"
     bashrc_add "alias squishbox-python='$VENV_DIR/bin/python'"
     bashrc_add "alias squishbox-pip='$VENV_DIR/bin/pip'"
 
-    # Service control aliases (note: system-level, so sudo required)
     bashrc_add "alias squishbox-service-start='sudo systemctl start squishbox-system@$USER'"
     bashrc_add "alias squishbox-service-stop='sudo systemctl stop squishbox-system@$USER'"
     bashrc_add "alias squishbox-service-restart='sudo systemctl restart squishbox-system@$USER'"
     bashrc_add "alias squishbox-service-status='systemctl status squishbox-system@$USER'"
 
-    # Enable service at boot
     sudo systemctl enable --now "squishbox-system@$USER.service"
 }
 
@@ -208,6 +217,7 @@ configure_user() {
 
 check_raspberry_pi
 check_os_version
+check_architecture
 
 # Get User Input
 
@@ -250,7 +260,7 @@ fi
 
 # Perform Setup Tasks
 
-install_minimal
+install_base
 if [[ "$MODE" == "full" ]]; then
     install_full
 fi

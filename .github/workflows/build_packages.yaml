@@ -1,18 +1,14 @@
 name: Build Debian packages
 
 on:
-  workflow_dispatch:
   release:
     types: [published]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: debian:latest
-
-    strategy:
-      matrix:
-        arch: [arm64, armhf]
+    container:
+      image: arm64v8/debian:latest
 
     steps:
       - name: Checkout repo
@@ -25,15 +21,6 @@ jobs:
           apt-get install -y \
             devscripts debhelper dpkg-dev fakeroot gcc pkgconf \
             libasound2-dev
-          
-          dpkg --add-architecture ${{ matrix.arch }}
-
-          apt-get update
-          apt-get install -y \
-            crossbuild-essential-${{ matrix.arch }} \
-            libc6:${{ matrix.arch }} \
-            libasound2t64:${{ matrix.arch }} \
-            libasound2-dev:${{ matrix.arch }}
 
       - name: Update changelog
         run: |
@@ -44,28 +31,15 @@ jobs:
 
       - name: Build package
         run: |
-          dpkg-buildpackage -us -uc -b -a${{ matrix.arch }} -Pcross
-          mkdir repo
-          cp ../*.deb repo/
-          cd repo
-          dpkg-scanpackages . /dev/null | gzip -9 > Packages.gz
+          dpkg-buildpackage -us -uc -b
 
       - name: Download soundfonts
         run: |
           curl -LO https://geekfunklabs.com/soundfonts_collection.tar.gz
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: debs-${{ matrix.arch }}
-          path: |
-            repo/*
-            soundfonts_collection.tar.gz
-
       - name: Upload to release
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            repo/*
+            *.deb
             soundfonts_collection.tar.gz

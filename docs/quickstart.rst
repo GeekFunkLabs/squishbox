@@ -56,7 +56,9 @@ then fasten the lid in place.
 Installing the Software
 -----------------------
 
-Log in to the Raspberry Pi as a regular user and run:
+The SquishBox software is targeted for a Pi 3B+/4 running Raspberry Pi OS
+(64-bit, based on Debian 13 "Trixie") or newer.
+To install on a fresh or existing system, log in as a regular user and run:
 
 .. code-block:: bash
 

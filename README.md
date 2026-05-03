@@ -28,7 +28,8 @@ Kits and pre-built units are also available from the Geek Funk Labs
 
 ## Installing
 
-The SquishBox software targets Raspberry Pi OS 13 (Trixie) on Pi 3B+/4.
+The SquishBox software is targeted for a Pi 3B+/4 running Raspberry Pi OS
+(64-bit, based on Debian 13 "Trixie") or newer.
 Other platforms may work but are not officially tested.
 
 To install on a fresh or existing system, log in as a regular user and run:

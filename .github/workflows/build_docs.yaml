@@ -36,14 +36,12 @@ jobs:
           sphinx-build -b latex docs docs/_build/latex
           make -C docs/_build/latex
 
+      - name: Copy PDF into HTML output
+        run: cp _build/latex/squishbox.pdf _build/html/squishbox-doc.pdf
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs/_build/html
 
-      - name: Upload PDF
-        uses: actions/upload-artifact@v4
-        with:
-          name: squishbox-pdf
-          path: docs/_build/latex/*.pdf
