@@ -37,7 +37,8 @@ jobs:
           make -C docs/_build/latex
 
       - name: Copy PDF into HTML output
-        run: cp _build/latex/squishbox.pdf _build/html/squishbox-doc.pdf
+        working-directory: docs/_build
+        run: cp latex/squishbox.pdf html/squishbox-doc.pdf
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
