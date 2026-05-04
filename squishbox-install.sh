@@ -10,7 +10,7 @@ HARDWARE="current"
 INSTALL_WEB="no"
 
 SB_DIR="$HOME/SquishBox"
-VENV_DIR="$SB_DIR/venv"
+VENV_DIR="$HOME/.local/share/squishbox/venv"
 
 # Utility Functions
 

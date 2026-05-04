@@ -7,7 +7,7 @@ Type=simple
 User=%i
 WorkingDirectory=/home/%i
 Environment=FLUIDPATCHER_CONFIG=/home/%i/SquishBox/config/fpatcherboxconf.yaml
-ExecStart=/home/%i/SquishBox/venv/bin/python -m squishbox.apps.launcher
+ExecStart=/home/%i/.local/share/squishbox/venv/bin/python -m squishbox.apps.launcher
 Restart=on-failure
 LimitMEMLOCK=infinity
 LimitRTPRIO=90
