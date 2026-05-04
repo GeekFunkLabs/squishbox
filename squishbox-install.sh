@@ -16,8 +16,7 @@ HARDWARE="current"
 INSTALL_WEB="no"
 
 SB_DIR="$HOME/SquishBox"
-VENV_DIR="/opt/squishbox/venv"
-TMP=$(mktemp -d)
+VENV_DIR="$SB_DIR/venv"
 
 # Utility Functions
 
@@ -89,11 +88,12 @@ install_base() {
     log "Installing base system..."
 
     SYSTEM_URL=$(api_find_url squishbox-system_.*_arm64.deb)
-    curl -L "$SYSTEM_URL" -o "$TMP/system.deb"
+    curl -L "$SYSTEM_URL" -o /tmp/system.deb
     sudo apt update
-    sudo apt install -y "$TMP/system.deb"
+    sudo dpkg -i /tmp/system.deb
+    sudo apt -f install -y
 
-    sudo python3 -m venv "$VENV_DIR" --system-site-packages
+    python3 -m venv "$VENV_DIR" --system-site-packages
     "$VENV_DIR/bin/pip" install squishbox
 }
 
@@ -101,8 +101,9 @@ install_full() {
     log "Installing full system..."
 
     FULL_URL=$(api_find_url squishbox-full_.*_all.deb)
-    curl -L "$FULL_URL" -o "$TMP/full.deb"
-    sudo apt install -y "$TMP/full.deb"
+    curl -L "$FULL_URL" -o /tmp/full.deb
+    sudo dpkg -i /tmp/full.deb
+    sudo apt -f install -y
 
     "$VENV_DIR/bin/pip" install fluidpatcher
 
@@ -124,8 +125,9 @@ configure_legacy_hw() {
 
 install_web_manager() {
     WEB_URL=$(api_find_url squishbox-web_.*_all.deb)
-    curl -L "$WEB_URL" -o "$TMP/web.deb"
-    sudo apt install -y "$TMP/web.deb"
+    curl -L "$WEB_URL" -o /tmp/web.deb
+    sudo dpkg -i /tmp/web.deb
+    sudo apt -f install -y
 
     HASH=$(php -r "echo password_hash('$WEBPASS', PASSWORD_DEFAULT);")
     ESCAPED_HASH=$(printf '%s\n' "$HASH" | sed 's/[&/\]/\\&/g')
@@ -149,16 +151,6 @@ install_web_manager() {
     find "$HOME"/SquishBox -type f -exec chmod 664 {} +
     sudo setfacl -R -m g:www-data:rwx "$HOME"/SquishBox
     sudo setfacl -d -m g:www-data:rwx "$HOME"/SquishBox
-}
-
-# GPIO Chip Detection
-
-detect_gpio_chip() {
-    if [[ -e /dev/gpiochip4 ]]; then
-        log "GPIO detected, updating config..."
-        sudo sed -i 's|^gpio_chip:.*|gpio_chip: /dev/gpiochip4|' \
-            "$SB_DIR/squishboxconf.yaml" || true
-    fi
 }
 
 # Boot Firmware Configuration
