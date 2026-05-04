@@ -106,7 +106,7 @@ install_full() {
     mkdir -p "$SB_DIR/sounds"
     log "Downloading soundfont collection..."
     SOUNDS_URL=$(api_find_url soundfonts_collection.tar.gz)
-    curl -L "$SOUNDS_URL" | tar -xzC "$SB_DIR/sounds"
+    curl -L "$SOUNDS_URL" | tar -xzkC "$SB_DIR/sounds"
 }
 
 # Legacy Hardware
