@@ -128,6 +128,7 @@ install_web_manager() {
     curl -L "$WEB_URL" -o /tmp/web.deb
     sudo dpkg -i /tmp/web.deb
     sudo apt -f install -y
+    sudo install -D -m 0644 /usr/share/squishbox-web/* /var/www/html/
 
     HASH=$(php -r "echo password_hash('$WEBPASS', PASSWORD_DEFAULT);")
     ESCAPED_HASH=$(printf '%s\n' "$HASH" | sed 's/[&/\]/\\&/g')
@@ -137,9 +138,8 @@ install_web_manager() {
         -e "s/__USERNAME__/$ESCAPED_USER/" \
         -e "s#__PASSWORD_HASH__#$ESCAPED_HASH#" \
         -e "s#__ROOT_PATH__#$ESCAPED_ROOT#" \
-        /usr/share/squishbox-web/index.php \
-        > /tmp/squishbox-index.php
-    sudo install -D -m 0644 /tmp/squishbox-index.php /var/www/html/index.php
+        /var/www/html/index.php.template \
+        > /var/www/html/index.php
 
     sudo mkdir -p /var/www/tmp
     sudo chown www-data:www-data /var/www/tmp
@@ -262,7 +262,6 @@ fi
 if [[ "$INSTALL_WEB" == "yes" ]]; then
     install_web_manager
 fi
-detect_gpio_chip
 configure_boot_files
 configure_user
 

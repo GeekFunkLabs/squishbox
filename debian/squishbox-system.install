@@ -1,4 +1,3 @@
-debian/squishbox-ttymidi.service usr/lib/systemd/system/
 ttymidi/ttymidi usr/bin
 src/squishbox/data/hardware/*.yaml usr/share/squishbox/hardware/
 

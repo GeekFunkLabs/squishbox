@@ -2,11 +2,6 @@
 .debhelper/
 tmp/
 
-# generated package roots
-squishbox-system/
-squishbox-full/
-squishbox-web/
-
 # build metadata
 *.debhelper
 *.substvars

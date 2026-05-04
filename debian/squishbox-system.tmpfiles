@@ -1,4 +1,0 @@
-C /etc/security/limits.d/squishbox.conf 0644 root root - << "EOF"
-@audio - rtprio 90
-@audio - memlock unlimited
-EOF
