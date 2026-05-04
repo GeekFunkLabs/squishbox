@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "squishbox"
-version = "1.0.7"
+version = "1.0.8"
 description = "LCD + button hardware interface"
 readme = "README.md"
 license = "MIT"
