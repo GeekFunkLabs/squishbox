@@ -62,7 +62,7 @@ To install on a fresh or existing system, log in as a regular user and run:
 
 .. code-block:: bash
 
-   curl -sL geekfunklabs.com/squishbox | bash
+    bash <(curl -sL geekfunklabs.com/squishbox)
 
 Answer the prompts, wait for the installation to complete, then reboot the Pi
 to activate the LCD and control interface.

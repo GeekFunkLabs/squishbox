@@ -35,7 +35,7 @@ Other platforms may work but are not officially tested.
 To install on a fresh or existing system, log in as a regular user and run:
 
 ```bash
-curl -sL geekfunklabs.com/squishbox | bash
+bash <(curl -sL geekfunklabs.com/squishbox)
 ```
 
 Answer the prompts, wait for install to complete,

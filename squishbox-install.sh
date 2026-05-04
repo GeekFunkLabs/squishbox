@@ -3,12 +3,6 @@
 # SquishBox Installer
 #
 
-if [ -t 0 ]; then
-    :
-else
-    exec < /dev/tty
-fi
-
 set -euo pipefail
 
 MODE="full"
@@ -90,8 +84,9 @@ install_base() {
     SYSTEM_URL=$(api_find_url squishbox-system_.*_arm64.deb)
     curl -L "$SYSTEM_URL" -o /tmp/system.deb
     sudo apt update
-    sudo dpkg -i /tmp/system.deb
-    sudo apt -f install -y
+    if ! sudo dpkg -i /tmp/system.deb; then
+        sudo apt -f install -y
+    fi
 
     python3 -m venv "$VENV_DIR" --system-site-packages
     "$VENV_DIR/bin/pip" install squishbox
@@ -102,8 +97,9 @@ install_full() {
 
     FULL_URL=$(api_find_url squishbox-full_.*_all.deb)
     curl -L "$FULL_URL" -o /tmp/full.deb
-    sudo dpkg -i /tmp/full.deb
-    sudo apt -f install -y
+    if ! sudo dpkg -i /tmp/full.deb; then
+        sudo apt -f install -y
+    fi
 
     "$VENV_DIR/bin/pip" install fluidpatcher
 
@@ -126,8 +122,9 @@ configure_legacy_hw() {
 install_web_manager() {
     WEB_URL=$(api_find_url squishbox-web_.*_all.deb)
     curl -L "$WEB_URL" -o /tmp/web.deb
-    sudo dpkg -i /tmp/web.deb
-    sudo apt -f install -y
+    if ! sudo dpkg -i /tmp/web.deb; then
+        sudo apt -f install -y
+    fi
     sudo install -D -m 0644 /usr/share/squishbox-web/* /var/www/html/
 
     HASH=$(php -r "echo password_hash('$WEBPASS', PASSWORD_DEFAULT);")
