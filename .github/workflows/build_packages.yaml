@@ -39,9 +39,10 @@ jobs:
           export DEBEMAIL="actions@github.com"
           dch --newversion "$VERSION" "Release $VERSION"
 
-      - name: Build package
+      - name: Build packages
         run: |
           dpkg-buildpackage -us -uc -b -aarm64
+          cp ../*.deb .
 
       - name: Download soundfonts
         if: github.event_name == 'release'
@@ -53,12 +54,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: |
-            ../*.deb
+            *.deb
 
       - name: Upload to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ../*.deb
+            *.deb
             soundfonts_collection.tar.gz
