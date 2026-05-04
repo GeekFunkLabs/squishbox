@@ -135,7 +135,7 @@ install_web_manager() {
         -e "s/__USERNAME__/$ESCAPED_USER/" \
         -e "s#__PASSWORD_HASH__#$ESCAPED_HASH#" \
         -e "s#__ROOT_PATH__#$ESCAPED_ROOT#" \
-        /usr/share/squishbox-web/index.php \
+        /usr/share/squishbox-web/index.php/index.php.template \
         > /tmp/squishbox-index.php
     sudo install -D -m 0644 /tmp/squishbox-index.php /var/www/html/index.php
 
@@ -157,7 +157,7 @@ detect_gpio_chip() {
     if [[ -e /dev/gpiochip4 ]]; then
         log "GPIO detected, updating config..."
         sudo sed -i 's|^gpio_chip:.*|gpio_chip: /dev/gpiochip4|' \
-            "$SB_DIR/squishboxconf.yaml" || true
+            "$SB_DIR/config/squishboxconf.yaml" || true
     fi
 }
 
