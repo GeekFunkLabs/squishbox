@@ -125,18 +125,18 @@ install_web_manager() {
     if ! sudo dpkg -i /tmp/web.deb; then
         sudo apt -f install -y
     fi
-    sudo install -D -m 0644 /usr/share/squishbox-web/* /var/www/html/
 
     HASH=$(php -r "echo password_hash('$WEBPASS', PASSWORD_DEFAULT);")
     ESCAPED_HASH=$(printf '%s\n' "$HASH" | sed 's/[&/\]/\\&/g')
     ESCAPED_USER=$(printf '%s\n' "$WEBUSER" | sed 's/[&/\]/\\&/g')
     ESCAPED_ROOT=$(printf '%s\n' "$SB_DIR" | sed 's/[&/\]/\\&/g')
-    sudo sed \
-        -e "s/__USERNAME__/$ESCAPED_USER/" \
+    sed -e "s/__USERNAME__/$ESCAPED_USER/" \
         -e "s#__PASSWORD_HASH__#$ESCAPED_HASH#" \
         -e "s#__ROOT_PATH__#$ESCAPED_ROOT#" \
-        /var/www/html/index.php.template \
-        > /var/www/html/index.php
+        /usr/share/squishbox-web/index.php.template \
+        > /tmp/squishbox-index.php
+    sudo install -D -m 0644 /tmp/squishbox-index.php /var/www/html/
+    sudo install -D -m 0644 /usr/share/squishbox-web/gfl_logo.png /var/www/html/
 
     sudo mkdir -p /var/www/tmp
     sudo chown www-data:www-data /var/www/tmp
