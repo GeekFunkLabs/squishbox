@@ -100,7 +100,7 @@ install_full() {
     "$VENV_DIR/bin/pip" install fluidpatcher
 }
 
-install_sounds() {
+download_sounds() {
     mkdir -p "$SB_DIR/sounds"
     log "Downloading soundfont collection..."
     SOUNDS_URL=$(api_find_url soundfonts_collection.tar.gz)
