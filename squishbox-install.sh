@@ -101,7 +101,7 @@ install_full() {
 }
 
 download_sounds() {
-    mkdir -p "$SB_DIR/sounds"
+    mkdir -p "$SB_DIR/media/sounds"
     log "Downloading soundfont collection..."
     SOUNDS_URL=$(api_find_url soundfonts_collection.tar.gz)
     curl -L "$SOUNDS_URL" \
