@@ -5,10 +5,6 @@
 
 set -euo pipefail
 
-MODE="full"
-HARDWARE="current"
-INSTALL_WEB="no"
-
 SB_DIR="$HOME/SquishBox"
 VENV_DIR="$HOME/.local/share/squishbox/venv"
 
@@ -102,11 +98,13 @@ install_full() {
     fi
 
     "$VENV_DIR/bin/pip" install fluidpatcher
+}
 
+install_sounds() {
     mkdir -p "$SB_DIR/sounds"
     log "Downloading soundfont collection..."
     SOUNDS_URL=$(api_find_url soundfonts_collection.tar.gz)
-    curl -L "$SOUNDS_URL" | tar -xzkC "$SB_DIR/sounds"
+    curl -L "$SOUNDS_URL" | tar -xz --skip-old-files -C "$SB_DIR/sounds"
 }
 
 # Legacy Hardware
@@ -215,9 +213,6 @@ sudo -v || die "This installer requires sudo privileges."
 ( while true; do sudo -n true; sleep 60; done ) 2>/dev/null &
 trap 'kill $!' EXIT
 
-ask_yes_no "Full install (no=base system only)?" yes \
-    && MODE="full" || MODE="minimal"
-
 echo "Select your SquishBox hardware:"
 select HW in \
     "Green PCB with rounded corners (v8 - current)" \
@@ -237,26 +232,35 @@ select HW in \
     esac
 done
 
+ask_yes_no "Full install (no=base system only)?" yes \
+    && MODE="full" || MODE="minimal"
+
+ask_yes_no "Install soundfonts collection?" yes \
+    && SOUNDS="yes" || SOUNDS="no" 
+
 if ask_yes_no "Install web file manager?" no; then
-    INSTALL_WEB="yes"
+    WEB="yes"
     read -rp "Web username [squishbox]: " WEBUSER
     WEBUSER=${WEBUSER:-squishbox}
     read -rp "Web password [geekfunklabs]: " WEBPASS
     WEBPASS=${WEBPASS:-geekfunklabs}
 else
-    INSTALL_WEB="no"
+    WEB="no"
 fi
 
 # Perform Setup Tasks
 
 install_base
-if [[ "$MODE" == "full" ]]; then
+if [[ $MODE == "full" ]]; then
     install_full
 fi
 if [[ $HARDWARE != "current" ]]; then
     configure_legacy_hw
 fi
-if [[ "$INSTALL_WEB" == "yes" ]]; then
+if [[ $SOUNDS == "yes" ]]; then
+    download_sounds
+fi
+if [[ $WEB == "yes" ]]; then
     install_web_manager
 fi
 configure_boot_files
