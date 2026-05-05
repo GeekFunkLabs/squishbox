@@ -12,9 +12,9 @@ fluidsettings:
   synth.ladspa.active: 1
   synth.midi-channels: 16
   synth.polyphony: 128
-banks_path: {cfg_dir.parent}/banks
-sounds_path: {cfg_dir.parent}/sounds
-midi_path: {cfg_dir.parent}/midi
+banks_path: ~/SquishBox/banks/fluidpatcher
+lastbank_path: ~/SquishBox/banks/fluidpatcher/testbank.yaml
+sounds_path: ~/SquishBox/media/sounds
+midi_path: ~/SquishBox/media/midi
 ladspa_path: /usr/lib/ladspa
-lastbank_path: {cfg_dir.parent}/banks/testbank.yaml
 
