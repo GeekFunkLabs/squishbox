@@ -8,12 +8,15 @@ import time
 
 from fluidpatcher import *
 import squishbox
+from squishbox.config import load_config, save_state
 from squishbox.hardware import Output, PWMOutput
 
 COLS = squishbox.CONFIG["lcd_cols"]
 ROWS = squishbox.CONFIG["lcd_rows"]
 MENU_TIME = squishbox.CONFIG["menu_timeout"]
 FRAME_TIME = squishbox.CONFIG["frame_time"]
+
+CONFIG |= load_config("fpatcherboxconf.yaml")
 
 VOICE_TYPES = {
     "note": "NT", "ctrl": "CC", "kpress": "KP",
@@ -49,7 +52,7 @@ class FPBox:
         self.pno = 0
         self.last = 0
         self.showevent = False
-        self.load_bank(CONFIG["fpatcherbox_path"])
+        self.load_bank(CONFIG["currentbank_path"])
         with sb.lcd.activity("loading ".rjust(COLS)):
             self.apply_patch()
 
@@ -199,26 +202,26 @@ class FPBox:
     def choose_bank(self):
         f = sb.menu_choosefile(
             topdir=CONFIG["banks_path"],
-            start=CONFIG["fpatcherbox_path"],
+            start=CONFIG["currentbank_path"],
             ext=".yaml"
         )
         if f.is_file() and self.load_bank(f):
             if (
-                f == CONFIG["fpatcherbox_path"] and
+                f == CONFIG["currentbank_path"] and
                 self.pname in fp.bank
             ):
                 self.pno = fp.bank.patches.index(self.pname)
             else:
                 self.pno = 0
-            CONFIG["fpatcherbox_path"] = f
-            save_config()
+            CONFIG["currentbank_path"] = f
+            save_state("fpatcherboxconf.yaml", CONFIG)
             with sb.lcd.activity("loading ".rjust(COLS)):
                 self.apply_patch()
 
     def save_bank(self):
         f = sb.menu_choosefile(
             topdir=CONFIG["banks_path"],
-            start=CONFIG["fpatcherbox_path"],
+            start=CONFIG["currentbank_path"],
             ext=".yaml"
         )
         name = sb.menu_entertext(
@@ -231,8 +234,8 @@ class FPBox:
             except Exception as e:
                 sb.display_error(e, "bank save error")
             else:
-                CONFIG["fpatcherbox_path"] = f.parent / name
-                save_config()
+                CONFIG["currentbank_path"] = f.parent / name
+                save_state("fpatcherboxconf.yaml", CONFIG)
                 sb.lcd.write("bank saved".ljust(COLS), row=1)
                 sb.get_action(timeout=MENU_TIME)
 

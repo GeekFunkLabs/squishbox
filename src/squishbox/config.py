@@ -27,11 +27,8 @@ def load_config(name, default_cfg={}):
         dict: config data
     """
     path = CONFIG_PATH.parent / name
-    sys_default = Path("/usr/share/squishbox/defaults") / path.name
     pkg_default = res.files("squishbox.data.defaults") / path.name
-    if sys_default.exists():
-        cfg = yaml.safe_load(system_default.read_text())
-    elif pkg_default.exists():
+    if pkg_default.exists():
         cfg = yaml.safe_load(pkg_default.read_text())
     else:
         cfg = {}

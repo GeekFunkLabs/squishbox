@@ -6,7 +6,6 @@ After=local-fs.target
 Type=simple
 User=%i
 WorkingDirectory=/home/%i
-Environment=FLUIDPATCHER_CONFIG=/home/%i/SquishBox/config/fpatcherboxconf.yaml
 ExecStart=/home/%i/.local/share/squishbox/venv/bin/python -m squishbox.apps.launcher
 Restart=on-failure
 LimitMEMLOCK=infinity

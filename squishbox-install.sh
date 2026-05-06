@@ -85,7 +85,9 @@ install_base() {
     fi
 
     python3 -m venv "$VENV_DIR" --system-site-packages
-    "$VENV_DIR/bin/pip" install squishbox
+    "$VENV_DIR/bin/pip" install -U squishbox
+    mkdir -p "$SB_DIR/config"
+    cp -n /usr/share/squishbox/defaults/*.yaml "$SB_DIR/config"
 }
 
 install_full() {
@@ -97,7 +99,7 @@ install_full() {
         sudo apt -f install -y
     fi
 
-    "$VENV_DIR/bin/pip" install fluidpatcher
+    "$VENV_DIR/bin/pip" install -U fluidpatcher
 }
 
 download_sounds() {
@@ -188,15 +190,14 @@ configure_user() {
         grep -qxF "$1" "$HOME/.bashrc" || echo "$1" >> "$HOME/.bashrc"
     }
 
-    bashrc_add "export FLUIDPATCHER_CONFIG=\$HOME/SquishBox/config/fpatcherboxconf.yaml"
     bashrc_add "alias squishbox-launcher='$VENV_DIR/bin/python -m squishbox.apps.launcher'"
     bashrc_add "alias squishbox-python='$VENV_DIR/bin/python'"
     bashrc_add "alias squishbox-pip='$VENV_DIR/bin/pip'"
 
-    bashrc_add "alias squishbox-service-start='sudo systemctl start squishbox-system@$USER'"
-    bashrc_add "alias squishbox-service-stop='sudo systemctl stop squishbox-system@$USER'"
-    bashrc_add "alias squishbox-service-restart='sudo systemctl restart squishbox-system@$USER'"
-    bashrc_add "alias squishbox-service-status='systemctl status squishbox-system@$USER'"
+    bashrc_add "alias squishbox-start='sudo systemctl start squishbox-system@$USER'"
+    bashrc_add "alias squishbox-stop='sudo systemctl stop squishbox-system@$USER'"
+    bashrc_add "alias squishbox-restart='sudo systemctl restart squishbox-system@$USER'"
+    bashrc_add "alias squishbox-status='systemctl status squishbox-system@$USER'"
 
     sudo systemctl enable --now "squishbox-system@$USER.service"
 }
