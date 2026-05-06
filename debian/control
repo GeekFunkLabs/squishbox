@@ -42,9 +42,8 @@ Package: squishbox-web
 Architecture: all
 Depends:
  ${misc:Depends},
- nginx,
- php,
- php-fpm
+ apache2,
+ libapache2-mod-php
 Recommends:
  squishbox-full
 Description: Web-based file manager for SquishBox

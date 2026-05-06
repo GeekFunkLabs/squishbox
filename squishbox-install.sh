@@ -80,9 +80,7 @@ install_base() {
     SYSTEM_URL=$(api_find_url squishbox-system_.*_arm64.deb)
     curl -L "$SYSTEM_URL" -o /tmp/system.deb
     sudo apt update
-    if ! sudo dpkg -i /tmp/system.deb; then
-        sudo apt -f install -y
-    fi
+    sudo dpkg -i /tmp/system.deb || sudo apt -f install -y
 
     python3 -m venv "$VENV_DIR" --system-site-packages
     "$VENV_DIR/bin/pip" install -U squishbox
@@ -95,19 +93,17 @@ install_full() {
 
     FULL_URL=$(api_find_url squishbox-full_.*_all.deb)
     curl -L "$FULL_URL" -o /tmp/full.deb
-    if ! sudo dpkg -i /tmp/full.deb; then
-        sudo apt -f install -y
-    fi
+    sudo dpkg -i /tmp/full.deb || sudo apt -f install -y
 
     "$VENV_DIR/bin/pip" install -U fluidpatcher
 }
 
-download_sounds() {
-    mkdir -p "$SB_DIR/media/sounds"
-    log "Downloading soundfont collection..."
-    SOUNDS_URL=$(api_find_url soundfonts_collection.tar.gz)
-    curl -L "$SOUNDS_URL" \
-    | tar -xz --skip-old-files -C "$SB_DIR/media/sounds"
+download_media() {
+    mkdir -p $SB_DIR
+    log "Downloading SquishBox media..."
+    MEDIA_URL=$(api_find_url squishbox_factory_media.tar.gz)
+    curl -L $MEDIA_URL \
+    | tar -xz --skip-old-files -C $SB_DIR
 }
 
 # Legacy Hardware
@@ -123,9 +119,7 @@ configure_legacy_hw() {
 install_web_manager() {
     WEB_URL=$(api_find_url squishbox-web_.*_all.deb)
     curl -L "$WEB_URL" -o /tmp/web.deb
-    if ! sudo dpkg -i /tmp/web.deb; then
-        sudo apt -f install -y
-    fi
+    sudo dpkg -i /tmp/web.deb || sudo apt -f install -y
 
     HASH=$(php -r "echo password_hash('$WEBPASS', PASSWORD_DEFAULT);")
     ESCAPED_HASH=$(printf '%s\n' "$HASH" | sed 's/[&/\]/\\&/g')
@@ -136,19 +130,8 @@ install_web_manager() {
         -e "s#__ROOT_PATH__#$ESCAPED_ROOT#" \
         /usr/share/squishbox-web/index.php.template \
         > /tmp/squishbox-index.php
-    sudo install -D -m 0644 /tmp/squishbox-index.php /var/www/html/
+    sudo install -D -m 0644 /tmp/squishbox-index.php /var/www/html/index.php
     sudo install -D -m 0644 /usr/share/squishbox-web/gfl_logo.png /var/www/html/
-
-    sudo mkdir -p /var/www/tmp
-    sudo chown www-data:www-data /var/www/tmp
-    sudo chmod 770 /var/www/tmp
-
-    sudo usermod -aG www-data "$USER"
-    sudo chown -R "$USER":www-data "$HOME"/SquishBox
-    find "$HOME"/SquishBox -type d -exec chmod 2775 {} +
-    find "$HOME"/SquishBox -type f -exec chmod 664 {} +
-    sudo setfacl -R -m g:www-data:rwx "$HOME"/SquishBox
-    sudo setfacl -d -m g:www-data:rwx "$HOME"/SquishBox
 }
 
 # Boot Firmware Configuration
@@ -237,8 +220,8 @@ done
 ask_yes_no "Full install (no=base system only)?" yes \
     && MODE="full" || MODE="minimal"
 
-ask_yes_no "Install soundfonts collection?" yes \
-    && SOUNDS="yes" || SOUNDS="no" 
+ask_yes_no "Install factory media collection?" yes \
+    && MEDIA="yes" || MEDIA="no" 
 
 if ask_yes_no "Install web file manager?" no; then
     WEB="yes"
@@ -259,7 +242,7 @@ fi
 if [[ $HARDWARE != "current" ]]; then
     configure_legacy_hw
 fi
-if [[ $SOUNDS == "yes" ]]; then
+if [[ $MEDIA == "yes" ]]; then
     download_sounds
 fi
 if [[ $WEB == "yes" ]]; then

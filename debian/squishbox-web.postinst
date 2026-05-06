@@ -1,12 +1,44 @@
 #!/bin/sh
 set -e
 
-# Enable nginx site
-ln -sf /etc/nginx/sites-available/squishbox /etc/nginx/sites-enabled/squishbox
-rm -f /etc/nginx/sites-enabled/default || true
+USER_NAME="${SUDO_USER:-$USER}"
+HOME_DIR="$(getent passwd "$USER_NAME" | cut -d: -f6)"
+SB_DIR="$HOME_DIR/SquishBox"
 
-# Configure PHP upload limits (all versions)
-for dir in /etc/php/*/fpm/conf.d; do
+# Ensure Apache + PHP are enabled
+systemctl enable apache2 2>/dev/null || true
+systemctl restart apache2 2>/dev/null || true
+
+# Install web files if not already present
+install -D -m 0644 /usr/share/squishbox-web/index.php.template /var/www/html/index.php.template
+install -D -m 0644 /usr/share/squishbox-web/gfl_logo.png /var/www/html/gfl_logo.png
+
+# Create upload tmp dir
+mkdir -p /var/www/tmp
+chown www-data:www-data /var/www/tmp
+chmod 770 /var/www/tmp
+
+# Ensure SquishBox dir exists
+if [ -d "$SB_DIR" ]; then
+
+    # Allow Apache to traverse home directory
+    chmod o+x "$HOME_DIR" || true
+
+    # Add user to www-data group
+    usermod -aG www-data "$USER_NAME" || true
+
+    # Set ownership + permissions
+    chown -R "$USER_NAME":www-data "$SB_DIR"
+    find "$SB_DIR" -type d -exec chmod 2775 {} +
+    find "$SB_DIR" -type f -exec chmod 664 {} +
+
+    # Optional ACLs (more robust than chmod alone)
+    setfacl -R -m g:www-data:rwx "$SB_DIR" || true
+    setfacl -d -m g:www-data:rwx "$SB_DIR" || true
+fi
+
+# PHP upload limits (Apache mod_php style)
+for dir in /etc/php/*/apache2/conf.d; do
     [ -d "$dir" ] || continue
     cat > "$dir/99-squishbox.ini" <<EOF
 upload_max_filesize = 5G
@@ -16,8 +48,7 @@ upload_tmp_dir = /var/www/tmp
 EOF
 done
 
-# Reload services (non-fatal if unavailable)
-systemctl reload nginx 2>/dev/null || true
-systemctl reload php*-fpm 2>/dev/null || true
+# Reload Apache
+systemctl reload apache2 2>/dev/null || true
 
 exit 0
