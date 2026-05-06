@@ -42,24 +42,24 @@ jobs:
       - name: Build packages
         run: |
           dpkg-buildpackage -us -uc -b -aarm64
-          cp ../*.deb .
-
-      - name: Download soundfonts
-        if: github.event_name == 'release'
-        run: |
-          curl -LO https://geekfunklabs.com/soundfonts_collection.tar.gz
+          cp ../squishbox*.deb .
 
       - name: Upload artifacts
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           path: |
-            *.deb
+            squishbox*.deb
+
+      - name: Download factory media
+        if: github.event_name == 'release'
+        run: |
+          curl -LO https://geekfunklabs.com/squishbox_factory_media.tar.gz
 
       - name: Upload to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            *.deb
-            soundfonts_collection.tar.gz
+            squishbox*.deb
+            squishbox_factory_media.tar.gz
