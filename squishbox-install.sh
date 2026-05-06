@@ -243,7 +243,7 @@ if [[ $HARDWARE != "current" ]]; then
     configure_legacy_hw
 fi
 if [[ $MEDIA == "yes" ]]; then
-    download_sounds
+    download_media
 fi
 if [[ $WEB == "yes" ]]; then
     install_web_manager
