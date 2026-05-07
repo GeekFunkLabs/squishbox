@@ -52,9 +52,20 @@ class FPBox:
         self.pno = 0
         self.last = 0
         self.showevent = False
-        self.load_bank(CONFIG["currentbank_path"])
+
+    def run(self):
+        lastbank = CONFIG.get("lastbank_path")
+        if lastbank is None or not self.load_bank(lastbank):
+            self.choose_bank()
+        if not fp.bank.patches:
+            return
         with sb.lcd.activity("loading ".rjust(COLS)):
             self.apply_patch()
+        while True:
+            self.refresh_main()
+            self.main_loop()
+            if self.menu_loop() == "shell":
+                break
 
     def load_bank(self, bank):
         sb.lcd.write(bank.name.ljust(COLS), row=0)
@@ -70,13 +81,6 @@ class FPBox:
             self.pno = pno
         self.pname = fp.bank.patches[self.pno]
         fp.apply_patch(self.pname)
-
-    def run(self):
-        while True:
-            self.refresh_main()
-            self.main_loop()
-            if self.menu_loop() == "shell":
-                break
 
     def refresh_main(self):
         sb.lcd.write(self.pname.ljust(COLS), row=0)
@@ -202,18 +206,18 @@ class FPBox:
     def choose_bank(self):
         f = sb.menu_choosefile(
             topdir=CONFIG["banks_path"],
-            start=CONFIG["currentbank_path"],
+            start=CONFIG["lastbank_path"],
             ext=".yaml"
         )
         if f.is_file() and self.load_bank(f):
             if (
-                f == CONFIG["currentbank_path"] and
+                f == CONFIG["lastbank_path"] and
                 self.pname in fp.bank
             ):
                 self.pno = fp.bank.patches.index(self.pname)
             else:
                 self.pno = 0
-            CONFIG["currentbank_path"] = f
+            CONFIG["lastbank_path"] = f
             save_state("fpatcherboxconf.yaml", CONFIG)
             with sb.lcd.activity("loading ".rjust(COLS)):
                 self.apply_patch()
@@ -221,7 +225,7 @@ class FPBox:
     def save_bank(self):
         f = sb.menu_choosefile(
             topdir=CONFIG["banks_path"],
-            start=CONFIG["currentbank_path"],
+            start=CONFIG["lastbank_path"],
             ext=".yaml"
         )
         name = sb.menu_entertext(
@@ -234,7 +238,7 @@ class FPBox:
             except Exception as e:
                 sb.display_error(e, "bank save error")
             else:
-                CONFIG["currentbank_path"] = f.parent / name
+                CONFIG["lastbank_path"] = f.parent / name
                 save_state("fpatcherboxconf.yaml", CONFIG)
                 sb.lcd.write("bank saved".ljust(COLS), row=1)
                 sb.get_action(timeout=MENU_TIME)

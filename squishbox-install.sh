@@ -177,10 +177,9 @@ configure_user() {
     bashrc_add "alias squishbox-python='$VENV_DIR/bin/python'"
     bashrc_add "alias squishbox-pip='$VENV_DIR/bin/pip'"
 
+    bashrc_add "alias squishbox-status='systemctl status squishbox-system@$USER'"
     bashrc_add "alias squishbox-start='sudo systemctl start squishbox-system@$USER'"
     bashrc_add "alias squishbox-stop='sudo systemctl stop squishbox-system@$USER'"
-    bashrc_add "alias squishbox-restart='sudo systemctl restart squishbox-system@$USER'"
-    bashrc_add "alias squishbox-status='systemctl status squishbox-system@$USER'"
 
     sudo systemctl enable --now "squishbox-system@$USER.service"
 }

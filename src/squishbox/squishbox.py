@@ -83,7 +83,7 @@ class SquishBox:
                     )
                 else:
                     continue
-            obj._wifienabled = obj.shell_cmd("nmcli radio wifi") == "enabled"
+            obj._wifienabled = None
             sys.excepthook = lambda _, e, __: obj.display_error(e)
             cls._instance = obj
         return cls._instance
@@ -420,6 +420,10 @@ class SquishBox:
     @property
     def wifienabled(self):
         """Get/set WiFi radio state"""
+        if self._wifienabled is None:
+            self._wifienabled = (
+                self.shell_cmd("nmcli radio wifi", check=False) == "enabled"
+            )
         return self._wifienabled
 
     @wifienabled.setter
@@ -428,7 +432,9 @@ class SquishBox:
             self.shell_cmd("sudo nmcli radio wifi on")
         else:
             self.shell_cmd("sudo nmcli radio wifi off")
-        self._wifienabled = self.shell_cmd("nmcli radio wifi") == "enabled"
+        self._wifienabled = (
+            self.shell_cmd("nmcli radio wifi", check=False) == "enabled"
+        )
 
     def menu_wifisettings(self, row=ROWS - 2, timeout=0):
         """Manage WiFi connectivity using nmcli.
