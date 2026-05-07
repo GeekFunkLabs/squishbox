@@ -24,7 +24,7 @@ Package: squishbox-full
 Architecture: all
 Depends:
  squishbox-system,
- fluidsynth,
+ libfluidsynth3,
  ladspa-sdk,
  swh-plugins,
  tap-plugins,
