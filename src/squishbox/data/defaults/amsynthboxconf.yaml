@@ -1,4 +1,4 @@
-midi_channel: 1
+midi_channel: 0 # 0=respond to any channel
 sample_rate: 44100
 polyphony: 16
 pitch_bend_range: 2
