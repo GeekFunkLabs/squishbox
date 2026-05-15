@@ -274,6 +274,12 @@ def process_events():
                 send_param(name, evt.value)
                 if display_callback != None:
                     display_callback((name, evt.value))
+            if evt.param in CONFIG.get("indicators", {}):
+                name = CONFIG["indicators"][evt.param]
+                if evt.value:
+                    sb.outputs[name].on()
+                else:
+                    sb.outputs[name].off()
         else:
             wrapper.event_output(evt, dest=amsynth_port)
             wrapper.drain_output()
@@ -310,9 +316,6 @@ if not CONFIG["banks_path"].exists():
     CONFIG["banks_path"].mkdir(parents=True, exist_ok=True)
     Path(CONFIG["banks_path"] / "presets").symlink_to(
         "/usr/share/amsynth/banks"
-    )
-    Path("/usr/share/amsynth/banks/amsynth_factory.bank").copy(
-        CONFIG["banks_path"] / "amsynth_factory.bank"
     )
 
 # start amsynth
@@ -399,7 +402,7 @@ while True:
                     res = sb.menu_choose(
                         opts, row=1, wrap=False, timeout=0,
                         i=opts.index(PARS[name]["display"][curvals[name]]),
-                        func=lambda i: send_param(
+                        on_change=lambda i: send_param(
                             name, PARS[name]["display"].index(opts[i])
                         )
                     )
@@ -410,7 +413,7 @@ while True:
                 ccs = [str(ctrls.get(par, "not mapped")) for par in PARS]
                 i, par = sb.menu_choose(
                     list(PARS), row=0, i=lastpar, align="left",
-                    func=lambda i: sb.lcd.write(
+                    on_change=lambda i: sb.lcd.write(
                         ccs[i].rjust(COLS), row=1
                     )
                 )

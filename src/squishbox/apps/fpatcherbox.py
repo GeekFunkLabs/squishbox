@@ -160,14 +160,14 @@ class FPBox:
                     row=1, timeout=MENU_TIME
                 )
         if hasattr(evt.rule, "setpin"):
-            if evt.rule.setpin in outpins:
-                if isinstance(outpins[evt.rule.setpin], Output):
+            if evt.rule.setpin in sb.outputs:
+                if isinstance(sb.outputs[evt.rule.setpin], Output):
                     if evt.val:
-                        outpins[evt.rule.setpin].on()
+                        sb.outputs[evt.rule.setpin].on()
                     else:
-                        outpins[evt.rule.setpin].off()
-                elif isinstance(outpins[evt.rule.setpin], PWMOutput):
-                    outpins[evt.rule.setpin].level = min(100, max(0, evt.val))
+                        sb.outputs[evt.rule.setpin].off()
+                elif isinstance(sb.outputs[evt.rule.setpin], PWMOutput):
+                    sb.outputs[evt.rule.setpin].level = min(100, max(0, evt.val))
         if hasattr(evt.rule, "patch"):
             if evt.rule.patch in fp.bank:
                 self.pno = fp.bank.patches.index(evt.rule.patch)
@@ -314,7 +314,7 @@ class FPBox:
             i = min(range(len(vals)), key=lambda i: abs(float(vals[i]) - curval))
             i, choice = sb.menu_choose(
                 vals, row=1, i=i, wrap=False, timeout=0,
-                func=lambda i: fp.fluidsetting_set(fsname, vals[i])
+                on_change=lambda i: fp.fluidsetting_set(fsname, vals[i])
             )
             if choice is None:
                 fp.fluidsetting_set(fsname, curval)
@@ -339,7 +339,7 @@ class FPBox:
         sb.lcd.write(msg.ljust(COLS), row=0)
         i, choice = sb.menu_choose(
             channel_info, row=1, i=chan - 1, timeout=0, align="left",
-            func=lambda i: sb.lcd.write(f"{i + 1}:", row=1, col=0)
+            on_change=lambda i: sb.lcd.write(f"{i + 1}:", row=1, col=0)
         )
         if choice is None:
             return None
@@ -393,7 +393,7 @@ class FPBox:
             self.apply_patch()
         i, choice = sb.menu_choose(
             preset_info, row=1, i=i, timeout=0, align="left",
-            func=change_preset
+            on_change=change_preset
         )
         return False if choice is None else True
 
@@ -439,7 +439,8 @@ class FPBox:
         with fp.midi_capture(filter_keydown):
             i, evt = sb.menu_choose(
                 [f"channel: [{c + 1}]" for c in range(nchan)],
-                row=0, i=chan - 1, timeout=0
+                row=0, i=chan - 1, timeout=0,
+                passthrough=(FluidMidiEvent,)
             )
         if evt is None:
             return None
@@ -451,7 +452,8 @@ class FPBox:
             with fp.midi_capture(filter_keydown):
                 num_min, evt = sb.menu_choose(
                     [f"range: [{n}]-{num_max}" for n in range(128)],
-                    row=1, i=num_min, wrap=False, timeout=0
+                    row=1, i=num_min, wrap=False, timeout=0,
+                    passthrough=(FluidMidiEvent,)
                 )
             if evt is None:
                 return None
@@ -461,7 +463,8 @@ class FPBox:
         with fp.midi_capture(filter_keydown):
             num_max, evt = sb.menu_choose(
                 [f"range: {num_min}-[{n}]" for n in range(128)],
-                row=1, i=num_max, wrap=False, timeout=0
+                row=1, i=num_max, wrap=False, timeout=0,
+                passthrough=(FluidMidiEvent,)
             )
         if evt is None:
             return None

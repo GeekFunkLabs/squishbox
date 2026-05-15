@@ -242,7 +242,7 @@ TRACKROOT_PATH = CONFIG["trackroot_path"]
 if "current_tracklist" in CONFIG:
     # load the current tracklist
     f = TRACKLISTS_PATH / CONFIG["current_tracklist"]
-    tracklist = yaml.safe_load(f).read_text())
+    tracklist = yaml.safe_load(f).read_text()
 else:
     # choose a single track to start a new list
     f = sb.menu_choosefile(topdir=TRACKLISTS_PATH)
@@ -313,13 +313,17 @@ while True:
         case "back":
             player.statuscallback = lambda x: None
             while True:
-                i, choice = sb.menu_choose([
-                    "Volume",
-                    "Edit Tracklist",
-                    "Load Tracklist",
-                    "Save Tracklist",
-                    "System Menu..",
-                ], row=ROWS - 1)
+                i, choice = sb.menu_choose(
+                    [
+                        "Volume",
+                        "Edit Tracklist",
+                        "Load Tracklist",
+                        "Save Tracklist",
+                        "System Menu..",
+                    ],
+                    row=ROWS - 1,
+                    passthrough=("end-of-stream",)
+                )
                 if choice != "end-of-stream":
                     break
                 sb.lcd.write(track.name.ljust(COLS), row=0)
@@ -373,7 +377,7 @@ while True:
                     ival = round(player.volume / d)
                     i, choice = sb.menu_choose(
                         slider, align="left", i=ival, wrap=False,
-                        func=lambda i: setattr(player, "volume", i * d)
+                        on_change=lambda i: setattr(player, "volume", i * d)
                     )
                     CONFIG["master_volume"] = player.volume
                     save_state(CONFIG_PATH, CONFIG)
@@ -384,7 +388,7 @@ while True:
                     ival = round(tracks[track.i]["level"] / d)
                     i, choice = sb.menu_choose(
                         slider, align="left", i=ival, wrap=False,
-                        func=lambda i: player.duck(i * d)
+                        on_change=lambda i: player.duck(i * d)
                     )
                     if i >= 0:
                         tracks[track.i]["level"] = i * d

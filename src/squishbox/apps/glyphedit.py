@@ -64,7 +64,7 @@ def main():
              "LCD Settings..",
              "Exit"
             ], row=1, i=last, timeout=0,
-            func=show_glyph
+            on_change=show_glyph
         )
         last = i if choice != None else last
         if choice == "Add Glyph":

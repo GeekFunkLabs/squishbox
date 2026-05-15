@@ -51,6 +51,10 @@ last = 0
 while True:
     sb.lcd.clear()
     sb.lcd.write(f"SquishBox {__version__}", row=0)
+    if sb.wifienabled:
+        sb.lcd.write(sb.lcd["wifi_on"], row=1, col=0)
+    else:
+        sb.lcd.write(sb.lcd["wifi_off"], row=1, col=0)
     match sb.menu_choose([
         *scripts,
         "LCD Settings..",
