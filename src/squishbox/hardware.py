@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """SquishBox Raspberry Pi hardware interface.
 
 Provides low-level access to GPIO-backed hardware components used by
@@ -60,6 +59,7 @@ class Button(Control):
     Events:
         "down": button pressed
         "up": button released
+        "on"/"off": alternates on button press
         "tap": short press
         "hold": long press (duration >= CONFIG["hold_time"])
     """
@@ -91,6 +91,7 @@ class Button(Control):
             }
         )
         self._state = self.UP
+        self._toggle = False
         self._actions = {}
         self._watching = True
         t = Thread(
@@ -111,6 +112,8 @@ class Button(Control):
                 if event.event_type is connect:
                     self._state = self.DOWN
                     self["down"]()
+                    self._toggle = not self._toggle
+                    self["on" if self._toggle else "off"]()
                     if not line.wait_edge_events(CONFIG["hold_time"]):
                         self._state = self.HELD
                         self["hold"]()
@@ -247,6 +250,14 @@ class PWMOutput:
         self._active = True
         t = Thread(target=lambda: self._pwm(pin), daemon=True)
         t.start()
+
+    def on(self):
+        """Set output to maximum."""
+        self.level = 100
+
+    def off(self):
+        """Set output to minimum."""
+        self.level = 0
 
     def _pwm(self, pin):
         while self._active:
