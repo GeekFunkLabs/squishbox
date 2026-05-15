@@ -38,12 +38,7 @@ def load_config(name, default_cfg={}):
         cfg |= yaml.safe_load(path.read_text())
     else:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(yaml.safe_dump(default_cfg, sort_keys=False))
-
-    conf_d = path.parent / (path.stem + ".d")
-    if conf_d.exists():
-        for f in sorted(conf_d.glob("*.yaml")):
-            cfg |= yaml.safe_load(f.read_text())
+        path.write_text(yaml.safe_dump(cfg, sort_keys=False))
 
     for key, val in list(cfg.items()):
         if key.endswith("_path") and val is not None:

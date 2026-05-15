@@ -6,7 +6,7 @@
 set -euo pipefail
 
 SB_DIR="$HOME/SquishBox"
-VENV_DIR="$HOME/.local/share/squishbox/venv"
+VENV_DIR="$HOME/.local/share/squishbox/squishbox-venv"
 
 # Utility Functions
 
@@ -106,12 +106,25 @@ download_media() {
     | tar -xz --skip-old-files -C $SB_DIR
 }
 
-# Legacy Hardware
+# Copy/Merge Config Files
 
-configure_legacy_hw() {
-    mkdir -p "$SB_DIR/config/squishboxconf.d"
-    cp "/usr/share/squishbox/hardware/$HARDWARE.yaml" \
-        "$SB_DIR/config/squishboxconf.d/10-hardware.yaml"
+merge_hwoverlay() {
+    local CONFIG=${SB_DIR}/config/squishboxconf.yaml
+    local OVERLAY=/usr/share/squishbox/hardware/${HARDWARE}.yaml
+
+    "$VENV_DIR/bin/python" - <<EOF
+from pathlib import Path
+import yaml
+
+overlay_path = Path("$OVERLAY")
+if overlay_path.exists():
+    with open("$CONFIG") as f:
+        config = yaml.safe_load(f)
+    with open(overlay_path) as f:
+        config |= yaml.safe_load(f)
+    with open("$CONFIG", "w") as f:
+        yaml.safe_dump(config, f, sort_keys=False)
+EOF
 }
 
 # TinyFileManager Install and Config
@@ -199,14 +212,14 @@ trap 'kill $!' EXIT
 
 echo "Select your SquishBox hardware:"
 select HW in \
-    "Green PCB with rounded corners (v8 - current)" \
+    "Green PCB with rounded corners (v8)" \
     "Green PCB with sharp corners (v6)" \
-    "Purple PCB, has 2 resistors and LED (v4)" \
-    "Purple PCB, has 1 resistor (v3)" \
+    "Purple PCB with 2 TH resistors (v4)" \
+    "Purple PCB with 1 TH resistor (v3)" \
     "Hackaday/perfboard build (v2)" \
     "Cancel"; do
     case $REPLY in
-        1) HARDWARE=current; break ;;
+        1) HARDWARE=v8; break ;;
         2) HARDWARE=v6; break ;;
         3) HARDWARE=v4; break ;;
         4) HARDWARE=v3; break ;;
@@ -235,11 +248,11 @@ fi
 # Perform Setup Tasks
 
 install_base
+merge_hwoverlay
+configure_boot_files
+configure_user
 if [[ $MODE == "full" ]]; then
     install_full
-fi
-if [[ $HARDWARE != "current" ]]; then
-    configure_legacy_hw
 fi
 if [[ $MEDIA == "yes" ]]; then
     download_media
@@ -247,8 +260,6 @@ fi
 if [[ $WEB == "yes" ]]; then
     install_web_manager
 fi
-configure_boot_files
-configure_user
 
 if ask_yes_no "Reboot now?" yes; then
     sudo reboot
