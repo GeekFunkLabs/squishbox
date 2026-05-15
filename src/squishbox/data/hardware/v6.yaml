@@ -7,15 +7,15 @@ controls:
   knob1:
     type: encoder
     pins: [22, 10]
-    events: {left: dec, right: inc}
+    actions: {left: dec, right: inc}
   knob1_button:
     type: button
     pin: 9
-    events: {tap: select, hold: back}
-  stomp_left:
+    actions: {tap: select, hold: back}
+  foot_left:
     type: button
     pin: 27
-    events: {down: stomp-left-down, up: stomp-left-up}
+    messages: {on: ctrl:16:22:127, off: ctrl:16:22:0}
 outputs:
   led_left: {type: binary, pin: 17}
 

@@ -1,6 +1,8 @@
 """Simple keystroke capturing"""
+from contextlib import contextmanager
 import threading
 import time
+
 from evdev import InputDevice, list_devices, ecodes
 
 
@@ -28,22 +30,23 @@ POLL_TIME = 0.01
 state = type("State", (), dict(running=False, thread=None))
 
 
-def keys_dispatch(func, loc="us"):
+@contextmanager
+def keys_dispatch(on_key, loc="us"):
     state.running = True
     state.thread = threading.Thread(
         target=_listen,
-        args=(func, KEYMAPS[loc]),
+        args=(on_key, KEYMAPS[loc]),
         daemon=True,
     )
     state.thread.start()
+    try:
+        yield
+    finally:
+        state.running = False
+        state.thread.join()
 
 
-def keys_stop():
-    state.running = False
-    state.thread.join()
-
-
-def _listen(func, keymap):
+def _listen(on_key, keymap):
     devs = {}
     last_scan = 0
     shift, caps = False, False
@@ -63,17 +66,17 @@ def _listen(func, keymap):
                             if k == "KEY_CAPSLOCK":
                                 caps = not caps
                             elif k == "KEY_LEFT":
-                                func(("key", "left"))
+                                on_key(("key", "left"))
                             elif k == "KEY_RIGHT":
-                                func(("key", "right"))
+                                on_key(("key", "right"))
                             elif k == "KEY_BACKSPACE":
-                                func(("key", "erase"))
+                                on_key(("key", "erase"))
                             elif k == "KEY_INSERT":
-                                func(("key", "insert"))
+                                on_key(("key", "insert"))
                             elif k == "KEY_ENTER" or k == "KEY_ESC":
-                                func(("key", "done"))
+                                on_key(("key", "done"))
                             elif k in keymap:
-                                func(("key", keymap[k][shift ^ caps]))
+                                on_key(("key", keymap[k][shift ^ caps]))
             except BlockingIOError:
                 pass
             except OSError:

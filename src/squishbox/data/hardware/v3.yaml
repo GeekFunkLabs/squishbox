@@ -1,5 +1,5 @@
 # v3 hardware overlay
-#  purple PCB with only 1 resistor
+#  purple PCB with 1 through-hole resistor
 lcd_regsel: 4
 lcd_enable: 27
 lcd_data: [9, 11, 5, 6]
@@ -7,9 +7,9 @@ controls:
   button_right:
     type: button
     pin: 3
-    events: {tap: inc, hold: select}
+    actions: {tap: inc, hold: select}
   button_left:
     type: button
     pin: 2
-    events: {tap: dec, hold: back}
+    actions: {tap: dec, hold: back}
 

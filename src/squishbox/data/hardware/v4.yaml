@@ -1,5 +1,5 @@
 # v4 hardware overlay
-#  purple PCB with 2 resistors and LED
+#  purple PCB with 2 through-hole resistors and LED
 lcd_regsel: 4
 lcd_enable: 17
 lcd_data: [9, 11, 5, 6]
@@ -7,15 +7,15 @@ controls:
   knob1:
     type: encoder
     pins: [2, 3]
-    events: {left: dec, right: inc}
+    actions: {left: dec, right: inc}
   knob1_button:
     type: button
     pin: 27
-    events: {tap: select, hold: back}
-  stomp_left:
+    actions: {tap: select, hold: back}
+  foot_left:
     type: button
     pin: 22
-    events: {down: stomp-left-down, up: stomp-left-up}
+    messages: {on: ctrl:16:22:127, off: ctrl:16:22:0}
 outputs:
   led_left: {type: binary, pin: 10}
 

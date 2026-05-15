@@ -7,8 +7,8 @@ import traceback
 
 from . import hardware
 from .config import CONFIG, CONFIG_PATH, save_state
-from .midi import midi_connect, midi_ports
-from .keys import keys_dispatch, keys_stop
+from .midi import midi_connect, midi_ports, send_message
+from .keys import keys_dispatch
 
 ROWS = CONFIG["lcd_rows"]
 COLS = CONFIG["lcd_cols"]
@@ -63,12 +63,16 @@ class SquishBox:
                     )
                 else:
                     continue
-                for event, action in spec["events"].items():
+                for event, action in spec.get("actions", {}).items():
                     obj.controls[name].bind(
                         event, lambda a=action: obj.add_action(a)
                     )
+                for event, msg in spec.get("messages", {}).items():
+                    obj.controls[name].bind(
+                        event, lambda msg=msg: send_message(msg)
+                    )
             # add outputs
-            obj.outputs = {}                
+            obj.outputs = {}
             for name, spec in CONFIG["outputs"].items():
                 if spec["type"] == "binary":
                     obj.outputs[name] = hardware.Output(
@@ -89,7 +93,7 @@ class SquishBox:
         return cls._instance
 
     def menu_choose(self, opts, row=ROWS-1, align="right", i=0, wrap=True,
-                    timeout=MENU_TIME, func=None):
+                    timeout=MENU_TIME, on_change=None, passthrough=None):
         """Display a scrolling selection menu on the LCD.
 
         The user navigates options via bound input actions ("inc", "dec",
@@ -103,13 +107,14 @@ class SquishBox:
             i (int): Initial index.
             wrap (bool): If True, selection wraps around at ends.
             timeout (float): Seconds to wait for input (0 = wait indefinitely).
-            func (callable): Callback invoked as func(index) on selection change.
+            on_change (callable): Callback invoked as on_change(index) on selection change.
+            passthrough (tuple): actions/types to return immediately
 
         Returns:
             (index, item) on selection
             (index, None) if canceled ("back")
             (-1, None) if timed out
-            (-1, other) if an unhandled action is received
+            (-1, other) if an allowed action/type is passed
         """
         i = i % len(opts)
         while True:
@@ -117,8 +122,8 @@ class SquishBox:
                 self.lcd.write(str(opts[i]).ljust(COLS), row)
             else:
                 self.lcd.write(str(opts[i]).rjust(COLS), row)
-            if func:
-                func(i)
+            if on_change:
+                on_change(i)
             match self.get_action(timeout=timeout):
                 case "inc" if wrap:
                     i = (i + 1) % len(opts)
@@ -134,9 +139,17 @@ class SquishBox:
                 case "back":
                     self.lcd.write(" " * COLS, row)
                     return i, None
+                case None:
+                    return -1, None
                 case other:
-                    self.lcd.write(" " * COLS, row)
-                    return -1, other
+                    if passthrough and (
+                        other in passthrough
+                        or any(isinstance(other, t)
+                               for t in passthrough
+                               if isinstance(t, type))
+                    ):
+                        self.lcd.write(" " * COLS, row)
+                        return -1, other
 
     def menu_confirm(self, text="", row=ROWS-1, timeout=MENU_TIME):
         """Display a yes/no confirmation prompt.
@@ -153,7 +166,6 @@ class SquishBox:
             True if confirmed
             False if explicitly rejected
             None if canceled ("back") or timed out
-            other if an unhandled action is received
         """
         self.lcd.write((text + " ").ljust(COLS), row)
         c = True
@@ -171,9 +183,6 @@ class SquishBox:
                 case "back" | None:
                     self.lcd.write(" "  * COLS, row)
                     return None
-                case other:
-                    self.lcd.write(" "  * COLS, row)
-                    return other
 
     def menu_entertext(self, text="", row=ROWS-1, i=-1,
                    timeout=0, charset=""):
@@ -195,8 +204,7 @@ class SquishBox:
             charset (str): Allowed characters; defaults to LCD printable set.
 
         Returns:
-            Final edited string on completion. If an unhandled action
-            is received, passes it back to the caller for handling.
+            Final edited string on completion.
         """
         if charset == "":
             charset = self.lcd.printable()
@@ -204,50 +212,46 @@ class SquishBox:
         text = list(text.ljust(COLS))
         mode = "blink"
         self.lcd.setcursormode(mode)
-        keys_dispatch(self.add_action)
-        while True:
-            w = text[max(0, i + 1 - COLS):max(COLS, i + 1)]
-            self.lcd.write("".join(w), row)
-            self.lcd.setcursorpos(row, min(i, COLS - 1))
-            match self.get_action(timeout=timeout):
-                case "inc" if mode == "line":
-                    c = charset.find(text[i])
-                    text[i] = charset[(c + 1) % len(charset)]
-                case "dec" if mode == "line":
-                    c = charset.find(text[i])
-                    text[i] = charset[(c - 1) % len(charset)]
-                case "inc" | ("key", "right"):
-                    i += 1
-                    if i == len(text):
-                        text.append(" ")
-                case "dec" | ("key", "left"):
-                    i = max(i - 1, 0)
-                case ("key", "erase"):
-                    if i > 0:
-                        text[i - 1:] = text[i:]
-                        i -= 1
-                case "select" | ("key", "insert"):
-                    mode = "blink" if mode == "line" else "line"
-                    self.lcd.setcursormode(mode)
-                case "back" | ("key", "done"):
-                    self.lcd.setcursormode("hide")
-                    text = "".join(text)
-                    for name, char in self.lcd.glyph2char:
-                        text.replace(self.lcd[name], char) 
-                    keys_stop()
-                    return text
-                case ("key", k):
-                    if mode == "line":
-                        text.insert(i, k)
-                    else:
-                        text[i] = k
-                    i += 1
-                    if i == len(text):
-                        text.append(" ")
-                case other:
-                    self.lcd.setcursormode("hide")
-                    keys_stop()
-                    return other
+        with keys_dispatch(self.add_action):
+            while True:
+                w = text[max(0, i + 1 - COLS):max(COLS, i + 1)]
+                self.lcd.write("".join(w), row)
+                self.lcd.setcursorpos(row, min(i, COLS - 1))
+                match self.get_action(timeout=timeout):
+                    case "inc" if mode == "line":
+                        c = charset.find(text[i])
+                        text[i] = charset[(c + 1) % len(charset)]
+                    case "dec" if mode == "line":
+                        c = charset.find(text[i])
+                        text[i] = charset[(c - 1) % len(charset)]
+                    case "inc" | ("key", "right"):
+                        i += 1
+                        if i == len(text):
+                            text.append(" ")
+                    case "dec" | ("key", "left"):
+                        i = max(i - 1, 0)
+                    case ("key", "erase"):
+                        if i > 0:
+                            text[i - 1:] = text[i:]
+                            i -= 1
+                    case "select" | ("key", "insert"):
+                        mode = "blink" if mode == "line" else "line"
+                        self.lcd.setcursormode(mode)
+                    case "back" | ("key", "done"):
+                        self.lcd.setcursormode("hide")
+                        text = "".join(text)
+                        for name, char in self.lcd.glyph2char:
+                            text.replace(self.lcd[name], char) 
+                        keys_stop()
+                        return text
+                    case ("key", k):
+                        if mode == "line":
+                            text.insert(i, k)
+                        else:
+                            text[i] = k
+                        i += 1
+                        if i == len(text):
+                            text.append(" ")
 
     def menu_choosefile(self, topdir, start=None, ext=[],
                         row=ROWS - 2, timeout=0):
@@ -347,7 +351,7 @@ class SquishBox:
             i, res = self.menu_choose(
                 slider, row + 1, align="left",
                 i=ival, wrap=False, timeout=timeout,
-                func=lambda i: setattr(self, "contrast_level", i * d)
+                on_change=lambda i: setattr(self, "contrast_level", i * d)
             )
             if res == None:
                 break
@@ -356,7 +360,7 @@ class SquishBox:
             i, res = self.menu_choose(
                 slider, row + 1, align="left",
                 i=ival, wrap=False, timeout=timeout,
-                func=lambda i: setattr(self, "backlight_level", i * d)
+                on_change=lambda i: setattr(self, "backlight_level", i * d)
             )
             if res == None:
                 break
