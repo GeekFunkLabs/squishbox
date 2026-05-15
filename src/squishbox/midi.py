@@ -34,9 +34,24 @@ def process_events():
             midi_connect()
 
 
+def send_message(msg):
+    match msg.split(":"):
+        case ["ctrl", chan, num, val]:
+            evt = alsa_midi.ControlChangeEvent(
+                channel=chan,
+                param=num,
+                value=val,
+            )
+        case _:
+            return
+    sbclient.event_output(evt)
+    sbclient.drain_output()
+
+
 sbclient = alsa_midi.SequencerClient("SquishBox")
-sbport = sbclient.create_port("SquishBox MIDI in", caps=alsa_midi.WRITE_PORT)
-sbport.connect_from(alsa_midi.SYSTEM_ANNOUNCE)
+outport = sbclient.create_port("SquishBox MIDI out", caps=alsa_midi.READ_PORT)
+inport = sbclient.create_port("SquishBox MIDI in", caps=alsa_midi.WRITE_PORT)
+inport.connect_from(alsa_midi.SYSTEM_ANNOUNCE)
 
 listening = True
 Thread(target=process_events, daemon=True).start()
