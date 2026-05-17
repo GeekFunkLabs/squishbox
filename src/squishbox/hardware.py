@@ -323,6 +323,8 @@ X--X-
         self.regsel = regsel
         self.enable = enable
         self.data = data
+        self._cursor_pos = 0, 0
+        self._cursor_mode = "hide"
         self.buffered = False
         self._spinning = False
         # set up LCD GPIO
@@ -470,6 +472,9 @@ X--X-
         """
         if self._spinning:
             return
+        curpos, curmode = self.cursor_pos, self.cursor_mode
+        if self.cursor_mode != "hide":
+            self.cursor_mode = "hide"
         t = time.time()
         for row in range(ROWS):
             if any(self._layers["scrollbuffer"][row]):
@@ -492,33 +497,45 @@ X--X-
             self._putchars(chars, row, 0)
         if t > self._scrolltimer:
             self._scrolltimer += CONFIG["scroll_time"]
+        if self.cursor_mode != curmode:
+            self.cursor_mode = curmode
+        self.cursor_pos = curpos
 
-    def setcursorpos(self, row, col):
-        """Set cursor position.
+    @property
+    def cursor_pos(self):
+        """Cursor position as (row, col)"""
+        return self._cursor_pos
 
-        Args:
-            row (int): Row index.
-            col (int): Column index.
-        """
+    @cursor_pos.setter
+    def setcursorpos(self, pos):
+        row, col = pos
         if row < ROWS and col < COLS:
             offset = (0x00, 0x40, COLS, 0x40 + COLS)
             self._send(0x80 | offset[row] + col)
+            self._cursor_pos = pos
 
-    def setcursormode(self, mode):
-        """Set cursor display mode.
+    @property
+    def cursor_mode(self):
+        """Cursor display mode.
 
-        Args:
-            mode (str): One of:
-                "hide"  – no cursor
-                "blink" – blinking block cursor
-                "line"  – underline cursor
+        Modes:
+            "hide"  – no cursor
+            "blink" – blinking block cursor
+            "line"  - underline cursor
         """
+        return self._cursor_mode
+
+    @cursor_mode.setter
+    def cursor_mode(self, mode):
         if mode == "hide":
             self._send(0x0c)
         elif mode == "blink":
             self._send(0x0d)
         elif mode == "line":    
             self._send(0x0e)
+        else:
+            return
+        self._cursor_mode = mode
 
     @contextmanager
     def activity(self, msg=None):
