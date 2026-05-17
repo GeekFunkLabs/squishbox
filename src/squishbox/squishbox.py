@@ -645,7 +645,7 @@ class SquishBox:
             self.lcd.update()
             time.sleep(idle)
             if timeout and time.time() - t0 > timeout:
-                self.buffered = False
+                self.lcd.buffered = False
                 return None
         self.lcd.buffered = False
         return self._actions.pop(0)
