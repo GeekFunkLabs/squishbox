@@ -83,4 +83,6 @@ glyphs_5x8:
     XXX--
     XXX--
     -----
+app_dirs: ["~/SquishBox/user_apps",]
+startup_app:
 

@@ -314,7 +314,7 @@ sb.lcd.clear()
 CONFIG = load_config("amsynthboxconf.yaml")
 if not CONFIG["banks_path"].exists():
     CONFIG["banks_path"].mkdir(parents=True, exist_ok=True)
-    Path(CONFIG["banks_path"] / "presets").symlink_to(
+    Path(CONFIG["banks_path"] / "factory").symlink_to(
         "/usr/share/amsynth/banks"
     )
 

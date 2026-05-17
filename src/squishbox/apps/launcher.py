@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Front-end menu for SquishBox scripts"""
+"""Front-end menu for SquishBox apps"""
 
 from importlib.util import spec_from_file_location, module_from_spec
 from pathlib import Path
@@ -11,10 +11,10 @@ ROWS = CONFIG["lcd_rows"]
 COLS = CONFIG["lcd_cols"]
 
 
-def run_script(path):
+def run_app(path):
     spec = spec_from_file_location(path.stem, path)
     mod = module_from_spec(spec)
-    CONFIG["startup_script"] = path.stem
+    CONFIG["startup_app"] = path.stem
     save_state(CONFIG_PATH, CONFIG)
     
     try:
@@ -24,7 +24,7 @@ def run_script(path):
     except Exception as e:
         sb.display_error(e)
     finally:
-        CONFIG.pop("startup_script", None)
+        CONFIG.pop("startup_app", None)
         save_state(CONFIG_PATH, CONFIG)
 
 
@@ -36,16 +36,15 @@ for path in builtin_dir.glob("*.py"):
     if path.stem in {"__init__", Path(__file__).stem}:
         continue
     paths.append(path)
-for d in CONFIG.get("script_paths", []):
+for d in CONFIG.get("app_dirs", []):
     d = Path(d).expanduser()
-    if not d.exists():
-        continue
-    for path in d.glob("*.py"):
-        paths.append(path)
+    if d.exists():
+        for path in d.glob("*.py"):
+            paths.append(path)
 paths.sort(key=lambda path: path.stem)
-scripts = {path.stem: path for path in paths}
-if CONFIG.get("startup_script") in scripts:
-    run_script(scripts[CONFIG["startup_script"]])
+apps = {path.stem: path for path in paths}
+if CONFIG.get("startup_app") in apps:
+    run_app(apps[CONFIG["startup_app"]])
 
 last = 0
 while True:
@@ -56,7 +55,7 @@ while True:
     else:
         sb.lcd.write(sb.lcd["wifi_off"], row=1, col=0)
     match sb.menu_choose([
-        *scripts,
+        *apps,
         "LCD Settings..",
         "MIDI Settings..",
         "WiFi Settings..",
@@ -71,8 +70,8 @@ while True:
         case last, "Exit" | None:
             if sb.menu_exit() == "shell":
                 break
-        case last, name if name in scripts:
+        case last, name if name in apps:
             sb.lcd.write(name.ljust(COLS), row=ROWS - 2)
             sb.lcd.write("starting..".rjust(COLS), row=ROWS - 1)
-            run_script(scripts[name])
+            run_app(apps[name])
 
