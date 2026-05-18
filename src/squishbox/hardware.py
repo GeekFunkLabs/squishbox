@@ -399,7 +399,7 @@ X--X-
         Also resets scrolling state, blinking timers, and cursor position.
         """
         self._send(0x01)
-        self.setcursorpos(0, 0)
+        self.cursor_pos = 0, 0
         time.sleep(40 * CONFIG["lcd_exec_time"])
         self._layers = {x: [[""] * COLS for _ in range(ROWS)]
                         for x in ("displayed", "scrollbuffer", "scrolling", "static", "blinking")}
@@ -507,7 +507,7 @@ X--X-
         return self._cursor_pos
 
     @cursor_pos.setter
-    def setcursorpos(self, pos):
+    def cursor_pos(self, pos):
         row, col = pos
         if row < ROWS and col < COLS:
             offset = (0x00, 0x40, COLS, 0x40 + COLS)
@@ -582,7 +582,7 @@ X--X-
         for c in chars:
             if c and self._layers["displayed"][row][col] != c:
                 if lastcol != col - 1:
-                    self.setcursorpos(row, col)
+                    self.cursor_pos = row, col
                 self._send(ord(c), gpiod.line.Value.ACTIVE)
                 self._layers["displayed"][row][col] = c
                 lastcol = col

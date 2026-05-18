@@ -242,7 +242,6 @@ class SquishBox:
                         text = "".join(text)
                         for name, char in self.lcd.glyph2char:
                             text.replace(self.lcd[name], char) 
-                        keys_stop()
                         return text
                     case ("key", k):
                         if mode == "line":
