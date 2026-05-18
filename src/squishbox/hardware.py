@@ -348,11 +348,11 @@ X--X-
         self._used = []
 
     def printable(self):
-        """Return full set of printable characters supported by the LCD."""
+        """Provide full set of printable characters supported by the LCD."""
         return self._printable + self["backslash"] + self["tilde"] + " "
 
     def fnchars(self):
-        """Return reduced character set suitable for filenames."""
+        """Provide reduced character set suitable for filenames."""
         return self._printable[:67] + self["backslash"] + " "
 
     def __setitem__(self, name, text):
@@ -519,9 +519,9 @@ X--X-
         """Cursor display mode.
 
         Modes:
-            "hide"  – no cursor
-            "blink" – blinking block cursor
-            "line"  - underline cursor
+          - "hide"  – no cursor
+          - "blink" – blinking block cursor
+          - "line"  - underline cursor
         """
         return self._cursor_mode
 

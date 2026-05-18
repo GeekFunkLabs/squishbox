@@ -30,8 +30,8 @@ Optional / Deluxe model:
 
    Through-hole components for the SquishBox
 
-Electronics Assembly
---------------------
+Electronics
+-----------
 
 General soldering tips:
 
@@ -128,8 +128,8 @@ Wire the switches as follows:
    
    Footswitch wiring
 
-Final Assembly
---------------
+Enclosure
+---------
 
 Align the rotary encoder shaft, LEDs (if installed), and audio jacks with the
 corresponding enclosure openings.

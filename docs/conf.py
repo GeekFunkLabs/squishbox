@@ -3,8 +3,15 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
+from pathlib import Path
 import sys
+import tomllib
+
 sys.path.insert(0, os.path.abspath('../src'))
+
+ROOT = Path(__file__).resolve().parent.parent
+with open(ROOT / "pyproject.toml", "rb") as f:
+    pyproject = tomllib.load(f)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -12,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../src'))
 project = 'SquishBox'
 copyright = '2026, Bill Peterson'
 author = 'Bill Peterson'
-release = '1.0.0'
+release = pyproject["project"]["version"]
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
