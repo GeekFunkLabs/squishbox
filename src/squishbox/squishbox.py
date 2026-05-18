@@ -211,12 +211,12 @@ class SquishBox:
         i = i % len(text) if text else 0
         text = list(text.ljust(COLS))
         mode = "blink"
-        self.lcd.setcursormode(mode)
+        self.lcd.cursor_mode = mode
         with keys_dispatch(self.add_action):
             while True:
                 w = text[max(0, i + 1 - COLS):max(COLS, i + 1)]
                 self.lcd.write("".join(w), row)
-                self.lcd.setcursorpos(row, min(i, COLS - 1))
+                self.lcd.cursor_pos = row, min(i, COLS - 1)
                 match self.get_action(timeout=timeout):
                     case "inc" if mode == "line":
                         c = charset.find(text[i])
@@ -236,9 +236,9 @@ class SquishBox:
                             i -= 1
                     case "select" | ("key", "insert"):
                         mode = "blink" if mode == "line" else "line"
-                        self.lcd.setcursormode(mode)
+                        self.lcd.cursor_mode = mode
                     case "back" | ("key", "done"):
-                        self.lcd.setcursormode("hide")
+                        self.lcd.cursor_mode = "hide"
                         text = "".join(text)
                         for name, char in self.lcd.glyph2char:
                             text.replace(self.lcd[name], char) 

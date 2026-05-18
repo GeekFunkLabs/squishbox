@@ -17,7 +17,7 @@ def select_files(path):
     irow, crow = 0, 0
     paths = sorted([p for p in path.iterdir() if p.is_file()])
     sel = [False for p in paths]
-    sb.lcd.setcursormode("line")
+    sb.lcd.cursor_mode = "line"
     while True:
         for i in range(irow, min(irow + ROWS, len(paths))):
             if i >= len(paths):
@@ -27,7 +27,7 @@ def select_files(path):
                 sb.lcd.write((sb.lcd["check"] + paths[i].name).ljust(COLS), row=i - irow)
             else:
                 sb.lcd.write((" " + paths[i].name).ljust(COLS), row=i - irow)
-        sb.lcd.setcursorpos(crow, 0)
+        sb.lcd.cursor_pos = crow, 0
         match sb.get_action():
             case "inc":
                 crow += 1
@@ -44,7 +44,7 @@ def select_files(path):
                 sel[i] = not sel[i]
             case "back":
                 break
-    sb.lcd.setcursormode("hide")
+    sb.lcd.cursor_mode = "hide"
     return [paths[i] for i in range(len(sel)) if sel[i]]
 
 
