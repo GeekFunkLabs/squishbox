@@ -264,9 +264,10 @@ the current program.</p>
 <h3>Direct Action Handling<a class="headerlink" href="#direct-action-handling" title="Link to this heading">¶</a></h3>
 <p>For more complex user interfaces (e.g. vertically-scrollable menus, screens
 with active status indicators and/or custom actions), the <code class="docutils literal notranslate"><span class="pre">get_action()</span></code>
-function can be used to create interaction loops. Incoming actions are
-stored in a queue, and <code class="docutils literal notranslate"><span class="pre">get_action()</span></code> retrieves them FIFO-style,
-blocking while the queue is empty (or until <code class="docutils literal notranslate"><span class="pre">timeout</span></code> is exceeded).</p>
+function can be used to create interaction loops.</p>
+<p>Incoming actions are stored in a queue, and <code class="docutils literal notranslate"><span class="pre">get_action()</span></code>
+retrieves them FIFO-style, blocking while the queue is empty
+(or until <code class="docutils literal notranslate"><span class="pre">timeout</span></code> is exceeded).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># display scrollable multi-line output</span>
 
 <span class="n">out</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span> <span class="c1"># some multi-line text</span>
