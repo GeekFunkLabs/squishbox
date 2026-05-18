@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>User Guide &#8212; SquishBox 1.0.0 documentation</title>
+    <title>User Guide &#8212; SquishBox 1.0.11 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
     <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
-    <script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/documentation_options.js?v=9306f2a9"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -55,7 +55,7 @@ editing settings, and entering text without a keyboard.</p>
 <p>Pressing the encoder toggles between two cursor modes:</p>
 <ul class="simple">
 <li><p><strong>Blinking block cursor</strong> — Move the cursor position by turning the encoder</p></li>
-<li><p><strong>Blinking underline cursor</strong> — Change the current character by turning the encoder</p></li>
+<li><p><strong>Underline cursor</strong> — Change the current character by turning the encoder</p></li>
 </ul>
 <p>This allows text to be entered entirely from the front panel.</p>
 <p>If a USB or wireless keyboard is connected to the Raspberry Pi, keyboard input
@@ -68,27 +68,165 @@ is also accepted anywhere text entry is available.</p>
 <p>This helps prevent filesystem corruption or SD card damage.</p>
 </section>
 </section>
-<section id="hardware-controls-and-connections">
-<h2>Hardware Controls and Connections<a class="headerlink" href="#hardware-controls-and-connections" title="Link to this heading">¶</a></h2>
-<section id="display-contrast-adjustment">
-<h3>Display Contrast Adjustment<a class="headerlink" href="#display-contrast-adjustment" title="Link to this heading">¶</a></h3>
-<p>The LCD contrast trimmer is accessible with the Raspberry Pi installed and the
-rear cover removed.</p>
-<p>Use a small screwdriver to adjust the trimmer for the best display clarity.</p>
-<p>Contrast is controlled by both:</p>
+<section id="software">
+<h2>Software<a class="headerlink" href="#software" title="Link to this heading">¶</a></h2>
+<section id="file-locations">
+<h3>File locations<a class="headerlink" href="#file-locations" title="Link to this heading">¶</a></h3>
+<p>By default, configuration and media files for the SquishBox are organized
+in the folder structure shown below. Directories are created by apps
+as needed.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>~/Squishbox/
+ ├── config/
+ ├── banks/
+ │   ├── fluidpatcher/
+ │   └── amsynth/
+ ├── media/
+ │   ├── sounds/
+ │   ├── midi/
+ │   └── music/
+ ├── playlists/
+ └── sets/
+</pre></div>
+</div>
+<p>The main configuration file is stored at <code class="docutils literal notranslate"><span class="pre">config/squishboxconf.yaml</span></code>,
+and defines settings such as:</p>
 <ul class="simple">
-<li><p>The hardware trimmer potentiometer</p></li>
-<li><p>Software contrast settings</p></li>
+<li><p>LCD configuration</p></li>
+<li><p>UI timings</p></li>
+<li><p>Inputs/Outputs and bindings</p></li>
+<li><p>Custom LCD characters</p></li>
 </ul>
-<p>For best results, install the software first, then adjust the trimmer so the
-software setting has a useful adjustment range.</p>
-<figure class="align-default" id="id1">
-<img alt="screwdriver adjusting hardware contrast potentiometer" src="_images/contrast-pot-adjustment.jpg" />
-<figcaption>
-<p><span class="caption-text">Adjustment of hardware contrast</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
-</figcaption>
-</figure>
+<p>The <code class="docutils literal notranslate"><span class="pre">config</span></code> directory is also the default location for app configuration files.</p>
 </section>
+<section id="user-interface">
+<h3>User Interface<a class="headerlink" href="#user-interface" title="Link to this heading">¶</a></h3>
+<p>The SquishBox launcher starts automatically on boot and serves as the main entry
+point for applications and utilities. It provides a menu for launching programs
+and scripts, and also acts as a fallback environment if an application exits or
+crashes. Additional directories containing user scripts can be added using the
+<code class="docutils literal notranslate"><span class="pre">app_dirs</span></code> configuration option.</p>
+<p>Most applications, including the launcher, provide access to shared system menus
+for configuring MIDI, Wi-Fi, LCD settings, and power options.</p>
+<section id="midi-routing">
+<h4>MIDI Routing<a class="headerlink" href="#midi-routing" title="Link to this heading">¶</a></h4>
+<p>MIDI devices are not automatically connected by default. Connections can be
+managed from the MIDI Settings menu by first selecting the MIDI input device,
+then selecting the destination to connect it to.</p>
+<p>Applications that use MIDI internally (such as <code class="docutils literal notranslate"><span class="pre">fpatcherbox</span></code>) typically
+appear as available destinations only while they are running.</p>
+<p>The port <code class="docutils literal notranslate"><span class="pre">SquishBox</span> <span class="pre">MIDI</span> <span class="pre">out</span></code> sends messages from any hardware controls
+that are configured to do so (e.g. footswitches). The <code class="docutils literal notranslate"><span class="pre">SquishBox</span> <span class="pre">MIDI</span> <span class="pre">in</span></code>
+port is used by the system to detect when new devices are connected.</p>
+<p>Special <code class="docutils literal notranslate"><span class="pre">any</span></code> entries may be used to create automatic routing rules. For
+example:</p>
+<ul class="simple">
+<li><p>Connect any MIDI device to a specific application</p></li>
+<li><p>Connect a specific MIDI device to any application</p></li>
+<li><p>Automatically connect any device to any available application</p></li>
+</ul>
+</section>
+<section id="wi-fi-settings">
+<h4>Wi-Fi Settings<a class="headerlink" href="#wi-fi-settings" title="Link to this heading">¶</a></h4>
+<p>The Wi-Fi Settings menu allows scanning for wireless networks, connecting to
+access points, and enabling or disabling Wi-Fi entirely.</p>
+<p>Most applications display a Wi-Fi status icon. This icon indicates whether the
+Wi-Fi hardware is enabled, not whether the system is currently connected to a
+network.</p>
+<p>Disabling Wi-Fi may improve reliability in some situations, since Wi-Fi scanning
+and background network activity can increase memory usage and occasionally
+interfere with real-time audio applications.</p>
+</section>
+<section id="power-menu">
+<h4>Power Menu<a class="headerlink" href="#power-menu" title="Link to this heading">¶</a></h4>
+<p>The Power menu provides options to reboot or shut down the system,
+as well as a <strong>Shell</strong> option to exit the currently running application
+and return to the launcher.</p>
+<p>If the system is rebooted or powered off while an application is running, the
+launcher automatically restarts that application on the next boot. This allows
+applications such as <code class="docutils literal notranslate"><span class="pre">amsynthbox</span></code> or <code class="docutils literal notranslate"><span class="pre">fpatcherbox</span></code> to behave like dedicated
+standalone instruments that automatically resume after power cycling.</p>
+</section>
+</section>
+<section id="included-apps">
+<h3>Included Apps<a class="headerlink" href="#included-apps" title="Link to this heading">¶</a></h3>
+<p>The included applications serve two purposes:</p>
+<ul class="simple">
+<li><p>Fully supported tools and audio programs for daily use</p></li>
+<li><p>Reference examples for developers using the SquishBox Python API</p></li>
+</ul>
+<p>Bug reports and feature requests can be submitted through the project GitHub
+issue tracker.</p>
+<section id="fpatcherbox">
+<h4><code class="docutils literal notranslate"><span class="pre">fpatcherbox</span></code><a class="headerlink" href="#fpatcherbox" title="Link to this heading">¶</a></h4>
+<p>Flexible synth and sound module built around the
+<a class="reference external" href="https://www.fluidsynth.org/">FluidSynth</a> engine using the
+<a class="reference external" href="https://geekfunklabs.github.io/fluidpatcher/">FluidPatcher</a> Python package.</p>
+<p>The interface allows:</p>
+<ul class="simple">
+<li><p>Selecting patches, adding/removing/saving patches, and loading/saving banks</p></li>
+<li><p>Adjusting FluidSynth’s built-in reverb and chorus effects</p></li>
+<li><p>Live selection of soundfont presets on any channel</p></li>
+<li><p>Creation of MIDI keyboard routing layers on-the-fly</p></li>
+</ul>
+<p>Pressing and holding the encoder at the main screen toggles between
+displaying MIDI activity and full MIDI message information.</p>
+<p>The app recognizes several custom router rule parameters:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">lcdwrite</span></code></dt><dd><p>Writes a message on the LCD when a MIDI event matches the rule.
+If the rule also has a <code class="docutils literal notranslate"><span class="pre">format</span></code> parameter with a python formatting spec,
+the value of the event is also written.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">setpin</span></code></dt><dd><p>Sets the named SquishBox output. Can be used to
+turn an LED on/off in response to a MIDI event.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">patch</span></code></dt><dd><p>Applies a patch by name or index (starting at 1). If the
+parameter value is a number with a <code class="docutils literal notranslate"><span class="pre">+</span></code>/<code class="docutils literal notranslate"><span class="pre">-</span></code> suffix, increments the
+current patch by the amount.</p>
+</dd>
+</dl>
+</section>
+<section id="amsynthbox">
+<h4><code class="docutils literal notranslate"><span class="pre">amsynthbox</span></code><a class="headerlink" href="#amsynthbox" title="Link to this heading">¶</a></h4>
+<p>Front-end wrapper for the amsynth analog-modeling synthesizer.</p>
+<p>All synth parameters can be adjusted using the menu, or bound to
+MIDI control change events using the <strong>MIDI Learn</strong> option.
+The <code class="docutils literal notranslate"><span class="pre">midi_channel</span></code> option in the configuration file sets the MIDI channel
+amsynth will respond to. A value of <code class="docutils literal notranslate"><span class="pre">0</span></code> responds to any channel.</p>
+</section>
+<section id="trackbox">
+<h4><code class="docutils literal notranslate"><span class="pre">trackbox</span></code><a class="headerlink" href="#trackbox" title="Link to this heading">¶</a></h4>
+<p>Playlist-based music player with live track reordering and quick cuts.
+Most types of audio files can be played, and are stored in <code class="docutils literal notranslate"><span class="pre">media/music/</span></code>
+by default. The root location for music can be set using the <code class="docutils literal notranslate"><span class="pre">trackroot_path</span></code>
+item in the configuration file.</p>
+</section>
+<section id="sbedit">
+<h4><code class="docutils literal notranslate"><span class="pre">sbedit</span></code><a class="headerlink" href="#sbedit" title="Link to this heading">¶</a></h4>
+<p>Lightweight text editor that supports both encoder input and keyboards.
+Useful for editing config files or making changes to banks. When scrolling
+through lines, the line number is flashed at the left edge of the screen.
+Tapping the encoder edits the current line. Pressing and holding the encoder
+opens a menu for loading/saving files or inserting/deleting rows.</p>
+</section>
+<section id="sbcommander">
+<h4><code class="docutils literal notranslate"><span class="pre">sbcommander</span></code><a class="headerlink" href="#sbcommander" title="Link to this heading">¶</a></h4>
+<p>File manager for copying, moving, renaming, deleting files, and running
+shell commands. Able to mount/unmount USB drives and copy directory trees,
+making it a useful tool for managing files on the SquishBox without a network
+connection.</p>
+<p>Shell commands can be entered using encoder input or a keyboard. If file(s)
+are currently selected, they are added as arguments at the end of the command.
+The output of the command is displayed on the LCD and can be
+scrolled by turning the encoder.</p>
+</section>
+<section id="glyphedit">
+<h4><code class="docutils literal notranslate"><span class="pre">glyphedit</span></code><a class="headerlink" href="#glyphedit" title="Link to this heading">¶</a></h4>
+<p>Utility for creating and editing custom LCD glyph characters.</p>
+</section>
+</section>
+</section>
+<section id="hardware-connections">
+<h2>Hardware Connections<a class="headerlink" href="#hardware-connections" title="Link to this heading">¶</a></h2>
 <section id="audio-outputs">
 <h3>Audio Outputs<a class="headerlink" href="#audio-outputs" title="Link to this heading">¶</a></h3>
 <p>The SquishBox provides two 1/4” audio output jacks.</p>
@@ -106,10 +244,10 @@ summed to mono on that output.</p></li>
 the tip and sleeve of a TRS connector for headphone use.</p></li>
 </ul>
 <p>The PCB silkscreen also labels both jacks.</p>
-<figure class="align-default" id="id2">
+<figure class="align-default" id="id1">
 <img alt="1/4&quot; cable plugged into right audio port" src="_images/audio-jacks-mono.jpg" />
 <figcaption>
-<p><span class="caption-text">Audio ports in mono connection mode</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+<p><span class="caption-text">Audio ports in mono connection mode</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
@@ -130,49 +268,31 @@ TRS MIDI wiring standard:</p>
 <li><p><strong>Type B</strong> = vertical jumper position ( ‖ )</p></li>
 </ul>
 <p>Set both jumpers to match the equipment you are connecting.</p>
-<figure class="align-default" id="id3">
+<figure class="align-default" id="id2">
 <img alt="1/8&quot; TRS cable plugged into right minijack" src="_images/midi-minijacks-in.jpg" />
 <figcaption>
-<p><span class="caption-text">Connection to MIDI IN minijack</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+<p><span class="caption-text">Connection to MIDI IN minijack</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
-</section>
-<section id="included-apps">
-<h2>Included Apps<a class="headerlink" href="#included-apps" title="Link to this heading">¶</a></h2>
-<p>The included applications serve two purposes:</p>
+<section id="display-contrast-adjustment">
+<h3>Display Contrast Adjustment<a class="headerlink" href="#display-contrast-adjustment" title="Link to this heading">¶</a></h3>
+<p>The LCD contrast trimmer is accessible with the Raspberry Pi installed and the
+rear cover removed.</p>
+<p>Use a small screwdriver to adjust the trimmer for the best display clarity.</p>
+<p>Contrast is controlled by both:</p>
 <ul class="simple">
-<li><p>Fully supported tools and audio programs for daily use</p></li>
-<li><p>Reference examples for developers using the SquishBox Python API</p></li>
+<li><p>The hardware trimmer potentiometer</p></li>
+<li><p>Software contrast settings</p></li>
 </ul>
-<p>Bug reports and feature requests can be submitted through the project GitHub
-issue tracker.</p>
-<section id="utilities">
-<h3>Utilities<a class="headerlink" href="#utilities" title="Link to this heading">¶</a></h3>
-<dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">launcher.py</span></code></dt><dd><p>Main launcher used to start applications and access system settings.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">sbedit.py</span></code></dt><dd><p>Lightweight text editor that supports both encoder input and keyboards.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">glyphedit.py</span></code></dt><dd><p>Utility for creating and editing custom LCD glyph characters.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">sbcommander.py</span></code></dt><dd><p>File manager for copying, moving, renaming, deleting files, and running
-shell commands.</p>
-</dd>
-</dl>
-</section>
-<section id="sound-programs">
-<h3>Sound Programs<a class="headerlink" href="#sound-programs" title="Link to this heading">¶</a></h3>
-<dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">fpatcherbox.py</span></code></dt><dd><p>Flexible synth and sound module built around the
-<a class="reference external" href="https://www.fluidsynth.org/">FluidSynth</a> engine using the
-<a class="reference external" href="https://geekfunklabs.github.io/fluidpatcher/">FluidPatcher</a> Python package.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">amsynthbox.py</span></code></dt><dd><p>Front-end wrapper for the amsynth analog-modeling synthesizer.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">trackbox.py</span></code></dt><dd><p>Playlist-based music player with live track reordering and quick cuts.</p>
-</dd>
-</dl>
+<p>For best results, install the software first, then adjust the trimmer so the
+software setting has a useful adjustment range.</p>
+<figure class="align-default" id="id3">
+<img alt="screwdriver adjusting hardware contrast potentiometer" src="_images/contrast-pot-adjustment.jpg" />
+<figcaption>
+<p><span class="caption-text">Adjustment of hardware contrast</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
 </section>
 </section>
 </section>
@@ -215,13 +335,13 @@ shell commands.</p>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">User Guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#basic-controls">Basic Controls</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#hardware-controls-and-connections">Hardware Controls and Connections</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#included-apps">Included Apps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#software">Software</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hardware-connections">Hardware Connections</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="assembly.html">Assembly</a></li>
-<li class="toctree-l1"><a class="reference internal" href="software.html">Software</a></li>
-<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="programming.html">Programming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="technical.html">Technical Docs</a></li>
 </ul>
 
 

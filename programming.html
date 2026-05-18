@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Programming &#8212; SquishBox 1.0.11 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=9306f2a9"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="SquishBox Module" href="api/squishbox.html" />
+    <link rel="prev" title="Assembly" href="assembly.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="programming">
+<h1>Programming<a class="headerlink" href="#programming" title="Link to this heading">¶</a></h1>
+<p>This page is a practical primer for customizing/writing SquishBox apps.</p>
+<p>Instead of dealing directly with GPIO timing, LCD protocols,
+encoder debouncing, or event queues, applications interact with
+a single high-level object</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">squishbox</span>
+<span class="n">sb</span> <span class="o">=</span> <span class="n">squishbox</span><span class="o">.</span><span class="n">SquishBox</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>From there you can:</p>
+<ul class="simple">
+<li><p>Write text to the LCD</p></li>
+<li><p>Read knob and button actions</p></li>
+<li><p>Present menus and prompts</p></li>
+<li><p>Edit text from the front panel</p></li>
+<li><p>Control LEDs and outputs</p></li>
+<li><p>Launch shell commands</p></li>
+<li><p>Build complete standalone hardware applications</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">SquishBox()</span></code> always returns the same shared hardware interface instance.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">a</span> <span class="o">=</span> <span class="n">squishbox</span><span class="o">.</span><span class="n">SquishBox</span><span class="p">()</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">squishbox</span><span class="o">.</span><span class="n">SquishBox</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">a</span> <span class="ow">is</span> <span class="n">b</span><span class="p">)</span>   <span class="c1"># True</span>
+</pre></div>
+</div>
+<p>This allows helper modules or plugins to access the hardware safely without
+creating duplicate GPIO handlers.</p>
+<section id="application-model">
+<h2>Application Model<a class="headerlink" href="#application-model" title="Link to this heading">¶</a></h2>
+<p>Most SquishBox programs follow a simple pattern:</p>
+<ol class="arabic simple">
+<li><p>Access the shared <code class="docutils literal notranslate"><span class="pre">SquishBox()</span></code> instance</p></li>
+<li><p>Start the synth/audio process</p></li>
+<li><p>Draw something on the LCD</p></li>
+<li><p>Wait for user input</p></li>
+<li><p>Respond to that input</p></li>
+<li><p>Repeat until exit</p></li>
+</ol>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">squishbox</span>
+
+<span class="n">sb</span> <span class="o">=</span> <span class="n">squishbox</span><span class="o">.</span><span class="n">SquishBox</span><span class="p">()</span>
+<span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+<span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;My Cool Synth&quot;</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">synth</span> <span class="o">=</span> <span class="n">start_synth</span><span class="p">()</span>
+<span class="n">synth</span><span class="o">.</span><span class="n">select_patch</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="n">i</span><span class="p">,</span> <span class="n">action</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_choose</span><span class="p">(</span><span class="n">synth</span><span class="o">.</span><span class="n">patchnames</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">break</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">synth</span><span class="o">.</span><span class="n">select_patch</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="configuration-files">
+<h3>Configuration Files<a class="headerlink" href="#configuration-files" title="Link to this heading">¶</a></h3>
+<p>The main SquishBox configuration file <code class="docutils literal notranslate"><span class="pre">squishboxconf.yaml</span></code> is intended
+to allow the user to change global behavior without modifying code.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">controls</span></code> section defines named inputs such as buttons and encoders.
+Each item describes the hardware type, GPIO settings, and event bindings.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">actions</span></code> Links events to SquishBox UI actions:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">inc</span></code>/<code class="docutils literal notranslate"><span class="pre">dec</span></code> change a value/option</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">select</span></code> do/confirm</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">back</span></code> cancel/return</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">messages</span></code> Emits MIDI messages in response to events.
+Message format is <code class="docutils literal notranslate"><span class="pre">&lt;type&gt;:&lt;channel&gt;:&lt;number&gt;:&lt;value&gt;</span></code>.
+Only control change messages (<code class="docutils literal notranslate"><span class="pre">ctrl</span></code>) are implemented.</p></li>
+</ul>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">controls</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">knob1</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">encoder</span>
+<span class="w">    </span><span class="nt">pins</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">22</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">27</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">actions</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">left</span><span class="p">:</span><span class="w"> </span><span class="nv">dec</span><span class="p p-Indicator">,</span><span class="nt"> right</span><span class="p">:</span><span class="w"> </span><span class="nv">inc</span><span class="p p-Indicator">}</span>
+<span class="w">  </span><span class="nt">knob1_button</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">button</span>
+<span class="w">    </span><span class="nt">pin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">17</span>
+<span class="w">    </span><span class="nt">actions</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">tap</span><span class="p">:</span><span class="w"> </span><span class="nv">select</span><span class="p p-Indicator">,</span><span class="nt"> hold</span><span class="p">:</span><span class="w"> </span><span class="nv">back</span><span class="p p-Indicator">}</span>
+<span class="w">  </span><span class="nt">foot_left</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">button</span>
+<span class="w">    </span><span class="nt">pin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9</span>
+<span class="w">    </span><span class="nt">messages</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">on</span><span class="p">:</span><span class="w"> </span><span class="nv">ctrl</span><span class="p p-Indicator">:</span><span class="nv">16</span><span class="p p-Indicator">:</span><span class="nv">22</span><span class="p p-Indicator">:</span><span class="nv">127</span><span class="p p-Indicator">,</span><span class="nt"> off</span><span class="p">:</span><span class="w"> </span><span class="nv">ctrl</span><span class="p p-Indicator">:</span><span class="nv">16</span><span class="p p-Indicator">:</span><span class="nv">22</span><span class="p p-Indicator">:</span><span class="nv">0</span><span class="p p-Indicator">}</span>
+</pre></div>
+</div>
+<p>The main config file is loaded on import and stored in the <code class="docutils literal notranslate"><span class="pre">CONFIG</span></code> variable.
+The <code class="docutils literal notranslate"><span class="pre">load_config()</span></code> and <code class="docutils literal notranslate"><span class="pre">save_state()</span></code> functions can be used
+to manage config files for SquishBox apps.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">squishbox.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span><span class="p">,</span> <span class="n">save_state</span>
+
+<span class="n">myconfig</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="s2">&quot;myappconf.yaml&quot;</span><span class="p">)</span>
+
+<span class="o">...</span>
+
+<span class="n">myconfig</span><span class="p">[</span><span class="s2">&quot;last_bank_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_bank</span>
+<span class="n">save_state</span><span class="p">(</span><span class="s2">&quot;myappconf.yaml&quot;</span><span class="p">,</span> <span class="n">myconfig</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Tokens ending with <code class="docutils literal notranslate"><span class="pre">_path</span></code> in config files are converted to <code class="docutils literal notranslate"><span class="pre">pathlib.Path</span></code>
+objects upon loading, and are serialized as POSIX strings when saving.</p>
+</section>
+</section>
+<section id="controlling-the-lcd">
+<h2>Controlling the LCD<a class="headerlink" href="#controlling-the-lcd" title="Link to this heading">¶</a></h2>
+<p>The built-in LCD object is available as:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">lcd</span>
+</pre></div>
+</div>
+<p>Clear the display:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Set contrast/backlight levels:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">contrast_level</span> <span class="o">=</span> <span class="mi">70</span>
+<span class="n">sb</span><span class="o">.</span><span class="n">backlight_level</span> <span class="o">=</span> <span class="mi">40</span>
+</pre></div>
+</div>
+<p>Write text:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Patch Loaded&quot;</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Grand Piano&quot;</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Long text automatically scrolls when needed. Alignment is left by default.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">timeout=</span></code> option overlays text for a specified number of seconds:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Saved&quot;</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This is useful for status messages.</p>
+<section id="custom-characters">
+<h3>Custom Characters<a class="headerlink" href="#custom-characters" title="Link to this heading">¶</a></h3>
+<p>Characters beyond the standard “ASCII Printable” set can be defined as
+custom characters in the configuration file:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">glyphs_5x8</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">wifi_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">    </span><span class="no">-XXX-</span>
+<span class="w">    </span><span class="no">X---X</span>
+<span class="w">    </span><span class="no">--X--</span>
+<span class="w">    </span><span class="no">-X-X-</span>
+<span class="w">    </span><span class="no">-----</span>
+<span class="w">    </span><span class="no">--X--</span>
+<span class="w">    </span><span class="no">-----</span>
+<span class="w">    </span><span class="no">-----</span>
+</pre></div>
+</div>
+<p>A maximum of 8 unique custom characters can be displayed at once, but
+an arbitrary number can be defined in the LCD object. They are displayed
+using element access:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;WiFi status: &quot;</span> <span class="o">+</span> <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="p">[</span><span class="s2">&quot;wifi_on&quot;</span><span class="p">],</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="user-interaction">
+<h2>User Interaction<a class="headerlink" href="#user-interaction" title="Link to this heading">¶</a></h2>
+<p>The user interaction helpers use a blocking model - they don’t return
+until a value is ready (unless <code class="docutils literal notranslate"><span class="pre">timeout=</span></code> is used). This makes it easier
+to understand program flow. They all have built-in idle loops that update
+scrolling elements of the LCD and provide CPU time for other processes
+such as synths/audio applications.</p>
+<p>Several menu helper functions are provided to make it easy to create apps.</p>
+<section id="choice-menu">
+<h3>Choice Menu<a class="headerlink" href="#choice-menu" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">i</span><span class="p">,</span> <span class="n">option</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_choose</span><span class="p">(</span>
+    <span class="p">[</span><span class="s2">&quot;Piano&quot;</span><span class="p">,</span> <span class="s2">&quot;Organ&quot;</span><span class="p">,</span> <span class="s2">&quot;Synth&quot;</span><span class="p">],</span>
+    <span class="n">row</span><span class="o">=</span><span class="mi">1</span>
+<span class="p">)</span>
+
+<span class="k">if</span> <span class="n">option</span><span class="p">:</span>
+    <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">option</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Returns:</p>
+<ul class="simple">
+<li><p>selected index</p></li>
+<li><p>selected item</p></li>
+<li><p>item is returned as <code class="docutils literal notranslate"><span class="pre">None</span></code> if canceled</p></li>
+</ul>
+</section>
+<section id="confirmation-prompt">
+<h3>Confirmation Prompt<a class="headerlink" href="#confirmation-prompt" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_confirm</span><span class="p">(</span><span class="s2">&quot;Delete file?&quot;</span><span class="p">):</span>
+    <span class="n">delete_file</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="text-entry">
+<h3>Text Entry<a class="headerlink" href="#text-entry" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">name</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_entertext</span><span class="p">(</span><span class="s2">&quot;New Patch&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Useful for:</p>
+<ul class="simple">
+<li><p>patch names</p></li>
+<li><p>WiFi passwords</p></li>
+<li><p>filenames (with <code class="docutils literal notranslate"><span class="pre">charset=sb.lcd.fnchars()</span></code>)</p></li>
+<li><p>labels</p></li>
+</ul>
+<p>Returns the entered text. Use <code class="docutils literal notranslate"><span class="pre">menu_confirm()</span></code> afterward to let the user
+confirm/cancel the input if desired.</p>
+</section>
+<section id="file-browser">
+<h3>File Browser<a class="headerlink" href="#file-browser" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">path</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_choosefile</span><span class="p">(</span><span class="s2">&quot;/home/pi/patches&quot;</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;.yaml&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>This provides a simple two-line browser for selecting files. Returns
+a <code class="docutils literal notranslate"><span class="pre">Path()</span></code> object for the chosen file, or the last-browsed directory if
+canceled.</p>
+</section>
+<section id="system-settings-menu">
+<h3>System Settings Menu<a class="headerlink" href="#system-settings-menu" title="Link to this heading">¶</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_systemsettings</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;shell&quot;</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This provides a unified system settings menu for LCD, WiFi, and MIDI
+settings. It also allows the user to shutdown/reboot the Pi, or exit
+the current program.</p>
+</section>
+<section id="direct-action-handling">
+<h3>Direct Action Handling<a class="headerlink" href="#direct-action-handling" title="Link to this heading">¶</a></h3>
+<p>For more complex user interfaces (e.g. vertically-scrollable menus, screens
+with active status indicators and/or custom actions), the <code class="docutils literal notranslate"><span class="pre">get_action()</span></code>
+function can be used to create interaction loops. Incoming actions are
+stored in a queue, and <code class="docutils literal notranslate"><span class="pre">get_action()</span></code> retrieves them FIFO-style,
+blocking while the queue is empty (or until <code class="docutils literal notranslate"><span class="pre">timeout</span></code> is exceeded).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># display scrollable multi-line output</span>
+
+<span class="n">out</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span> <span class="c1"># some multi-line text</span>
+<span class="n">irow</span><span class="p">,</span> <span class="n">crow</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">irow</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">irow</span> <span class="o">+</span> <span class="n">ROWS</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">))):</span>
+        <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">COLS</span><span class="p">),</span>
+            <span class="n">row</span><span class="o">=</span><span class="n">i</span> <span class="o">-</span> <span class="n">irow</span>
+        <span class="p">)</span>
+    <span class="k">match</span> <span class="n">sb</span><span class="o">.</span><span class="n">get_action</span><span class="p">():</span>
+        <span class="k">case</span> <span class="s2">&quot;inc&quot;</span><span class="p">:</span>
+            <span class="n">crow</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">crow</span> <span class="o">==</span> <span class="n">ROWS</span> <span class="ow">or</span> <span class="n">crow</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">):</span>
+                <span class="n">crow</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">irow</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">irow</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">-</span> <span class="n">ROWS</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">case</span> <span class="s2">&quot;dec&quot;</span><span class="p">:</span>
+            <span class="n">crow</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">crow</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">crow</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">irow</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">irow</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">case</span> <span class="s2">&quot;select&quot;</span> <span class="o">|</span> <span class="s2">&quot;back&quot;</span><span class="p">:</span>
+            <span class="k">break</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">add_action()</span></code> function can be used as a callback to send events
+to be picked up by <code class="docutils literal notranslate"><span class="pre">get_action()</span></code>. MIDI events are a common case.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">monitor_midi</span><span class="p">():</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">event</span> <span class="o">=</span> <span class="n">midi_input</span><span class="p">()</span>
+        <span class="n">sb</span><span class="o">.</span><span class="n">add_action</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+<span class="o">...</span>
+
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">patchnames</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">action</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">get_action</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;inc&quot;</span><span class="p">:</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">patchnames</span><span class="p">)</span>
+        <span class="n">select_patch</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;dec&quot;</span><span class="p">:</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">patchnames</span><span class="p">)</span>
+        <span class="n">select_patch</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">MidiEvent</span><span class="p">):</span>
+        <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">action</span><span class="p">),</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="controlling-outputs">
+<h3>Controlling Outputs<a class="headerlink" href="#controlling-outputs" title="Link to this heading">¶</a></h3>
+<p>Outputs are defined in the configuration file:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">outputs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">led_blinker</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">binary</span><span class="p p-Indicator">,</span><span class="nt"> pin</span><span class="p">:</span><span class="w"> </span><span class="nv">23</span><span class="p p-Indicator">}</span>
+<span class="w">  </span><span class="nt">led_fader</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="nv">pwm</span><span class="p p-Indicator">,</span><span class="nt"> pin</span><span class="p">:</span><span class="w"> </span><span class="nv">4</span><span class="p p-Indicator">,</span><span class="nt"> level</span><span class="p">:</span><span class="w"> </span><span class="nv">60</span><span class="p p-Indicator">}</span>
+</pre></div>
+</div>
+<p>Configured outputs are available through <code class="docutils literal notranslate"><span class="pre">sb.outputs</span></code>.</p>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;led_blinker&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
+<span class="n">sb</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;led_blinker&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">off</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>PWM outputs expose a <code class="docutils literal notranslate"><span class="pre">level</span></code> property representing duty cycle percentage.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;led_fader&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="mi">75</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="miscellaneous-tools">
+<h2>Miscellaneous Tools<a class="headerlink" href="#miscellaneous-tools" title="Link to this heading">¶</a></h2>
+<section id="running-shell-commands">
+<h3>Running Shell Commands<a class="headerlink" href="#running-shell-commands" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">shell_cmd()</span></code> method executes a string as a shell command and
+returns the output as an ASCII-encoded string.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">shell_cmd</span><span class="p">(</span><span class="s2">&quot;hostname -I&quot;</span><span class="p">)</span>
+<span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Useful for:</p>
+<ul class="simple">
+<li><p>audio tools</p></li>
+<li><p>system commands</p></li>
+<li><p>WiFi utilities</p></li>
+<li><p>file conversion</p></li>
+<li><p>launching synth engines</p></li>
+</ul>
+</section>
+<section id="long-running-tasks">
+<h3>Long Running Tasks<a class="headerlink" href="#long-running-tasks" title="Link to this heading">¶</a></h3>
+<p>Use the activity spinner while work is in progress:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">activity</span><span class="p">(</span><span class="s2">&quot;Loading...&quot;</span><span class="p">):</span>
+    <span class="n">load_large_patch</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This gives visual feedback on the LCD while your task runs.</p>
+</section>
+<section id="error-handling">
+<h3>Error Handling<a class="headerlink" href="#error-handling" title="Link to this heading">¶</a></h3>
+<p>Unhandled exceptions are automatically displayed on the LCD before the
+application exits. To handle errors gracefully (i.e. without exiting):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="n">load_patch</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="n">sb</span><span class="o">.</span><span class="n">display_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">&quot;Load failed&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h2>
+<p>The classes and functions below form the programming interface
+for the squishbox package.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/squishbox.html">SquishBox Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/hardware.html">Hardware Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/config.html">Config Module</a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">SquishBox</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=GeekFunkLabs&repo=squishbox&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assembly.html">Assembly</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Programming</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#application-model">Application Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#controlling-the-lcd">Controlling the LCD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#user-interaction">User Interaction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#miscellaneous-tools">Miscellaneous Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="technical.html">Technical Docs</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Bill Peterson.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.0.4</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/programming.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

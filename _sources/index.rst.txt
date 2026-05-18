@@ -29,6 +29,6 @@ command-line installer script.
    quickstart
    userguide
    assembly
-   software
-   reference
+   programming
+   technical
 
