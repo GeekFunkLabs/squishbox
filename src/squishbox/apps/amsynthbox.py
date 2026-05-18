@@ -354,11 +354,9 @@ while True:
         case "inc":
             pno = (pno + 1) % len(presets)
             set_preset(pname := list(presets)[pno])
-            refresh_display()
         case "dec":
             pno = (pno - 1) % len(presets)
             set_preset(pname := list(presets)[pno])
-            refresh_display()
         case "back":
             if sb.menu_exit() == "shell":
                 amsynthx.terminate()
@@ -372,6 +370,7 @@ while True:
                 PARS[name]["display"][val].rjust(COLS),
                 row=1, timeout=MENU_TIME
             )
+            continue
         case "select":
             display_callback = None
             i, choice = sb.menu_choose([
@@ -487,5 +486,5 @@ while True:
                 midithread = Thread(target=process_events, daemon=True)
                 midithread.start()
             display_callback = sb.add_action
-            refresh_display()
+    refresh_display()
 
