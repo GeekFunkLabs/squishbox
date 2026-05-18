@@ -57,11 +57,11 @@ class Button(Control):
     Monitors a GPIO input line and emits events based on press duration.
 
     Events:
-        "down": button pressed
-        "up": button released
-        "on"/"off": alternates on button press
-        "tap": short press
-        "hold": long press (duration >= CONFIG["hold_time"])
+      - "down": button pressed
+      - "up": button released
+      - "on"/"off": alternates on button press
+      - "tap": short press
+      - "hold": long press (duration >= CONFIG["hold_time"])
     """
     UP, DOWN, HELD = 0, 1, 2
 

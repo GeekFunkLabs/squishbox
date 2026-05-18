@@ -272,9 +272,11 @@ Direct Action Handling
 
 For more complex user interfaces (e.g. vertically-scrollable menus, screens
 with active status indicators and/or custom actions), the ``get_action()``
-function can be used to create interaction loops. Incoming actions are
-stored in a queue, and ``get_action()`` retrieves them FIFO-style,
-blocking while the queue is empty (or until ``timeout`` is exceeded).
+function can be used to create interaction loops.
+
+Incoming actions are stored in a queue, and ``get_action()``
+retrieves them FIFO-style, blocking while the queue is empty
+(or until ``timeout`` is exceeded).
 
 .. code-block:: python
 
