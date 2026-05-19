@@ -17,7 +17,7 @@ jobs:
 
       - name: Install Python deps
         run: |
-          pip install sphinx alabaster
+          pip install .[docs]
 
       - name: Install LaTeX
         run: |

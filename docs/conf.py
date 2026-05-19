@@ -7,9 +7,8 @@ from pathlib import Path
 import sys
 import tomllib
 
-sys.path.insert(0, os.path.abspath('../src'))
-
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
 with open(ROOT / "pyproject.toml", "rb") as f:
     pyproject = tomllib.load(f)
 
@@ -34,6 +33,7 @@ extensions = [
 autosummary_generate = True
 autodoc_member_order = "bysource"
 autodoc_typehints = "description"
+autodoc_mock_imports = ["gpiod", "evdev", "alsa_midi"]
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']

@@ -95,7 +95,7 @@ install_full() {
     curl -L "$FULL_URL" -o /tmp/full.deb
     sudo dpkg -i /tmp/full.deb || sudo apt -f install -y
 
-    "$VENV_DIR/bin/pip" install -U fluidpatcher
+    "$VENV_DIR/bin/pip" install -U squishbox[full]
 }
 
 download_media() {

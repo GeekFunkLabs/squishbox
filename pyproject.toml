@@ -21,6 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 full = ["fluidpatcher", "gi"]
+docs = ["sphinx", "alabaster"]
 
 [project.urls]
 Homepage = "https://github.com/GeekFunkLabs/squishbox"
