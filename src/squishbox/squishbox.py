@@ -300,7 +300,7 @@ class SquishBox:
             else:
                 return paths[i]
 
-     def menu_lcdsettings(self, row=ROWS - 2, timeout=MENU_TIME):
+    def menu_lcdsettings(self, row=ROWS - 2, timeout=MENU_TIME):
         """Adjust LCD contrast and backlight using slider UI.
 
         Presents two sequential sliders. Changes are applied live and
