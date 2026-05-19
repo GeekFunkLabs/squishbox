@@ -33,8 +33,323 @@
 
           <div class="body" role="main">
             
-  <section id="squishbox-module">
-<h1>SquishBox Module<a class="headerlink" href="#squishbox-module" title="Link to this heading">¶</a></h1>
+  <section id="module-squishbox.squishbox">
+<span id="squishbox-module"></span><h1>SquishBox Module<a class="headerlink" href="#module-squishbox.squishbox" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">squishbox.squishbox.</span></span><span class="sig-name descname"><span class="pre">SquishBox</span></span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Singleton interface to SquishBox hardware and UI.</p>
+<p>Provides access to the LCD, controls (buttons/encoders), outputs,
+and a set of menu-driven interaction helpers. All hardware is
+initialized on first instantiation using values from CONFIG.</p>
+<p>This class is a singleton; repeated instantiation returns the same object.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.menu_choose">
+<span class="sig-name descname"><span class="pre">menu_choose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">align</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_change</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">passthrough</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.menu_choose"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.menu_choose" title="Link to this definition">¶</a></dt>
+<dd><p>Display a scrolling selection menu on the LCD.</p>
+<p>The user navigates options via bound input actions (“inc”, “dec”,
+“select”, “back”). The provided callback is invoked whenever the
+selection index changes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> (<em>list</em>) – Sequence of selectable items (displayed via str()).</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – LCD row to render the menu.</p></li>
+<li><p><strong>align</strong> (<em>str</em>) – “left” or “right” text alignment.</p></li>
+<li><p><strong>i</strong> (<em>int</em>) – Initial index.</p></li>
+<li><p><strong>wrap</strong> (<em>bool</em>) – If True, selection wraps around at ends.</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Seconds to wait for input (0 = wait indefinitely).</p></li>
+<li><p><strong>on_change</strong> (<em>callable</em>) – Callback invoked as on_change(index) on selection change.</p></li>
+<li><p><strong>passthrough</strong> (<em>tuple</em>) – actions/types to return immediately</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(index, item) on selection
+(index, None) if canceled (“back”)
+(-1, None) if timed out
+(-1, other) if an allowed action/type is passed</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.menu_confirm">
+<span class="sig-name descname"><span class="pre">menu_confirm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.menu_confirm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.menu_confirm" title="Link to this definition">¶</a></dt>
+<dd><p>Display a yes/no confirmation prompt.</p>
+<p>The user toggles between confirm (check) and cancel (cross)
+using “inc”/”dec”, and confirms with “select”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>str</em>) – Prompt text.</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – LCD row to render the prompt.</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Seconds to wait (0 = wait indefinitely).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if confirmed
+False if explicitly rejected
+None if canceled (“back”) or timed out</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.menu_entertext">
+<span class="sig-name descname"><span class="pre">menu_entertext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.menu_entertext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.menu_entertext" title="Link to this definition">¶</a></dt>
+<dd><p>Interactive text entry using buttons/encoder or keyboard input.</p>
+<dl class="simple">
+<dt>Supports two cursor modes:</dt><dd><ul class="simple">
+<li><p>“blink”: move cursor position</p></li>
+<li><p>“line”: modify character at cursor</p></li>
+</ul>
+</dd>
+<dt>Input sources:</dt><dd><ul class="simple">
+<li><p>Encoder/buttons (“inc”, “dec”, “select”, “back”)</p></li>
+<li><p>Key events via keys_dispatch()</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>str</em>) – Initial text buffer.</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – LCD row to render input.</p></li>
+<li><p><strong>i</strong> (<em>int</em>) – Initial cursor index (negative values index from end).</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Seconds to wait for input (0 = wait indefinitely).</p></li>
+<li><p><strong>charset</strong> (<em>str</em>) – Allowed characters; defaults to LCD printable set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Final edited string on completion.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.menu_choosefile">
+<span class="sig-name descname"><span class="pre">menu_choosefile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.menu_choosefile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.menu_choosefile" title="Link to this definition">¶</a></dt>
+<dd><p>Browse directories and select a file.</p>
+<p>Displays a simple two-line file browser. Directories are shown
+with a trailing ‘/’, and navigation includes a parent (“../”)
+entry where applicable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topdir</strong> (<em>Path</em>) – Root directory (user cannot navigate above this).</p></li>
+<li><p><strong>start</strong> (<em>Path</em>) – Optional starting file or directory (relative to topdir).</p></li>
+<li><p><strong>ext</strong> (<em>list</em>) – List of allowed file extensions (empty = show all).</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – Starting LCD row (uses two rows).</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Seconds to wait (0 = wait indefinitely).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>selected file, or last directory if canceled</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.menu_lcdsettings">
+<span class="sig-name descname"><span class="pre">menu_lcdsettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.menu_lcdsettings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.menu_lcdsettings" title="Link to this definition">¶</a></dt>
+<dd><p>Adjust LCD contrast and backlight using slider UI.</p>
+<p>Presents two sequential sliders. Changes are applied live and
+written back to the config file on exit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>row</strong> (<em>int</em>) – Starting LCD row (uses two rows).</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Seconds to wait (0 = wait indefinitely).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.menu_midisettings">
+<span class="sig-name descname"><span class="pre">menu_midisettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.menu_midisettings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.menu_midisettings" title="Link to this definition">¶</a></dt>
+<dd><p>Manage MIDI input/output connections.</p>
+<p>Lists available MIDI ports and allows toggling connections.
+Active connections are persisted to the config file and
+restored automatically on startup.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>row</strong> (<em>int</em>) – Starting LCD row (uses two rows).</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Seconds to wait (0 = wait indefinitely).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.wifienabled">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">wifienabled</span></span><a class="headerlink" href="#squishbox.squishbox.SquishBox.wifienabled" title="Link to this definition">¶</a></dt>
+<dd><p>Get/set WiFi radio state</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.menu_wifisettings">
+<span class="sig-name descname"><span class="pre">menu_wifisettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.menu_wifisettings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.menu_wifisettings" title="Link to this definition">¶</a></dt>
+<dd><p>Manage WiFi connectivity using nmcli.</p>
+<dl class="simple">
+<dt>Features:</dt><dd><ul class="simple">
+<li><p>Enable/disable WiFi radio</p></li>
+<li><p>Scan for networks</p></li>
+<li><p>Connect/disconnect from access points</p></li>
+<li><p>Prompt for passwords when required</p></li>
+</ul>
+</dd>
+</dl>
+<p>Displays connection status and IP address when available.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>row</strong> (<em>int</em>) – Starting LCD row (uses two rows).</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Seconds to wait (0 = wait indefinitely).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.menu_exit">
+<span class="sig-name descname"><span class="pre">menu_exit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.menu_exit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.menu_exit" title="Link to this definition">¶</a></dt>
+<dd><p>System exit menu.</p>
+<dl class="simple">
+<dt>Allows the user to:</dt><dd><ul class="simple">
+<li><p>Shutdown the system</p></li>
+<li><p>Reboot</p></li>
+<li><p>Exit to shell</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>row</strong> (<em>int</em>) – Starting LCD row (uses two rows).</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Seconds to wait (0 = wait indefinitely).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>“shell” if shell option is selected
+None otherwise (system may exit before returning)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.menu_systemsettings">
+<span class="sig-name descname"><span class="pre">menu_systemsettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.menu_systemsettings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.menu_systemsettings" title="Link to this definition">¶</a></dt>
+<dd><p>Top-level system settings menu.</p>
+<p>Provides access to LCD, MIDI, WiFi, and exit options.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>row</strong> (<em>int</em>) – Starting LCD row (uses two rows).</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Seconds to wait (0 = wait indefinitely).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>“shell” if user selects exit-to-shell, otherwise None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.display_error">
+<span class="sig-name descname"><span class="pre">display_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.display_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.display_error" title="Link to this definition">¶</a></dt>
+<dd><p>Display an exception on the LCD and print traceback.</p>
+<p>Formats the exception into a single-line message for the LCD,
+with file/line context shown on the second row. Full traceback
+is printed to stdout for debugging.</p>
+<p>KeyboardInterrupt exits immediately.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>err</strong> (<em>Exception</em>) – Exception instance</p></li>
+<li><p><strong>msg</strong> (<em>str</em>) – Optional prefix message</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – Starting LCD row (uses two rows)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.add_action">
+<span class="sig-name descname"><span class="pre">add_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.add_action"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.add_action" title="Link to this definition">¶</a></dt>
+<dd><p>Queue an input action.</p>
+<p>Actions are typically generated by hardware event bindings.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.clear_actions">
+<span class="sig-name descname"><span class="pre">clear_actions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.clear_actions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.clear_actions" title="Link to this definition">¶</a></dt>
+<dd><p>Remove all pending input actions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.get_action">
+<span class="sig-name descname"><span class="pre">get_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.get_action"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.get_action" title="Link to this definition">¶</a></dt>
+<dd><p>Wait for and return the next input action.</p>
+<p>Continuously updates the LCD while polling for actions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idle</strong> (<em>float</em>) – Delay in seconds between polling iterations.</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Seconds to wait (0 = wait indefinitely).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Next action from the queue, None if timed out</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.squishbox.SquishBox.shell_cmd">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">shell_cmd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/squishbox.html#SquishBox.shell_cmd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.squishbox.SquishBox.shell_cmd" title="Link to this definition">¶</a></dt>
+<dd><p>Run a shell command and return its stdout.</p>
+<dl class="simple">
+<dt>Wrapper around subprocess.run with sensible defaults:</dt><dd><ul class="simple">
+<li><p>check=True (raises on failure)</p></li>
+<li><p>captures stdout</p></li>
+<li><p>ASCII decoding</p></li>
+<li><p>strips trailing newline</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> (<em>str</em><em> | </em><em>list</em>) – Command string (or list if shell=False)</p></li>
+<li><p><strong>**kwargs</strong> (<em>dict</em>) – Passed through to subprocess.run</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Command stdout as a stripped string</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>subprocess.CalledProcessError on failure</strong><strong> (</strong><strong>unless overridden</strong><strong>)</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

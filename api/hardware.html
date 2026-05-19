@@ -33,8 +33,262 @@
 
           <div class="body" role="main">
             
-  <section id="hardware-module">
-<h1>Hardware Module<a class="headerlink" href="#hardware-module" title="Link to this heading">¶</a></h1>
+  <section id="module-squishbox.hardware">
+<span id="hardware-module"></span><h1>Hardware Module<a class="headerlink" href="#module-squishbox.hardware" title="Link to this heading">¶</a></h1>
+<p>SquishBox Raspberry Pi hardware interface.</p>
+<p>Provides low-level access to GPIO-backed hardware components used by
+SquishBox, including buttons, rotary encoders, LCD display, and outputs.</p>
+<p>Also implements event-driven input handling and a buffered LCD rendering
+system with support for scrolling, blinking, and custom glyphs.</p>
+<dl class="simple">
+<dt>Requires:</dt><dd><ul class="simple">
+<li><p>gpiod</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="squishbox.hardware.Control">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">squishbox.hardware.</span></span><span class="sig-name descname"><span class="pre">Control</span></span><a class="reference internal" href="../_modules/squishbox/hardware.html#Control"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.Control" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base class for input controls with event binding.</p>
+<p>Provides a simple event → callback mapping. Subclasses trigger
+events (e.g. “tap”, “left”) which invoke the bound functions.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.Control.bind">
+<span class="sig-name descname"><span class="pre">bind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#Control.bind"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.Control.bind" title="Link to this definition">¶</a></dt>
+<dd><p>Bind a callback function to an event.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>event</strong> (<em>hashable</em>) – Event identifier</p></li>
+<li><p><strong>func</strong> (<em>callable</em>) – function to invoke, or None to remove binding.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.Control.clear_binds">
+<span class="sig-name descname"><span class="pre">clear_binds</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#Control.clear_binds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.Control.clear_binds" title="Link to this definition">¶</a></dt>
+<dd><p>Remove all event bindings.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="squishbox.hardware.Button">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">squishbox.hardware.</span></span><span class="sig-name descname"><span class="pre">Button</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pull_up</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#Button"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.Button" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#squishbox.hardware.Control" title="squishbox.hardware.Control"><code class="xref py py-class docutils literal notranslate"><span class="pre">Control</span></code></a></p>
+<p>GPIO button with tap/hold detection.</p>
+<p>Monitors a GPIO input line and emits events based on press duration.</p>
+<dl class="simple">
+<dt>Events:</dt><dd><ul class="simple">
+<li><p>“down”: button pressed</p></li>
+<li><p>“up”: button released</p></li>
+<li><p>“on”/”off”: alternates on button press</p></li>
+<li><p>“tap”: short press</p></li>
+<li><p>“hold”: long press (duration &gt;= CONFIG[“hold_time”])</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="squishbox.hardware.Button.UP">
+<span class="sig-name descname"><span class="pre">UP</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#squishbox.hardware.Button.UP" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="squishbox.hardware.Button.DOWN">
+<span class="sig-name descname"><span class="pre">DOWN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span><a class="headerlink" href="#squishbox.hardware.Button.DOWN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="squishbox.hardware.Button.HELD">
+<span class="sig-name descname"><span class="pre">HELD</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></span><a class="headerlink" href="#squishbox.hardware.Button.HELD" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="squishbox.hardware.Encoder">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">squishbox.hardware.</span></span><span class="sig-name descname"><span class="pre">Encoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pin1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pin2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pull_up</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#Encoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.Encoder" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#squishbox.hardware.Control" title="squishbox.hardware.Control"><code class="xref py py-class docutils literal notranslate"><span class="pre">Control</span></code></a></p>
+<p>Quadrature rotary encoder.</p>
+<p>Detects rotation direction using two GPIO inputs.</p>
+<dl class="simple">
+<dt>Events:</dt><dd><p>“left”: counterclockwise rotation
+“right”: clockwise rotation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="squishbox.hardware.Output">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">squishbox.hardware.</span></span><span class="sig-name descname"><span class="pre">Output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#Output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.Output" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Digital (on/off) GPIO output.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.Output.on">
+<span class="sig-name descname"><span class="pre">on</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#Output.on"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.Output.on" title="Link to this definition">¶</a></dt>
+<dd><p>Set output to active (HIGH).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.Output.off">
+<span class="sig-name descname"><span class="pre">off</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#Output.off"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.Output.off" title="Link to this definition">¶</a></dt>
+<dd><p>Set output to inactive (LOW).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="squishbox.hardware.PWMOutput">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">squishbox.hardware.</span></span><span class="sig-name descname"><span class="pre">PWMOutput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#PWMOutput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.PWMOutput" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Software PWM output using a background thread.</p>
+<p>Generates a PWM signal by toggling a GPIO line at a fixed frequency.
+Duty cycle is controlled via the <cite>level</cite> attribute (0–100).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="squishbox.hardware.PWMOutput.level">
+<span class="sig-name descname"><span class="pre">level</span></span><a class="headerlink" href="#squishbox.hardware.PWMOutput.level" title="Link to this definition">¶</a></dt>
+<dd><p>Duty cycle percentage (0-100)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.PWMOutput.on">
+<span class="sig-name descname"><span class="pre">on</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#PWMOutput.on"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.PWMOutput.on" title="Link to this definition">¶</a></dt>
+<dd><p>Set output to maximum.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.PWMOutput.off">
+<span class="sig-name descname"><span class="pre">off</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#PWMOutput.off"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.PWMOutput.off" title="Link to this definition">¶</a></dt>
+<dd><p>Set output to minimum.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="squishbox.hardware.LCD_HD44780">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">squishbox.hardware.</span></span><span class="sig-name descname"><span class="pre">LCD_HD44780</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">regsel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#LCD_HD44780"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.LCD_HD44780" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>HD44780-compatible character LCD driver.</p>
+<dl class="simple">
+<dt>Provides buffered text rendering with support for:</dt><dd><ul class="simple">
+<li><p>Static text</p></li>
+<li><p>Scrolling text (for long lines)</p></li>
+<li><p>Timed/blinking overlays</p></li>
+<li><p>Custom glyphs (up to 8 hardware slots)</p></li>
+</ul>
+</dd>
+</dl>
+<p>Rendering is layered and only updates changed characters to
+minimize GPIO traffic.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="squishbox.hardware.LCD_HD44780.glyph2char">
+<span class="sig-name descname"><span class="pre">glyph2char</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(('backslash',</span> <span class="pre">'\\'),</span> <span class="pre">('tilde',</span> <span class="pre">'~'))</span></span><a class="headerlink" href="#squishbox.hardware.LCD_HD44780.glyph2char" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.LCD_HD44780.printable">
+<span class="sig-name descname"><span class="pre">printable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#LCD_HD44780.printable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.LCD_HD44780.printable" title="Link to this definition">¶</a></dt>
+<dd><p>Provide full set of printable characters supported by the LCD.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.LCD_HD44780.fnchars">
+<span class="sig-name descname"><span class="pre">fnchars</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#LCD_HD44780.fnchars"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.LCD_HD44780.fnchars" title="Link to this definition">¶</a></dt>
+<dd><p>Provide reduced character set suitable for filenames.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.LCD_HD44780.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#LCD_HD44780.clear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.LCD_HD44780.clear" title="Link to this definition">¶</a></dt>
+<dd><p>Clear the display and reset all rendering layers.</p>
+<p>Also resets scrolling state, blinking timers, and cursor position.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.LCD_HD44780.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">align</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#LCD_HD44780.write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.LCD_HD44780.write" title="Link to this definition">¶</a></dt>
+<dd><p>Write text to the LCD using layered rendering.</p>
+<dl class="simple">
+<dt>Behavior depends on text length and parameters:</dt><dd><ul class="simple">
+<li><p>Long text is placed in scroll buffer</p></li>
+<li><p>timeout &gt; 0 creates temporary (blinking) overlay</p></li>
+<li><p>Otherwise writes to static layer</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>str</em>) – String to display.</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – Target row.</p></li>
+<li><p><strong>col</strong> (<em>int</em>) – Starting column.</p></li>
+<li><p><strong>align</strong> (<em>str</em>) – “left”, “right”, or default (no alignment).</p></li>
+<li><p><strong>timeout</strong> (<em>float</em>) – Duration for temporary text (seconds).</p></li>
+<li><p><strong>force</strong> (<em>bool</em>) – Overwrite existing timed text if True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.LCD_HD44780.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#LCD_HD44780.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.LCD_HD44780.update" title="Link to this definition">¶</a></dt>
+<dd><p>Render buffered content to the LCD.</p>
+<dl class="simple">
+<dt>Handles:</dt><dd><ul class="simple">
+<li><p>Scrolling updates</p></li>
+<li><p>Expiring timed/blinking text</p></li>
+<li><p>Layer compositing</p></li>
+</ul>
+</dd>
+</dl>
+<p>Does nothing if activity spinner is active.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="squishbox.hardware.LCD_HD44780.cursor_pos">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cursor_pos</span></span><a class="headerlink" href="#squishbox.hardware.LCD_HD44780.cursor_pos" title="Link to this definition">¶</a></dt>
+<dd><p>Cursor position as (row, col)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="squishbox.hardware.LCD_HD44780.cursor_mode">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cursor_mode</span></span><a class="headerlink" href="#squishbox.hardware.LCD_HD44780.cursor_mode" title="Link to this definition">¶</a></dt>
+<dd><p>Cursor display mode.</p>
+<dl class="simple">
+<dt>Modes:</dt><dd><ul class="simple">
+<li><p>“hide”  – no cursor</p></li>
+<li><p>“blink” – blinking block cursor</p></li>
+<li><p>“line”  - underline cursor</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.hardware.LCD_HD44780.activity">
+<span class="sig-name descname"><span class="pre">activity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/hardware.html#LCD_HD44780.activity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.hardware.LCD_HD44780.activity" title="Link to this definition">¶</a></dt>
+<dd><p>Shows an animation while another process runs</p>
+<p>Runs in a <code class="docutils literal notranslate"><span class="pre">with</span></code> statement. Displays a spinning character
+in the lower right corner of the LCD to give feedback while a
+long-running process completes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>msg</strong> (<em>str</em>) – text to display</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

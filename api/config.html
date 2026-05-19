@@ -33,8 +33,46 @@
 
           <div class="body" role="main">
             
-  <section id="config-module">
-<h1>Config Module<a class="headerlink" href="#config-module" title="Link to this heading">¶</a></h1>
+  <section id="module-squishbox.config">
+<span id="config-module"></span><h1>Config Module<a class="headerlink" href="#module-squishbox.config" title="Link to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="squishbox.config.load_config">
+<span class="sig-prename descclassname"><span class="pre">squishbox.config.</span></span><span class="sig-name descname"><span class="pre">load_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_cfg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/config.html#load_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.config.load_config" title="Link to this definition">¶</a></dt>
+<dd><p>Load configuration data</p>
+<p>Loads config from YAML files, including drop-in configs if found.
+Creates a default config if target doesn’t exist. Returns config as
+a dict after performing Path conversion on items with keys ending
+in <code class="docutils literal notranslate"><span class="pre">_path</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em><em> | </em><em>Path</em>) – config file relative to CONFIG_PATH or absolute</p></li>
+<li><p><strong>default_cfg</strong> (<em>dict</em>) – overrides for initial config values</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>config data</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="squishbox.config.save_state">
+<span class="sig-prename descclassname"><span class="pre">squishbox.config.</span></span><span class="sig-name descname"><span class="pre">save_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/config.html#save_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.config.save_state" title="Link to this definition">¶</a></dt>
+<dd><p>Write config data back to a file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em><em> | </em><em>Path</em>) – config file relative to CONFIG_PATH or absolute</p></li>
+<li><p><strong>cfg</strong> (<em>dict</em>) – the current config state</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
