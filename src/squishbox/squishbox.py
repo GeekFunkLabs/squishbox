@@ -300,39 +300,7 @@ class SquishBox:
             else:
                 return paths[i]
 
-    @property
-    def contrast_level(self):
-        """Current LCD contrast level (0–100).
-
-        Returns default value if no contrast output is configured.
-        """
-        if "contrast" in self.outputs:
-            return self.outputs["contrast"].level
-        else:
-            return 100
-
-    @contrast_level.setter
-    def contrast_level(self, level):
-        if "contrast" in self.outputs:
-            self.outputs["contrast"].level = level
-
-    @property
-    def backlight_level(self):
-        """Current LCD backlight brightness (0–100).
-
-        Falls back to CONFIG default if no backlight output is configured.
-        """
-        if "backlight" in self.outputs:
-            return self.outputs["backlight"].level
-        else:
-            return CONFIG["backlight_level"]
-
-    @backlight_level.setter
-    def backlight_level(self, level):
-        if "backlight" in self.outputs:
-            self.outputs["backlight"].level = level
-
-    def menu_lcdsettings(self, row=ROWS - 2, timeout=MENU_TIME):
+     def menu_lcdsettings(self, row=ROWS - 2, timeout=MENU_TIME):
         """Adjust LCD contrast and backlight using slider UI.
 
         Presents two sequential sliders. Changes are applied live and
@@ -342,30 +310,36 @@ class SquishBox:
             row (int): Starting LCD row (uses two rows).
             timeout (float): Seconds to wait (0 = wait indefinitely).
         """
+        contrast = self.outputs.get("contrast")
+        backlight = self.outputs.get("backlight")
+        if not (backlight or contrast):
+            return
         d = 100 / COLS
         slider = [self.lcd["solid"] * i for i in range(COLS + 1)]
         while True:
-            self.lcd.write("Contrast".ljust(COLS), row)
-            ival = round(self.contrast_level / d)
-            i, res = self.menu_choose(
-                slider, row + 1, align="left",
-                i=ival, wrap=False, timeout=timeout,
-                on_change=lambda i: setattr(self, "contrast_level", i * d)
-            )
-            if res == None:
-                break
-            self.lcd.write("Brightness".ljust(COLS), row)
-            ival = round(self.backlight_level / d)
-            i, res = self.menu_choose(
-                slider, row + 1, align="left",
-                i=ival, wrap=False, timeout=timeout,
-                on_change=lambda i: setattr(self, "backlight_level", i * d)
-            )
-            if res == None:
-                break
-        self.lcd.write(" "  * COLS, row)
-        CONFIG["outputs"]["contrast"]["level"] = self.contrast_level
-        CONFIG["outputs"]["backlight"]["level"] = self.backlight_level
+            if contrast:
+                self.lcd.write("Contrast".ljust(COLS), row)
+                i, res = self.menu_choose(
+                    slider, row + 1, align="left",
+                    wrap=False, timeout=timeout,
+                    i=round(contrast.level / d),
+                    on_change=lambda i: setattr(contrast, "level", i * d)
+                )
+                CONFIG["outputs"]["contrast"]["level"] = contrast.level
+                if res == None:
+                    break
+            if backlight:
+                self.lcd.write("Brightness".ljust(COLS), row)
+                i, res = self.menu_choose(
+                    slider, row + 1, align="left",
+                    wrap=False, timeout=timeout,
+                    i=round(backlight.level / d),
+                    on_change=lambda i: setattr(backlight, "level", i * d)
+                )
+                CONFIG["outputs"]["backlight"]["level"] = backlight.level
+                if res == None:
+                    break
+        self.lcd.write(" " * COLS, row)
         save_state(CONFIG_PATH, CONFIG)
 
     def menu_midisettings(self, row=ROWS - 2, timeout=0):

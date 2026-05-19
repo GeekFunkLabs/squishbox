@@ -138,13 +138,6 @@ Clear the display:
 
    sb.lcd.clear()
 
-Set contrast/backlight levels:
-
-.. code-block:: python
-
-   sb.contrast_level = 70
-   sb.backlight_level = 40
-
 Write text:
 
 .. code-block:: python
