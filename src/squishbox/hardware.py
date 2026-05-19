@@ -130,8 +130,8 @@ class Encoder(Control):
     Detects rotation direction using two GPIO inputs.
 
     Events:
-        "left": counterclockwise rotation
-        "right": clockwise rotation
+      - "left": counterclockwise rotation
+      - "right": clockwise rotation
     """
     
     def __init__(self, pin1, pin2, pull_up=CONFIG["pull_up"]):
