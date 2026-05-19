@@ -11,7 +11,7 @@ CONFIG_PATH = Path(os.getenv(
 )).expanduser()
 
 
-def load_config(name, default_cfg={}):
+def load_config(name, default_cfg=None):
     """Load configuration data
     
     Loads config from YAML files, including drop-in configs if found.
@@ -26,16 +26,20 @@ def load_config(name, default_cfg={}):
     Returns:
         dict: config data
     """
+    if default_cfg is None:
+        default_cfg = {}
+
     path = CONFIG_PATH.parent / name
     pkg_default = res.files("squishbox.data.defaults") / path.name
     if pkg_default.exists():
-        cfg = yaml.safe_load(pkg_default.read_text())
+        cfg = yaml.safe_load(pkg_default.read_text()) or {}
     else:
         cfg = {}
     cfg |= default_cfg
 
     if path.exists():
-        cfg |= yaml.safe_load(path.read_text())
+        user_cfg = yaml.safe_load(path.read_text()) or {}
+        cfg |= user_cfg
     else:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(yaml.safe_dump(cfg, sort_keys=False))
