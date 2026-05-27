@@ -38,9 +38,9 @@ def send_message(msg):
     match msg.split(":"):
         case ["ctrl", chan, num, val]:
             evt = alsa_midi.ControlChangeEvent(
-                channel=chan,
-                param=num,
-                value=val,
+                channel=int(chan),
+                param=int(num),
+                value=int(val),
             )
         case _:
             return
