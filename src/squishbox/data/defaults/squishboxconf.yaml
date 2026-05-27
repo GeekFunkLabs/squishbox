@@ -27,11 +27,11 @@ controls:
   foot_left:
     type: button
     pin: 9
-    messages: {on: ctrl:16:22:127, off: ctrl:16:22:0}
+    messages: {in: ctrl:16:22:127, out: ctrl:16:22:0}
   foot_right:
     type: button
     pin: 11
-    messages: {on: ctrl:16:23:127, off: ctrl:16:23:0}
+    messages: {in: ctrl:16:23:127, out: ctrl:16:23:0}
 outputs:
   contrast: {type: pwm, pin: 12, level: 100}
   backlight: {type: pwm, pin: 13, level: 100}

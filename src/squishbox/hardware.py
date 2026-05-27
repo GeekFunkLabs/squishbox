@@ -59,7 +59,7 @@ class Button(Control):
     Events:
       - "down": button pressed
       - "up": button released
-      - "on"/"off": alternates on button press
+      - "in"/"out": toggles on button press
       - "tap": short press
       - "hold": long press (duration >= CONFIG["hold_time"])
     """
@@ -113,7 +113,7 @@ class Button(Control):
                     self._state = self.DOWN
                     self["down"]()
                     self._toggle = not self._toggle
-                    self["on" if self._toggle else "off"]()
+                    self["in" if self._toggle else "out"]()
                     if not line.wait_edge_events(CONFIG["hold_time"]):
                         self._state = self.HELD
                         self["hold"]()
