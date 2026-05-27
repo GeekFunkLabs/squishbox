@@ -103,7 +103,7 @@
 <span class="sd">    Events:</span>
 <span class="sd">      - &quot;down&quot;: button pressed</span>
 <span class="sd">      - &quot;up&quot;: button released</span>
-<span class="sd">      - &quot;on&quot;/&quot;off&quot;: alternates on button press</span>
+<span class="sd">      - &quot;in&quot;/&quot;out&quot;: toggles on button press</span>
 <span class="sd">      - &quot;tap&quot;: short press</span>
 <span class="sd">      - &quot;hold&quot;: long press (duration &gt;= CONFIG[&quot;hold_time&quot;])</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -157,7 +157,7 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DOWN</span>
                     <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;down&quot;</span><span class="p">]()</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_toggle</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_toggle</span>
-                    <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;on&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_toggle</span> <span class="k">else</span> <span class="s2">&quot;off&quot;</span><span class="p">]()</span>
+                    <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;in&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_toggle</span> <span class="k">else</span> <span class="s2">&quot;out&quot;</span><span class="p">]()</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">wait_edge_events</span><span class="p">(</span><span class="n">CONFIG</span><span class="p">[</span><span class="s2">&quot;hold_time&quot;</span><span class="p">]):</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">HELD</span>
                         <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;hold&quot;</span><span class="p">]()</span>
