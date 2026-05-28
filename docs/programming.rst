@@ -103,7 +103,7 @@ Each item describes the hardware type, GPIO settings, and event bindings.
       foot_left:
         type: button
         pin: 9
-        messages: {on: ctrl:16:22:127, off: ctrl:16:22:0}
+        messages: {in: ctrl:16:22:127, out: ctrl:16:22:0}
 
 The main config file is loaded on import and stored in the ``CONFIG`` variable.
 The ``load_config()`` and ``save_state()`` functions can be used
