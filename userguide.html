@@ -173,15 +173,14 @@ displaying MIDI activity and full MIDI message information.</p>
 <p>The app recognizes several custom router rule parameters:</p>
 <dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">lcdwrite</span></code></dt><dd><p>Writes a message on the LCD when a MIDI event matches the rule.
-If the rule also has a <code class="docutils literal notranslate"><span class="pre">format</span></code> parameter with a python formatting spec,
-the value of the event is also written.</p>
+If the rule also has a <code class="docutils literal notranslate"><span class="pre">format</span></code> parameter of the form <code class="docutils literal notranslate"><span class="pre">w.n</span></code>,
+the event value is written with the specified width and number of
+decimal places.</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">setpin</span></code></dt><dd><p>Sets the named SquishBox output. Can be used to
 turn an LED on/off in response to a MIDI event.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">patch</span></code></dt><dd><p>Applies a patch by name or index (starting at 1). If the
-parameter value is a number with a <code class="docutils literal notranslate"><span class="pre">+</span></code>/<code class="docutils literal notranslate"><span class="pre">-</span></code> suffix, increments the
-current patch by the amount.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">patch</span></code></dt><dd><p>Applies a patch by name or increments the current patch by an amount.</p>
 </dd>
 </dl>
 </section>
