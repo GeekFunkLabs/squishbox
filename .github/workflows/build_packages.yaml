@@ -54,7 +54,7 @@ jobs:
       - name: Download factory media
         if: github.event_name == 'release'
         run: |
-          curl -LO https://geekfunklabs.com/squishbox_factory_media.tar.gz
+          curl -LO https://geekfunklabs.com/squishbox_factory_content.tar.gz
 
       - name: Upload to release
         if: github.event_name == 'release'

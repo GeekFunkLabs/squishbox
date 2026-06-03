@@ -98,11 +98,11 @@ install_full() {
     "$VENV_DIR/bin/pip" install -U squishbox[full]
 }
 
-download_media() {
+install_content() {
     mkdir -p $SB_DIR
-    log "Downloading SquishBox media..."
-    MEDIA_URL=$(api_find_url squishbox_factory_media.tar.gz)
-    curl -L $MEDIA_URL \
+    log "Downloading SquishBox content..."
+    CONTENT_URL=$(api_find_url squishbox_factory_content.tar.gz)
+    curl -L $CONTENT_URL \
     | tar -xz --skip-old-files -C $SB_DIR
 }
 
@@ -232,8 +232,8 @@ done
 ask_yes_no "Full install (no=base system only)?" yes \
     && MODE="full" || MODE="minimal"
 
-ask_yes_no "Install factory media collection?" yes \
-    && MEDIA="yes" || MEDIA="no" 
+ask_yes_no "Install factory content?" yes \
+    && FACTORY="yes" || FACTORY="no" 
 
 if ask_yes_no "Install web file manager?" no; then
     WEB="yes"
@@ -254,8 +254,8 @@ configure_user
 if [[ $MODE == "full" ]]; then
     install_full
 fi
-if [[ $MEDIA == "yes" ]]; then
-    download_media
+if [[ $FACTORY == "yes" ]]; then
+    install_content
 fi
 if [[ $WEB == "yes" ]]; then
     install_web_manager
