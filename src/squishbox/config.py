@@ -13,12 +13,11 @@ CONFIG_PATH = Path(os.getenv(
 
 def load_config(name, default_cfg=None):
     """Load configuration data
-    
-    Loads config from YAML files, including drop-in configs if found.
-    Creates a default config if target doesn't exist. Returns config as
-    a dict after performing Path conversion on items with keys ending
-    in ``_path``.
-    
+
+    Loads config from YAML files. Creates a default config if target
+    doesn't exist. Returns config as a dict after performing Path
+    conversion on items with keys ending in ``_path``.
+
     Args:
         name (str | Path): config file relative to CONFIG_PATH or absolute
         default_cfg (dict): overrides for initial config values
