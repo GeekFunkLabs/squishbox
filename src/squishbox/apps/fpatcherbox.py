@@ -149,7 +149,7 @@ class FPBox:
     def on_rule_event(self, evt):
         if hasattr(evt.rule, "lcdwrite"):
             if hasattr(evt.rule, "format"):
-                strval = format(evt.val, evt.rule.format)
+                strval = format(evt.val, f"{float(evt.rule.format)}f")
                 sb.lcd.write(
                     f"{evt.rule.lcdwrite} {strval}".rjust(COLS),
                     row=1, timeout=MENU_TIME
@@ -172,10 +172,7 @@ class FPBox:
             if evt.rule.patch in fp.bank:
                 self.pno = fp.bank.patches.index(evt.rule.patch)
             elif isinstance(evt.rule.patch, int):
-                self.pno = evt.rule.patch - 1
-            elif evt.rule.patch[-1] in "+-":
-                num, sign = evt.rule.patch[:-1], evt.rule.patch[-1]
-                self.pno = (self.pno + int(sign + num)) % len(fp.bank)
+                self.pno = (self.pno + evt.rule.patch) % len(fp.bank)
             self.apply_patch()
             self.refresh_main()
 

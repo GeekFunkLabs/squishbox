@@ -167,17 +167,16 @@ The app recognizes several custom router rule parameters:
 
 ``lcdwrite``
     Writes a message on the LCD when a MIDI event matches the rule.
-    If the rule also has a ``format`` parameter with a python formatting spec,
-    the value of the event is also written.
+    If the rule also has a ``format`` parameter of the form ``w.n``,
+    the event value is written with the specified width and number of
+    decimal places.
 
 ``setpin``
     Sets the named SquishBox output. Can be used to
     turn an LED on/off in response to a MIDI event.
 
 ``patch``
-    Applies a patch by name or index (starting at 1). If the
-    parameter value is a number with a ``+``/``-`` suffix, increments the
-    current patch by the amount.
+    Applies a patch by name or increments the current patch by an amount.
 
 ``amsynthbox`` 
 """"""""""""""
