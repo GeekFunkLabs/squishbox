@@ -62,4 +62,4 @@ jobs:
         with:
           files: |
             squishbox*.deb
-            squishbox_factory_media.tar.gz
+            squishbox_factory_content.tar.gz
