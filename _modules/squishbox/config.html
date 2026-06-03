@@ -48,12 +48,11 @@
 <a class="viewcode-back" href="../../api/config.html#squishbox.config.load_config">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">load_config</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default_cfg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Load configuration data</span>
-<span class="sd">    </span>
-<span class="sd">    Loads config from YAML files, including drop-in configs if found.</span>
-<span class="sd">    Creates a default config if target doesn&#39;t exist. Returns config as</span>
-<span class="sd">    a dict after performing Path conversion on items with keys ending</span>
-<span class="sd">    in ``_path``.</span>
-<span class="sd">    </span>
+
+<span class="sd">    Loads config from YAML files. Creates a default config if target</span>
+<span class="sd">    doesn&#39;t exist. Returns config as a dict after performing Path</span>
+<span class="sd">    conversion on items with keys ending in ``_path``.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        name (str | Path): config file relative to CONFIG_PATH or absolute</span>
 <span class="sd">        default_cfg (dict): overrides for initial config values</span>

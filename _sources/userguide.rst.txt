@@ -50,7 +50,9 @@ File locations
 
 By default, configuration and media files for the SquishBox are organized
 in the folder structure shown below. Directories are created by apps
-as needed. ::
+as needed.
+
+.. code-block:: text
 
     ~/Squishbox/
      ├── config/
