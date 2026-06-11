@@ -1,34 +1,15 @@
 #!/usr/bin/env python3
 """Front-end menu for SquishBox apps"""
 
-from importlib.util import spec_from_file_location, module_from_spec
 from pathlib import Path
+import subprocess
+import sys
 
 from squishbox import SquishBox, CONFIG, __version__
 from squishbox.config import save_state, CONFIG_PATH
 
 ROWS = CONFIG["lcd_rows"]
 COLS = CONFIG["lcd_cols"]
-
-
-def run_app(path):
-    spec = spec_from_file_location(path.stem, path)
-    mod = module_from_spec(spec)
-    CONFIG["startup_app"] = path.stem
-    save_state(CONFIG_PATH, CONFIG)
-    
-    try:
-        spec.loader.exec_module(mod)
-        if hasattr(mod, "main"):
-            mod.main()
-    except Exception as e:
-        sb.display_error(e)
-    finally:
-        CONFIG.pop("startup_app", None)
-        save_state(CONFIG_PATH, CONFIG)
-
-
-sb = SquishBox()
 
 paths = []
 builtin_dir = Path(__file__).parent
@@ -44,7 +25,9 @@ for d in CONFIG.get("app_dirs", []):
 paths.sort(key=lambda path: path.stem)
 apps = {path.stem: path for path in paths}
 if CONFIG.get("startup_app") in apps:
-    run_app(apps[CONFIG["startup_app"]])
+    subprocess.run([sys.executable, apps[CONFIG["startup_app"]]])
+
+sb = SquishBox()
 
 last = 0
 while True:
@@ -73,5 +56,12 @@ while True:
         case last, name if name in apps:
             sb.lcd.write(name.ljust(COLS), row=ROWS - 2)
             sb.lcd.write("starting..".rjust(COLS), row=ROWS - 1)
-            run_app(apps[name])
+
+            CONFIG["startup_app"] = name
+            save_state(CONFIG_PATH, CONFIG)
+            sb.close()
+            subprocess.run([sys.executable, apps[name]])
+            sb = SquishBox()
+            CONFIG.pop("startup_app", None)
+            save_state(CONFIG_PATH, CONFIG)
 
