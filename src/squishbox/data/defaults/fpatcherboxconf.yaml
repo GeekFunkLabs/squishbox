@@ -4,7 +4,7 @@ fluidsettings:
   audio.period-size: 64
   audio.periods: 3
   midi.autoconnect: 0
-  midi.portname: FluidSynth
+  midi.portname: FluidPatcher
   player.reset-synth: 0
   synth.audio-groups: 16
   synth.cpu-cores: 4
@@ -16,5 +16,4 @@ banks_path: ~/SquishBox/banks/fluidpatcher
 sounds_path: ~/SquishBox/media/sounds
 midi_path: ~/SquishBox/media/midi
 ladspa_path: /usr/lib/ladspa
-lastbank_path:
 

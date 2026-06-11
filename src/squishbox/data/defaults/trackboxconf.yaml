@@ -1,3 +1,3 @@
 tracklists_path: ~/SquishBox/playlists
-trackroot_path: ~/SquishBox/media/music
-
+tracks_path: ~/SquishBox/media/music
+audio_device: hw:sndrpihifiberry
