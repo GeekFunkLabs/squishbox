@@ -16,7 +16,7 @@ MENU_TIME = CONFIG["menu_timeout"]
 
 
 class SquishBox:
-    """Singleton interface to SquishBox hardware and UI.
+    """Interface to SquishBox hardware and UI.
 
     Provides access to the LCD, controls (buttons/encoders), outputs,
     and a set of menu-driven interaction helpers. All hardware is
