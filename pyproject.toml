@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-full = ["fluidpatcher", "gi"]
+full = ["fluidpatcher"]
 docs = ["sphinx", "alabaster"]
 
 [project.urls]
