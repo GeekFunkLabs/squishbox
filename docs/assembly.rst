@@ -100,10 +100,9 @@ The Deluxe model adds two LEDs and two momentary footswitches.
 LED Installation:
 
 Insert the short leg (cathode / ground) of each LED into the square notched
-pads on header P1, positions 4 and 7. Insert the long leg into neighboring
-pads 3 and 8.
-
-Pads 4 and 7 include 1K current-limiting resistors.
+pads on header P1, positions 4 and 7. These pads connect to ground through
+1K current-limiting resistors. Insert the long leg (anode / positive) into
+neighboring pads 3 and 8.
 
 Leave enough lead length above the PCB so the LEDs can reach the enclosure
 openings before soldering.
