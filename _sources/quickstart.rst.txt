@@ -58,7 +58,14 @@ Installing the Software
 
 The SquishBox software is targeted for a Pi 3B+/4 running Raspberry Pi OS
 (64-bit, based on Debian 13 "Trixie") or newer.
-To install on a fresh or existing system, log in as a regular user and run: ::
+
+Before installing it's advisable to perform an upgrade to
+make sure your audio stack is up to date: ::
+
+    sudo apt update
+    sudo apt upgrade
+
+To run the install script, log in as a regular user and enter: ::
 
     bash <(curl -sL geekfunklabs.com/squishbox)
 

@@ -84,8 +84,14 @@ then fasten the lid in place.</p>
 <section id="installing-the-software">
 <h2>Installing the Software<a class="headerlink" href="#installing-the-software" title="Link to this heading">¶</a></h2>
 <p>The SquishBox software is targeted for a Pi 3B+/4 running Raspberry Pi OS
-(64-bit, based on Debian 13 “Trixie”) or newer.
-To install on a fresh or existing system, log in as a regular user and run:</p>
+(64-bit, based on Debian 13 “Trixie”) or newer.</p>
+<p>Before installing it’s advisable to perform an upgrade to
+make sure your audio stack is up to date:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">apt</span> <span class="n">update</span>
+<span class="n">sudo</span> <span class="n">apt</span> <span class="n">upgrade</span>
+</pre></div>
+</div>
+<p>To run the install script, log in as a regular user and enter:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bash</span> <span class="o">&lt;</span><span class="p">(</span><span class="n">curl</span> <span class="o">-</span><span class="n">sL</span> <span class="n">geekfunklabs</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">squishbox</span><span class="p">)</span>
 </pre></div>
 </div>
