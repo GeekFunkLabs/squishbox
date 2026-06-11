@@ -63,15 +63,10 @@ sb = squishbox.SquishBox()
 lastdir, src, dest = None, None, None
 while True:
     sb.lcd.clear()
-    opts = [
-        "Run Command",
-        "Eject Drives",
-        "System Menu..",
-    ]
     if src == None:
-        opts[0:0] = ["Choose File(s).."]
+        opts = ["Choose File(s).."]
     else:
-        opts[0:0] = ["Copy", "Move", "Delete",]
+        opts = ["Copy", "Move", "Rename", "Delete",]
         if isinstance(src, list):
             sb.lcd.write(
                 " ".join([p.name for p in src]).ljust(COLS),
@@ -79,10 +74,9 @@ while True:
             )
         elif src.is_dir():
             sb.lcd.write(f"{src.name}/".ljust(COLS), row=0)
-            opts[2:2] = ["Make Directory", "Rename"]
         else:
             sb.lcd.write(src.name.ljust(COLS), row=0)
-            opts[2:2] = ["Rename"]
+    opts += ["Run Command", "Eject Drives", "System Menu.."]
     i, choice = sb.menu_choose(opts, row=ROWS - 1, timeout=0)
     if choice == None:
         src = None
@@ -162,14 +156,6 @@ while True:
                             irow = max(irow - 1, 0)
                     case "select" | "back":
                         break
-    elif choice == "Make Directory":
-        sb.lcd.write("Make Directory:".ljust(COLS), row=ROWS - 2)
-        name = sb.menu_entertext(charset=sb.lcd.fnchars()).strip()
-        if sb.menu_confirm(name):
-            try:
-                (src / name).mkdir()
-            except Exception as e:
-                sb.display_error(e)
     elif choice == "Rename":
         sb.lcd.write("Rename:".ljust(COLS), row=ROWS - 2)
         name = sb.menu_entertext(src.name, charset=sb.lcd.fnchars()).strip()

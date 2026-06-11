@@ -194,6 +194,7 @@ def setup_amsynth():
     """Shadow config to amsynth configs
     """
     amscfg = Path("~/.config/amsynth/config").expanduser()
+    amscfg.parent.mkdir(parents=True, exist_ok=True)
     amscfg.write_text(
         "\n".join(
             [f"{k} {v}" for k, v in CONFIG.items() if k in (
@@ -294,23 +295,20 @@ sb = squishbox.SquishBox()
 sb.lcd.clear()
 
 CONFIG = load_config("amsynthboxconf.yaml")
-if not CONFIG["banks_path"].exists():
-    CONFIG["banks_path"].mkdir(parents=True, exist_ok=True)
-    Path(CONFIG["banks_path"] / "factory").symlink_to(
-        "/usr/share/amsynth/banks"
-    )
+CONFIG["banks_path"].mkdir(parents=True, exist_ok=True)
+if not (CONFIG["banks_path"] / "factory").is_dir():
+    (CONFIG["banks_path"] / "factory").symlink_to("/usr/share/amsynth/banks")
+CONFIG.setdefault("lastbank_path", "factory/amsynth_factory.bank")
+if not (CONFIG["banks_path"] / CONFIG["lastbank_path"]).exists():
+    CONFIG["lastbank_path"] = Path("factory/amsynth_factory.bank")
 
 # start amsynth
 setup_amsynth()
-try:
-    amsynthx = Popen(
-        ["stdbuf", "-oL", "amsynth", "-x"],
-        stdout=PIPE, stderr=PIPE,
-        text=True, bufsize=1
-    )
-except FileNotFoundError as e:
-    sb.display_error(e, "install with 'apt install amsynth'")
-    sys.exit()
+amsynthx = Popen(
+    ["stdbuf", "-oL", "amsynth", "-x"],
+    stdout=PIPE, stderr=PIPE,
+    text=True, bufsize=1
+)
 for line in amsynthx.stdout:
     if "headless mode" in line:
         break
@@ -335,9 +333,7 @@ display_callback = sb.add_action
 midi_learn_callback = None
 midithread.start()
 
-presets = read_bankfile(
-    CONFIG["banks_path"] / CONFIG["currentbank_path"]
-)
+presets = read_bankfile(CONFIG["banks_path"] / CONFIG["lastbank_path"])
 curvals = {name: 0 for name in PARS}
 pno = 0
 set_preset(pname := list(presets)[pno])
@@ -384,7 +380,7 @@ while True:
                     i, par = sb.menu_choose(
                         [PARS[name]["display"][curvals[name]] for name in PARS],
                         row=1, i=lastpar, timeout=0,
-                        func = lambda i: sb.lcd.write(
+                        on_change=lambda i: sb.lcd.write(
                             list(PARS)[i].ljust(COLS), row=0
                         )
                     )
@@ -413,9 +409,12 @@ while True:
                     )
                 )
                 if par != None:
+                    sb.lcd.write("Controller:".ljust(COLS), row=0)
                     lastpar=i
                     midi_learn_callback = sb.add_action
-                    i, cc = sb.menu_choose(range(128), row=1, i=ctrls.get(par, 0))
+                    i, cc = sb.menu_choose(
+                        range(128), row=1, i=ctrls.get(par, 0),
+                        passthrough=(int,))
                     CONFIG.setdefault("controllers", {})
                     if isinstance(cc, int):
                         CONFIG["controllers"][cc] = par
@@ -423,7 +422,7 @@ while True:
                         CONFIG["controllers"].pop(cc, None)
                         if CONFIG["controllers"] == {}:
                             del CONFIG["controllers"]
-                        save_state(CONFIG_PATH, CONFIG)
+                        save_state("amsynthboxconf.yaml", CONFIG)
                     midi_learn_callback = None
             elif choice == "Save Preset":
                 sb.lcd.write("Save preset as:".ljust(COLS), row=0)
@@ -441,7 +440,8 @@ while True:
             elif choice == "Load Bank":
                 f = sb.menu_choosefile(
                     topdir=CONFIG["banks_path"],
-                    start=CONFIG["currentbank_path"],
+                    start=CONFIG.get("lastbank_path"),
+                    ext=".bank",
                 )
                 if f.is_file():
                     try:
@@ -449,29 +449,32 @@ while True:
                     except Exception as e:
                         sb.display_error(e, "bank load error")
                     else:
-                        CONFIG["currentbank_path"] = f
-                        save_state(CONFIG_PATH, CONFIG)
+                        CONFIG["lastbank_path"] = f
+                        save_state("amsynthboxconf.yaml", CONFIG)
                         pno = 0
                         set_preset(pname := list(presets)[pno])
             elif choice == "Save Bank":
                 f = sb.menu_choosefile(
                     topdir=CONFIG["banks_path"],
-                    start=CONFIG["currentbank_path"]
+                    start=CONFIG["lastbank_path"],
+                    ext=".bank",
                 )
                 name = sb.menu_entertext(
                     f.name if f.is_file() else "", charset=sb.lcd.fnchars()
                 ).strip()
-                if name and sb.menu_confirm(name):
-                    sb.lcd.write(name.ljust(COLS), row=0)
-                    try:
-                        write_bankfile(f.parent / name, presets)
-                    except Exception as e:
-                        sb.display_error(e, "bank save error")
-                    else:
-                        CONFIG["currentbank_path"] = f.parent / name
-                        save_state(CONFIG_PATH, CONFIG)
-                        sb.lcd.write("bank saved".ljust(COLS), row=1)
-                        sb.get_action(timeout=MENU_TIME)
+                if name:
+                    f = ((f if f.is_dir() else f.parent) / name).with_suffix(".bank")
+                    if sb.menu_confirm(f.name):
+                        sb.lcd.write(f.name.ljust(COLS), row=0)
+                        try:
+                            write_bankfile(f, presets)
+                        except Exception as e:
+                            sb.display_error(e, "bank save error")
+                        else:
+                            CONFIG["lastbank_path"] = f
+                            save_state("amsynthboxconf.yaml", CONFIG)
+                            sb.lcd.write("bank saved".ljust(COLS), row=1)
+                            sb.get_action(timeout=MENU_TIME)
             elif choice == "System Menu..":
                 if sb.menu_systemsettings() == "shell":
                     amsynthx.terminate()
