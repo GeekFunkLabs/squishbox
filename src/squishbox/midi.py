@@ -20,7 +20,7 @@ def midi_connect():
     conn = set(CONFIG.get("midi_connections", []))
     for src, sport in midi_ports(input=True).items():
         for dest, dport in midi_ports(output=True).items():
-            if {f"{src}>{dest}", f"any>{dest}", f"{src}>any"} & conn:
+            if {f"{src}>{dest}", f"any>{dest}", f"{src}>any", "any>any"} & conn:
                 try:
                     sbclient.subscribe_port(sport, dport)
                 except alsa_midi.ALSAError:
