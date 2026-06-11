@@ -72,30 +72,37 @@ check_architecture() {
     fi
 }
 
-# Package Installation
+# Installation Steps
 
-install_base() {
-    log "Installing base system..."
+install_debpackages() {
+    log "Installing system packages..."
 
+    sudo apt update
     SYSTEM_URL=$(api_find_url squishbox-system_.*_arm64.deb)
     curl -L "$SYSTEM_URL" -o /tmp/system.deb
-    sudo apt update
-    sudo dpkg -i /tmp/system.deb || sudo apt -f install -y
-
-    python3 -m venv "$VENV_DIR" --system-site-packages
-    "$VENV_DIR/bin/pip" install -U squishbox
+    sudo dpkg -i /tmp/system.deb
     mkdir -p "$SB_DIR/config"
     cp -n /usr/share/squishbox/defaults/*.yaml "$SB_DIR/config"
+
+    if [[ $MODE == "full" ]]; then
+        FULL_URL=$(api_find_url squishbox-full_.*_all.deb)
+        curl -L "$FULL_URL" -o /tmp/full.deb
+        sudo dpkg -i /tmp/full.deb
+    fi
+
+    sudo apt -f install -y
 }
 
-install_full() {
-    log "Installing full system..."
+install_pypackages() {
+    log "Installing python packages..."
 
-    FULL_URL=$(api_find_url squishbox-full_.*_all.deb)
-    curl -L "$FULL_URL" -o /tmp/full.deb
-    sudo dpkg -i /tmp/full.deb || sudo apt -f install -y
+    python3 -m venv "$VENV_DIR" --system-site-packages
 
-    "$VENV_DIR/bin/pip" install -U squishbox[full]
+    if [[ $MODE == "minimal" ]]; then
+        "$VENV_DIR/bin/pip" install -U squishbox
+    else
+        "$VENV_DIR/bin/pip" install -U squishbox[full]
+    fi
 }
 
 install_content() {
@@ -105,8 +112,6 @@ install_content() {
     curl -L $CONTENT_URL \
     | tar -xz --skip-old-files -C $SB_DIR
 }
-
-# Copy/Merge Config Files
 
 merge_hwoverlay() {
     local CONFIG=${SB_DIR}/config/squishboxconf.yaml
@@ -127,8 +132,6 @@ if overlay_path.exists():
 EOF
 }
 
-# TinyFileManager Install and Config
-
 install_web_manager() {
     WEB_URL=$(api_find_url squishbox-web_.*_all.deb)
     curl -L "$WEB_URL" -o /tmp/web.deb
@@ -146,8 +149,6 @@ install_web_manager() {
     sudo install -D -m 0644 /tmp/squishbox-index.php /var/www/html/index.php
     sudo install -D -m 0644 /usr/share/squishbox-web/gfl_logo.png /var/www/html/
 }
-
-# Boot Firmware Configuration
 
 configure_boot_files() {
 
@@ -176,8 +177,6 @@ configure_boot_files() {
     add_overlay "dtoverlay=midi-uart0"
     add_overlay "dtoverlay=miniuart-bt"
 }
-
-# User Config
 
 configure_user() {
     sudo usermod -aG input,audio,plugdev "$USER"
@@ -247,13 +246,11 @@ fi
 
 # Perform Setup Tasks
 
-install_base
+install_debpackages
+install_pypackages
 merge_hwoverlay
 configure_boot_files
 configure_user
-if [[ $MODE == "full" ]]; then
-    install_full
-fi
 if [[ $FACTORY == "yes" ]]; then
     install_content
 fi
