@@ -6,8 +6,13 @@ from .config import CONFIG
 
 
 def midi_ports(**kwargs):
-    return {f"{p.client_name.strip()}:{p.port_id}({p.name.strip()})": p
-        for p in sbclient.list_ports(**{"type": alsa_midi.PortType.ANY} | kwargs)}
+    return {
+        f"{p.client_name.strip()}:{p.port_id}({p.name.strip()})": p
+        for p in sbclient.list_ports(**{
+            "type": alsa_midi.PortType.ANY,
+            "include_no_export": False,
+        } | kwargs)
+    }
 
 
 def midi_connect():
