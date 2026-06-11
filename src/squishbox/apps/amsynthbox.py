@@ -2,17 +2,15 @@
 """A SquishBox wrapper for amsynth"""
 
 from math import log
-import os
 from pathlib import Path
 from subprocess import Popen, PIPE
-import sys
 from threading import Thread
 
 import alsa_midi
 
 import squishbox
 from squishbox.config import load_config, save_state
-from squishbox.midi import midi_ports, midi_connect
+from squishbox.midi import midi_ports
 
 
 COLS = squishbox.CONFIG["lcd_cols"]
@@ -216,39 +214,23 @@ def setup_amsynth():
     amsctrl.write_text("\n".join(controllers))
 
 
-def start_wrapper():
-    """Create a client for observing/routing MIDI messages
-    and insert it between amSynth and anything connected to it
+def redirect_ports():
+    """Redirect any ports connected to amsynth to the wrapper
     """
-    conns = squishbox.CONFIG.setdefault("midi_connections", [])
-    for i, (src, dest) in enumerate((c.split(">") for c in conns)):
-        if dest == AMSPORT:
-            conns[i] = f"{src}>_amsynth_wrapper:0(in)"
-    conns.append(f"_amsynth_wrapper:1(out)>{AMSPORT}")
-    client = alsa_midi.SequencerClient("_amsynth_wrapper")
-    inport = client.create_port(
-        "in",
-        caps=alsa_midi.WRITE_PORT,
-        type=alsa_midi.PortType.MIDI_GENERIC,
-    )
-    outport = client.create_port(
-        "out",
-        caps=alsa_midi.READ_PORT,
-        type=alsa_midi.PortType.MIDI_GENERIC,
-    )
-    return client, inport, outport
-
-
-def remove_wrapper(client):
-    client.close()
-    conns = squishbox.CONFIG["midi_connections"]
-    for i, (src, dest) in enumerate((c.split(">") for c in conns)):
-        if dest == "_amsynth_wrapper:0(in)":
-            conns[i] = f"{src}>{AMSPORT}"
-    conns.remove(f"_amsynth_wrapper:1(out)>{AMSPORT}")
-    if squishbox.CONFIG.get("midi_connections") == []:
-        del squishbox.CONFIG["midi_connections"]
-    midi_connect()
+    addr = (amsynth_port.client_id, amsynth_port.port_id)
+    for p in midi_ports(input=True).values():
+        for sq in wrapper.list_port_subscribers(p):
+            if (sq.addr.client_id, sq.addr.port_id) == addr:
+                print(f"redirecting {p.client_id}:{p.port_id}")
+                try:
+                    wrapper.unsubscribe_port(p, amsynth_port)
+                except alsa_midi.ALSAError:
+                    pass
+                try:
+                    wrapper.subscribe_port(p, wrapper_in)
+                except alsa_midi.ALSAError:
+                    pass
+                break
 
 
 def process_events():
@@ -333,7 +315,21 @@ for line in amsynthx.stdout:
     if "headless mode" in line:
         break
 amsynth_port = midi_ports()[AMSPORT]
-wrapper, wrapper_in, wrapper_out = start_wrapper()
+
+# create MIDI wrapper
+wrapper = alsa_midi.SequencerClient("_amsynth_wrapper")
+wrapper_in = wrapper.create_port(
+    "in",
+    caps=alsa_midi.WRITE_PORT | alsa_midi.PortCaps.NO_EXPORT,
+    type=alsa_midi.PortType.MIDI_GENERIC,
+)
+wrapper_out = wrapper.create_port(
+    "out",
+    caps=alsa_midi.READ_PORT | alsa_midi.PortCaps.NO_EXPORT,
+    type=alsa_midi.PortType.MIDI_GENERIC,
+)
+redirect_ports()
+
 midithread = Thread(target=process_events, daemon=True)
 display_callback = sb.add_action
 midi_learn_callback = None
@@ -477,14 +473,10 @@ while True:
                         sb.lcd.write("bank saved".ljust(COLS), row=1)
                         sb.get_action(timeout=MENU_TIME)
             elif choice == "System Menu..":
-                remove_wrapper(wrapper)
-                midithread.join()
                 if sb.menu_systemsettings() == "shell":
                     amsynthx.terminate()
                     break
-                wrapper, wrapper_in, wrapper_out = start_wrapper()
-                midithread = Thread(target=process_events, daemon=True)
-                midithread.start()
+                redirect_ports()
             display_callback = sb.add_action
     refresh_display()
 
