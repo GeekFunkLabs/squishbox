@@ -34,6 +34,11 @@ class Control:
         """Return the bound callback for an event (or no-op if unbound)."""
         return self._actions.get(val, lambda: None)
 
+    def release(self):
+        self._watching = False
+        self._thread.join()
+        self._req.release()
+
     def bind(self, event, func):
         """Bind a callback function to an event.
 
@@ -76,7 +81,7 @@ class Button(Control):
             bias = gpiod.line.Bias.PULL_UP
         else:
             bias = gpiod.line.Bias.PULL_DOWN
-        line = gpiod.request_lines(
+        self._req = gpiod.request_lines(
             CONFIG["gpio_chip"],
             consumer="squishbox",
             config={
@@ -94,13 +99,13 @@ class Button(Control):
         self._toggle = False
         self._actions = {}
         self._watching = True
-        t = Thread(
-            target=lambda: self._watch(line, pin, pull_up),
+        self._thread = Thread(
+            target=lambda: self._watch(pin, pull_up),
             daemon=True
         )
-        t.start()
+        self._thread.start()
 
-    def _watch(self, line, pin, pull_up):
+    def _watch(self, pin, pull_up):
         if pull_up:
             connect = gpiod.EdgeEvent.Type.FALLING_EDGE
             disconnect = gpiod.EdgeEvent.Type.RISING_EDGE
@@ -108,13 +113,15 @@ class Button(Control):
             connect = gpiod.EdgeEvent.Type.RISING_EDGE
             disconnect = gpiod.EdgeEvent.Type.FALLING_EDGE
         while self._watching:
-            for event in line.read_edge_events():
+            if not self._req.wait_edge_events(0.1):
+                continue
+            for event in self._req.read_edge_events():
                 if event.event_type is connect:
                     self._state = self.DOWN
                     self["down"]()
                     self._toggle = not self._toggle
                     self["in" if self._toggle else "out"]()
-                    if not line.wait_edge_events(CONFIG["hold_time"]):
+                    if not self._req.wait_edge_events(CONFIG["hold_time"]):
                         self._state = self.HELD
                         self["hold"]()
                 elif event.event_type is disconnect:
@@ -146,7 +153,7 @@ class Encoder(Control):
             bias = gpiod.line.Bias.PULL_UP
         else:
             bias = gpiod.line.Bias.PULL_DOWN
-        lines = gpiod.request_lines(
+        self._req = gpiod.request_lines(
             CONFIG["gpio_chip"],
             consumer="squishbox",
             config={
@@ -163,16 +170,18 @@ class Encoder(Control):
         self._edges = (0, 0)
         self._actions = {}
         self._watching = True
-        t = Thread(
-            target=lambda: self._watch(lines, pin1, pin2, pull_up),
+        self._thread = Thread(
+            target=lambda: self._watch(pin1, pin2, pull_up),
             daemon=True
         )
-        t.start()
+        self._thread.start()
 
-    def _watch(self, lines, pin1, pin2, pull_up):
+    def _watch(self, pin1, pin2, pull_up):
         s = int(pull_up)
         while self._watching:
-            for event in lines.read_edge_events():
+            if not self._req.wait_edge_events(0.1):
+                continue
+            for event in self._req.read_edge_events():
                 if event.event_type is event.Type.RISING_EDGE:
                     self._edges = (self._edges[-1], event.line_offset)
                 elif event.event_type is event.Type.FALLING_EDGE:
@@ -198,7 +207,7 @@ class Output:
             val = gpiod.line.Value.ACTIVE
         else:
             val = gpiod.line.Value.INACTIVE
-        self._line = gpiod.request_lines(
+        self._req = gpiod.request_lines(
             CONFIG["gpio_chip"],
             consumer="squishbox",
             config={
@@ -209,13 +218,16 @@ class Output:
             }
         )
 
+    def release(self):
+        self._req.release()
+
     def on(self):
         """Set output to active (HIGH)."""
-        self._line.set_value(self._pin, gpiod.line.Value.ACTIVE)
+        self._req.set_value(self._pin, gpiod.line.Value.ACTIVE)
         
     def off(self):
         """Set output to inactive (LOW)."""
-        self._line.set_value(self._pin, gpiod.line.Value.INACTIVE)
+        self._req.set_value(self._pin, gpiod.line.Value.INACTIVE)
 
 
 class PWMOutput:
@@ -238,7 +250,7 @@ class PWMOutput:
         """
         self.freq = freq
         self.level = level
-        self._line = gpiod.request_lines(
+        self._req = gpiod.request_lines(
             CONFIG["gpio_chip"],
             consumer="squishbox",
             config={
@@ -248,8 +260,13 @@ class PWMOutput:
             }
         )
         self._active = True
-        t = Thread(target=lambda: self._pwm(pin), daemon=True)
-        t.start()
+        self._thread = Thread(target=lambda: self._pwm(pin), daemon=True)
+        self._thread.start()
+
+    def release(self):
+        self._active = False
+        self._thread.join()
+        self._req.release()
 
     def on(self):
         """Set output to maximum."""
@@ -264,10 +281,10 @@ class PWMOutput:
             period = 1 / self.freq
             t_on = period * self.level / 100
             if self.level > 0:
-                self._line.set_value(pin, gpiod.line.Value.ACTIVE)
+                self._req.set_value(pin, gpiod.line.Value.ACTIVE)
                 time.sleep(t_on)
             if self.level < 100:
-                self._line.set_value(pin, gpiod.line.Value.INACTIVE)
+                self._req.set_value(pin, gpiod.line.Value.INACTIVE)
                 time.sleep(period - t_on)
 
 
@@ -328,7 +345,7 @@ X--X-
         self.buffered = False
         self._spinning = False
         # set up LCD GPIO
-        self._lines = gpiod.request_lines(
+        self._req = gpiod.request_lines(
             CONFIG["gpio_chip"],
             consumer="squishbox",
             config={
@@ -346,6 +363,9 @@ X--X-
             self._glyphs[name] = text
         self._chars = {"solid": 255}
         self._used = []
+
+    def release(self):
+        self._req.release()
 
     def printable(self):
         """Provide full set of printable characters supported by the LCD."""
@@ -591,8 +611,8 @@ X--X-
     def _send(self, val, reg=gpiod.line.Value.INACTIVE):
         if self.regsel == 0:
             return
-        self._lines.set_value(self.regsel, reg)
-        self._lines.set_value(self.enable, gpiod.line.Value.INACTIVE)
+        self._req.set_value(self.regsel, reg)
+        self._req.set_value(self.enable, gpiod.line.Value.INACTIVE)
         for nib in (val >> 4, val):
             line_vals = {}
             for i in range(4):
@@ -600,8 +620,8 @@ X--X-
                     line_vals[self.data[i]] = gpiod.line.Value.ACTIVE
                 else:
                     line_vals[self.data[i]] = gpiod.line.Value.INACTIVE
-            self._lines.set_values(line_vals)
-            self._lines.set_value(self.enable, gpiod.line.Value.ACTIVE)
+            self._req.set_values(line_vals)
+            self._req.set_value(self.enable, gpiod.line.Value.ACTIVE)
             time.sleep(CONFIG["lcd_exec_time"])
-            self._lines.set_value(self.enable, gpiod.line.Value.INACTIVE)
+            self._req.set_value(self.enable, gpiod.line.Value.INACTIVE)
 

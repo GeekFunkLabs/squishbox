@@ -36,61 +36,14 @@ class SquishBox:
           - Detects WiFi state
           - Installs a global exception hook to display errors on the LCD
 
-        Subsequent calls return the existing instance.
+    def close(self):
+        """Cleanly free the GPIO hardware used by the SquishBox
         """
-        if cls._instance is None:
-            obj = super(SquishBox, cls).__new__(cls)
-            obj._actions = []
-            # set up LCD
-            obj.lcd = hardware.LCD_HD44780(
-                CONFIG["lcd_regsel"],
-                CONFIG["lcd_enable"],
-                CONFIG["lcd_data"]
-            )
-            # add controls
-            obj.controls = {}
-            for name, spec in CONFIG["controls"].items():
-                if spec["type"] == "button":
-                    obj.controls[name] = hardware.Button(
-                        spec["pin"],
-                        pull_up=spec.get("pull_up", CONFIG["pull_up"])
-                    )
-                elif spec["type"] == "encoder":
-                    obj.controls[name] = hardware.Encoder(
-                        spec["pins"][0],
-                        spec["pins"][1],
-                        pull_up=spec.get("pull_up", CONFIG["pull_up"])
-                    )
-                else:
-                    continue
-                for event, action in spec.get("actions", {}).items():
-                    obj.controls[name].bind(
-                        event, lambda a=action: obj.add_action(a)
-                    )
-                for event, msg in spec.get("messages", {}).items():
-                    obj.controls[name].bind(
-                        event, lambda msg=msg: send_message(msg)
-                    )
-            # add outputs
-            obj.outputs = {}
-            for name, spec in CONFIG["outputs"].items():
-                if spec["type"] == "binary":
-                    obj.outputs[name] = hardware.Output(
-                        spec["pin"],
-                        on=spec.get("on", False)
-                    )
-                elif spec["type"] == "pwm":
-                    obj.outputs[name] = hardware.PWMOutput(
-                        spec["pin"],
-                        freq=spec.get("freq", 2000),
-                        level=spec.get("level", 0)
-                    )
-                else:
-                    continue
-            obj._wifienabled = None
-            sys.excepthook = lambda _, e, __: obj.display_error(e)
-            cls._instance = obj
-        return cls._instance
+        self.lcd.release()
+        for control in self.controls.values():
+            control.release()
+        for output in self.outputs.values():
+            output.release()
 
     def menu_choose(self, opts, row=ROWS-1, align="right", i=0, wrap=True,
                     timeout=MENU_TIME, on_change=None, passthrough=None):
