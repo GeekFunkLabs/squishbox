@@ -21,20 +21,66 @@ class SquishBox:
     Provides access to the LCD, controls (buttons/encoders), outputs,
     and a set of menu-driven interaction helpers. All hardware is
     initialized on first instantiation using values from CONFIG.
-
-    This class is a singleton; repeated instantiation returns the same object.
     """
-    _instance = None
 
-    def __new__(cls):
-        """Create or return the singleton SquishBox instance.
+    def __init__(self):
+        """Create the SquishBox interface
 
-        On first creation:
           - Initializes LCD display
           - Configures input controls and binds events to actions
           - Configures output pins (binary/PWM)
           - Detects WiFi state
           - Installs a global exception hook to display errors on the LCD
+        """
+        self._actions = []
+        # set up LCD
+        self.lcd = hardware.LCD_HD44780(
+            CONFIG["lcd_regsel"],
+            CONFIG["lcd_enable"],
+            CONFIG["lcd_data"]
+        )
+        # add controls
+        self.controls = {}
+        for name, spec in CONFIG["controls"].items():
+            if spec["type"] == "button":
+                self.controls[name] = hardware.Button(
+                    spec["pin"],
+                    pull_up=spec.get("pull_up", CONFIG["pull_up"])
+                )
+            elif spec["type"] == "encoder":
+                self.controls[name] = hardware.Encoder(
+                    spec["pins"][0],
+                    spec["pins"][1],
+                    pull_up=spec.get("pull_up", CONFIG["pull_up"])
+                )
+            else:
+                continue
+            for event, action in spec.get("actions", {}).items():
+                self.controls[name].bind(
+                    event, lambda a=action: self.add_action(a)
+                )
+            for event, msg in spec.get("messages", {}).items():
+                self.controls[name].bind(
+                    event, lambda msg=msg: send_message(msg)
+                )
+        # add outputs
+        self.outputs = {}
+        for name, spec in CONFIG["outputs"].items():
+            if spec["type"] == "binary":
+                self.outputs[name] = hardware.Output(
+                    spec["pin"],
+                    on=spec.get("on", False)
+                )
+            elif spec["type"] == "pwm":
+                self.outputs[name] = hardware.PWMOutput(
+                    spec["pin"],
+                    freq=spec.get("freq", 2000),
+                    level=spec.get("level", 0)
+                )
+            else:
+                continue
+        self._wifienabled = None
+        sys.excepthook = lambda _, e, __: self.display_error(e)
 
     def close(self):
         """Cleanly free the GPIO hardware used by the SquishBox
@@ -69,6 +115,8 @@ class SquishBox:
             (-1, None) if timed out
             (-1, other) if an allowed action/type is passed
         """
+        if not opts:
+            raise ValueError("option list cannot be empty")
         i = i % len(opts)
         while True:
             if align == "left":
@@ -97,9 +145,10 @@ class SquishBox:
                 case other:
                     if passthrough and (
                         other in passthrough
-                        or any(isinstance(other, t)
-                               for t in passthrough
-                               if isinstance(t, type))
+                        or any(
+                            isinstance(other, t) for t in passthrough
+                            if isinstance(t, type)
+                        )
                     ):
                         self.lcd.write(" " * COLS, row)
                         return -1, other
@@ -205,7 +254,7 @@ class SquishBox:
                         if i == len(text):
                             text.append(" ")
 
-    def menu_choosefile(self, topdir, start=None, ext=[],
+    def menu_choosefile(self, topdir, start=None, ext=None,
                         row=ROWS - 2, timeout=0):
         """Browse directories and select a file.
 
@@ -216,7 +265,7 @@ class SquishBox:
         Args:
             topdir (Path): Root directory (user cannot navigate above this).
             start (Path): Optional starting file or directory (relative to topdir).
-            ext (list): List of allowed file extensions (empty = show all).
+            ext (list): List of allowed file extensions (None = show all).
             row (int): Starting LCD row (uses two rows).
             timeout (float): Seconds to wait (0 = wait indefinitely).
 
@@ -235,23 +284,34 @@ class SquishBox:
                 f"{curdir.relative_to(topdir.parent)}/:".ljust(COLS),
                 row
             )
-            paths = sorted([p for p in curdir.iterdir()
-                            if p.is_dir() or p.suffix in ext or not ext])
-            names = [f'{p.name}/'
-                     if p.is_dir() else p.name for p in paths]
+            paths = sorted([p for p in curdir.iterdir() if
+                            p.is_dir() or not ext or p.suffix in ext])
+            names = [p.name if not p.is_dir() else
+                     f"{p.name}/" for p in paths]
+            names.append("+make directory")
+            paths.append("")
             if curdir != topdir:
-                paths.append(curdir.parent)
                 names.append("../")
+                paths.append(curdir.parent)
             i = paths.index(start) if start in paths else 0
             start = None
             i, res = self.menu_choose(names, row + 1, i=i, timeout=timeout)
             if res == None:
                 return curdir
-            if paths[i].is_dir():
-                startfile = curdir
-                curdir = paths[i]
-            else:
+            if res == "+make directory":
+                name = self.menu_entertext(charset=self.lcd.fnchars()).strip()
+                if name and self.menu_confirm(name):
+                    try:
+                        (curdir / name).mkdir()
+                    except Exception as e:
+                        self.display_error(e)
+                    else:
+                        start = curdir / name
+                continue
+            if paths[i].is_file():
                 return paths[i]
+            start = curdir
+            curdir = paths[i]
 
     def menu_lcdsettings(self, row=ROWS - 2, timeout=MENU_TIME):
         """Adjust LCD contrast and backlight using slider UI.
@@ -315,7 +375,7 @@ class SquishBox:
             return
         last_src = 0
         last_dest = 0
-        conns = CONFIG.get("midi_connections", [])
+        conns = CONFIG.setdefault("midi_connections", [])
         while True:
             self.lcd.write("Source Ports:".ljust(COLS), row)
             last_src, src = self.menu_choose(
@@ -324,7 +384,7 @@ class SquishBox:
             if src == None:
                 self.lcd.write(" " * COLS, row)
                 if conns:
-                    CONFIG["midi_connections"] = sorted(conns)
+                    conns.sort()
                 else:
                     CONFIG.pop("midi_connections", None)
                 save_state(CONFIG_PATH, CONFIG)
@@ -344,8 +404,6 @@ class SquishBox:
                     conns.remove(conn)
                 else:
                     conns.append(conn)
-            if CONFIG.get("midi_connections") == []:
-                del CONFIG["midi_connections"]
 
     @property
     def wifienabled(self):
