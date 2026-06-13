@@ -1,8 +1,8 @@
 Technical Docs
 ==============
 
-This section collects hardware documentation, fabrication references,
-and connector pinouts for users modifying or servicing the SquishBox.
+This section collects miscellaneous hardware and software documentation
+for users modifying or servicing the SquishBox.
 
 Schematic
 ---------
@@ -64,4 +64,52 @@ P1 Pin  Pad Shape  Function
 14      square     GND
 ======  =========  ==================
 
+System Setup
+------------
+
+The installer script configures a complete SquishBox system by performing
+the following tasks:
+
+* Installs system-level dependencies using Debian packages
+* Creates a Python virtual environment and installs SquishBox and
+  optional Python components
+* Configures boot settings for supported hardware features such as
+  audio devices and serial MIDI bridges
+* Applies user-level configuration:
+
+  * Updates group membership and permissions
+  * Enables required system services
+  * Creates convenience command aliases
+
+Command Aliases
+^^^^^^^^^^^^^^^
+
+The installer script creates several convenience aliases for working
+with the SquishBox environment:
+
+* ``squishbox-python`` - Runs Python inside the SquishBox virtual environment
+* ``squishbox-pip`` - Installs or updates Python packages in the SquishBox virtual environment
+* ``squishbox-launcher`` - Starts the SquishBox launcher in the current shell
+* ``squishbox-start`` - Starts the SquishBox background service
+* ``squishbox-stop`` - Stops the SquishBox background service
+* ``squishbox-status`` - Displays the status of the SquishBox background service
+
+Updates
+^^^^^^^
+
+Most application updates can be installed directly through `pip` inside
+the SquishBox virtual environment:
+
+.. code-block:: console
+
+    squishbox-pip install -U squishbox
+
+To also upgrade optional components and their dependencies:
+
+.. code-block:: console
+
+    squishbox-pip install -U "squishbox[full]"
+
+The installer script may be run again at any time to apply system-level
+changes, install new dependencies, or update system configuration.
 

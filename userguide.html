@@ -109,9 +109,15 @@ crashes. Additional directories containing user scripts can be added using the
 for configuring MIDI, Wi-Fi, LCD settings, and power options.</p>
 <section id="midi-routing">
 <h4>MIDI Routing<a class="headerlink" href="#midi-routing" title="Link to this heading">¶</a></h4>
-<p>MIDI devices are not automatically connected by default. Connections can be
-managed from the MIDI Settings menu by first selecting the MIDI input device,
-then selecting the destination to connect it to.</p>
+<p>The SquishBox manages connections between MIDI devices and applications
+as defined in the <code class="docutils literal notranslate"><span class="pre">midi_connections</span></code> section of the configuration file.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">midi_connections</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DONNER DMK25Pro:0(DONNER DMK25Pro MIDI 1)&gt;FluidPatcher:0(FluidPatcher)</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">QuNexus:0(QuNexus Control Surface)&gt;SquishBox minijacks:1(SquishBox minijacks Out)</span>
+</pre></div>
+</div>
+<p>These settings can be easily managed from the MIDI Settings menu by first
+selecting the MIDI input device, then selecting the destination.</p>
 <p>Applications that use MIDI internally (such as <code class="docutils literal notranslate"><span class="pre">fpatcherbox</span></code>) typically
 appear as available destinations only while they are running.</p>
 <p>The port <code class="docutils literal notranslate"><span class="pre">SquishBox</span> <span class="pre">MIDI</span> <span class="pre">out</span></code> sends messages from any hardware controls
@@ -122,7 +128,8 @@ example:</p>
 <ul class="simple">
 <li><p>Connect any MIDI device to a specific application</p></li>
 <li><p>Connect a specific MIDI device to any application</p></li>
-<li><p>Automatically connect any device to any available application</p></li>
+<li><p>Automatically connect any device to any available application
+(<code class="docutils literal notranslate"><span class="pre">any&gt;any</span></code> - the default behavior)</p></li>
 </ul>
 </section>
 <section id="wi-fi-settings">
@@ -196,8 +203,26 @@ amsynth will respond to. A value of <code class="docutils literal notranslate"><
 <h4><code class="docutils literal notranslate"><span class="pre">trackbox</span></code><a class="headerlink" href="#trackbox" title="Link to this heading">¶</a></h4>
 <p>Playlist-based music player with live track reordering and quick cuts.
 Most types of audio files can be played, and are stored in <code class="docutils literal notranslate"><span class="pre">media/music/</span></code>
-by default. The root location for music can be set using the <code class="docutils literal notranslate"><span class="pre">trackroot_path</span></code>
+by default. The root location for music is set using the <code class="docutils literal notranslate"><span class="pre">tracks_path</span></code>
 item in the configuration file.</p>
+<p>The list of music files to play can be edited from the <strong>Edit Tracklist</strong>
+option in the menu. Track lists are saved as YAML files.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">tracks_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">chill</span>
+<span class="nt">first</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="nt">tracks</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Hotel Pools - Melt.mp3</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">downloadedfile1823.mp3</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Mallsoft Vibes</span>
+<span class="w">  </span><span class="nt">start</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8:31</span>
+<span class="w">  </span><span class="nt">end</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">12:15</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synthwave_mixdown.wav</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">My Chill Beats</span>
+<span class="w">  </span><span class="nt">level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.8</span>
+</pre></div>
+</div>
+<p>Tracklists can also have a <code class="docutils literal notranslate"><span class="pre">tracks_path</span></code> parameter that is relative
+to the config file value or absolute. Tracklists start at the last
+played track, or the index given by <code class="docutils literal notranslate"><span class="pre">first</span></code> if present.</p>
 </section>
 <section id="sbedit">
 <h4><code class="docutils literal notranslate"><span class="pre">sbedit</span></code><a class="headerlink" href="#sbedit" title="Link to this heading">¶</a></h4>

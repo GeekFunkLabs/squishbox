@@ -91,9 +91,17 @@ for configuring MIDI, Wi-Fi, LCD settings, and power options.
 MIDI Routing
 """"""""""""
 
-MIDI devices are not automatically connected by default. Connections can be
-managed from the MIDI Settings menu by first selecting the MIDI input device,
-then selecting the destination to connect it to.
+The SquishBox manages connections between MIDI devices and applications
+as defined in the ``midi_connections`` section of the configuration file.
+
+.. code-block:: yaml
+
+    midi_connections:
+    - DONNER DMK25Pro:0(DONNER DMK25Pro MIDI 1)>FluidPatcher:0(FluidPatcher)
+    - QuNexus:0(QuNexus Control Surface)>SquishBox minijacks:1(SquishBox minijacks Out)
+
+These settings can be easily managed from the MIDI Settings menu by first
+selecting the MIDI input device, then selecting the destination.
 
 Applications that use MIDI internally (such as ``fpatcherbox``) typically
 appear as available destinations only while they are running.
@@ -108,6 +116,7 @@ example:
 * Connect any MIDI device to a specific application
 * Connect a specific MIDI device to any application
 * Automatically connect any device to any available application
+  (``any>any`` - the default behavior)
 
 Wi-Fi Settings
 """"""""""""""
@@ -193,8 +202,29 @@ amsynth will respond to. A value of ``0`` responds to any channel.
 
 Playlist-based music player with live track reordering and quick cuts.
 Most types of audio files can be played, and are stored in ``media/music/``
-by default. The root location for music can be set using the ``trackroot_path``
+by default. The root location for music is set using the ``tracks_path``
 item in the configuration file.
+
+The list of music files to play can be edited from the **Edit Tracklist**
+option in the menu. Track lists are saved as YAML files.
+
+.. code-block:: yaml
+
+    tracks_path: chill
+    first: 0
+    tracks:
+    - file: Hotel Pools - Melt.mp3
+    - file: downloadedfile1823.mp3
+      name: Mallsoft Vibes
+      start: 8:31
+      end: 12:15
+    - file: synthwave_mixdown.wav
+      name: My Chill Beats
+      level: 0.8
+      
+Tracklists can also have a ``tracks_path`` parameter that is relative
+to the config file value or absolute. Tracklists start at the last
+played track, or the index given by ``first`` if present.
 
 ``sbedit``
 """"""""""

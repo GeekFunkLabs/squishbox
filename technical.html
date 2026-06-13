@@ -34,8 +34,8 @@
             
   <section id="technical-docs">
 <h1>Technical Docs<a class="headerlink" href="#technical-docs" title="Link to this heading">¶</a></h1>
-<p>This section collects hardware documentation, fabrication references,
-and connector pinouts for users modifying or servicing the SquishBox.</p>
+<p>This section collects miscellaneous hardware and software documentation
+for users modifying or servicing the SquishBox.</p>
 <section id="schematic">
 <h2>Schematic<a class="headerlink" href="#schematic" title="Link to this heading">¶</a></h2>
 <p>The full schematic is available below. Through-hole components are
@@ -131,6 +131,52 @@ allowing LEDs to be connected directly.</p>
 </table>
 </section>
 </section>
+<section id="system-setup">
+<h2>System Setup<a class="headerlink" href="#system-setup" title="Link to this heading">¶</a></h2>
+<p>The installer script configures a complete SquishBox system by performing
+the following tasks:</p>
+<ul class="simple">
+<li><p>Installs system-level dependencies using Debian packages</p></li>
+<li><p>Creates a Python virtual environment and installs SquishBox and
+optional Python components</p></li>
+<li><p>Configures boot settings for supported hardware features such as
+audio devices and serial MIDI bridges</p></li>
+<li><p>Applies user-level configuration:</p>
+<ul>
+<li><p>Updates group membership and permissions</p></li>
+<li><p>Enables required system services</p></li>
+<li><p>Creates convenience command aliases</p></li>
+</ul>
+</li>
+</ul>
+<section id="command-aliases">
+<h3>Command Aliases<a class="headerlink" href="#command-aliases" title="Link to this heading">¶</a></h3>
+<p>The installer script creates several convenience aliases for working
+with the SquishBox environment:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">squishbox-python</span></code> - Runs Python inside the SquishBox virtual environment</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">squishbox-pip</span></code> - Installs or updates Python packages in the SquishBox virtual environment</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">squishbox-launcher</span></code> - Starts the SquishBox launcher in the current shell</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">squishbox-start</span></code> - Starts the SquishBox background service</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">squishbox-stop</span></code> - Stops the SquishBox background service</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">squishbox-status</span></code> - Displays the status of the SquishBox background service</p></li>
+</ul>
+</section>
+<section id="updates">
+<h3>Updates<a class="headerlink" href="#updates" title="Link to this heading">¶</a></h3>
+<p>Most application updates can be installed directly through <cite>pip</cite> inside
+the SquishBox virtual environment:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">squishbox-pip install -U squishbox</span>
+</pre></div>
+</div>
+<p>To also upgrade optional components and their dependencies:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">squishbox-pip install -U &quot;squishbox[full]&quot;</span>
+</pre></div>
+</div>
+<p>The installer script may be run again at any time to apply system-level
+changes, install new dependencies, or update system configuration.</p>
+</section>
+</section>
 </section>
 
 
@@ -175,6 +221,7 @@ allowing LEDs to be connected directly.</p>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Technical Docs</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#schematic">Schematic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#pcb">PCB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#system-setup">System Setup</a></li>
 </ul>
 </li>
 </ul>
