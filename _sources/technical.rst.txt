@@ -98,17 +98,13 @@ Updates
 ^^^^^^^
 
 Most application updates can be installed directly through `pip` inside
-the SquishBox virtual environment:
-
-.. code-block:: console
+the SquishBox virtual environment: ::
 
     squishbox-pip install -U squishbox
 
-To also upgrade optional components and their dependencies:
+To also upgrade optional components and their dependencies: ::
 
-.. code-block:: console
-
-    squishbox-pip install -U "squishbox[full]"
+    squishbox-pip install -U squishbox[full]
 
 The installer script may be run again at any time to apply system-level
 changes, install new dependencies, or update system configuration.
