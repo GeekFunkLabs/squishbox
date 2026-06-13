@@ -71,25 +71,34 @@ class GStreamerPlayer:
     def duck(self, vol):
         self._pb.set_property("volume", self._volume * vol)    
 
-    def play(self, uri, start_seconds=0, level=1.0):        
+    def play(self, uri, start=0, end=None, level=1.0):
         if self._pb.get_property("uri") != uri:
             self._pb.set_state(Gst.State.READY)
             self._pb.set_property("uri", uri)
             self.playing = True
             self._pb.set_property("volume", self._volume * level)
             self._async_done = False
-        if start_seconds > 0:
-            self._seek_waiting = start_seconds
+        if int(start) > 0:
+            self._seek_waiting = start, end
 
-    def seek(self, seconds):
+    def seek(self, start=0, end=None):
         if self._async_done == False:
-            self._seek_waiting = seconds
+            self._seek_waiting = start, end
         else:
-            self._pb.seek_simple(
-                Gst.Format.TIME,
-                Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
-                int(seconds * Gst.SECOND)
-            )
+            if end is None:
+                self._pb.seek_simple(
+                    Gst.Format.TIME,
+                    Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
+                    int(start * Gst.SECOND)
+                )
+            else:
+                self._pb.seek(
+                    1.0,
+                    Gst.Format.TIME,
+                    Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
+                    Gst.SeekType.SET, int(start * Gst.SECOND),
+                    Gst.SeekType.SET, int(end * Gst.SECOND)
+                )
             self._async_done = False
 
     def _on_bus_message(self, bus, msg):
@@ -108,8 +117,8 @@ class GStreamerPlayer:
             self.eoscallback("end-of-stream")
         elif msg.type == Gst.MessageType.ASYNC_DONE:
             self._async_done = True
-            if self._seek_waiting != None:
-                self.seek(self._seek_waiting)
+            if self._seek_waiting is not None:
+                self.seek(*self._seek_waiting)
                 self._seek_waiting = None
 
     def dismiss(self):
@@ -136,9 +145,13 @@ def play_track(n):
     if ":" in str(start):
         m, s = start.split(":")
         start = int(m) * 60 + int(s)
+    end = tracklist["tracks"][n].get("end", None)
+    if end is not None and ":" in str(end):
+        m, s = end.split(":")
+        end = int(m) * 60 + int(s)
     player.play(
         path.as_uri(),
-        start_seconds=start,
+        start=start, end=end,
         level=tracklist["tracks"][n].get("level", 1.0)
     )
     tracklist["position"] = n
@@ -183,7 +196,7 @@ def show_tracklist(startrow, end=0):
             )
             sb.lcd.write((m + name).ljust(COLS), row=i - irow)
             sb.lcd.write(m, row=i - irow)
-        sb.lcd.write(">", row=crow, col=0, timeout=FRAME_TIME)
+        sb.lcd.write(">", row=crow, col=0)
         match sb.get_action():
             case "inc":
                 crow += 1
@@ -271,7 +284,7 @@ else:
         }
     else:
         sys.exit()
-tracklist["position"] = tracklist.get("start", tracklist.get("position", 0))
+tracklist["position"] = tracklist.get("first", tracklist.get("position", 0))
 
 player = GStreamerPlayer()
 player.volume = CONFIG.get("master_volume", 1.0)
@@ -290,7 +303,7 @@ while True:
     match sb.get_action():
         case "select":
             player.playing = False if player.playing else True
-        case "inc" | "dec" as d if pos >=0 and dur >= 0:
+        case "inc" | "dec" as d if pos >= 0 and dur >= 0:
             player.statuscallback = lambda x: None
             seeks = []
             for s in range(pos):
@@ -302,7 +315,7 @@ while True:
                 t = f"{s // 60:02}:{s % 60:02}/{dur // 60:02}:{dur % 60:02}"
                 seeks.append(sb.lcd["ffwd"] + t.rjust(COLS - 1))
             s, res = sb.menu_choose(
-                seeks, row=1, wrap=False,
+                seeks, row=1, wrap=False, passthrough=("end-of-stream",),
                 i=min(pos + 1, dur) if d == "inc" else max(pos - 1, 0)
             )
             if res != None and s >= 0:
@@ -338,9 +351,10 @@ while True:
                     row=ROWS - 1,
                     passthrough=("end-of-stream",)
                 )
-                if choice != "end-of-stream":
-                    break
-                sb.lcd.write(trackname().ljust(COLS), row=0)
+                if choice == "end-of-stream":
+                    sb.lcd.write(trackname().ljust(COLS), row=0)
+                    continue
+                break
             eoscallback = lambda x: None
             # handle menu choice
             if choice == "System Menu..":
@@ -362,7 +376,7 @@ while True:
                         CONFIG["lastlist_path"] = f
                         save_state("trackboxconf.yaml", CONFIG)
                         tracklist["position"] = tracklist.get(
-                            "start", tracklist.get("position", 0)
+                            "first", tracklist.get("position", 0)
                         )
                         play_track(tracklist["position"])
             elif choice == "Save Tracklist":
