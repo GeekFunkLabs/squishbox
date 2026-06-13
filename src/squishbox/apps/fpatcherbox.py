@@ -45,6 +45,7 @@ class FPBox:
 
     def __init__(self):
         self.pno = 0
+        self.pname = None
         self.last = 0
         self.showevent = False
 
