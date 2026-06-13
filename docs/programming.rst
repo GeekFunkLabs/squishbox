@@ -3,7 +3,6 @@ Programming
 
 This page is a practical primer for customizing/writing SquishBox apps.
 
-
 Instead of dealing directly with GPIO timing, LCD protocols,
 encoder debouncing, or event queues, applications interact with
 a single high-level object
@@ -22,18 +21,6 @@ From there you can:
 * Control LEDs and outputs
 * Launch shell commands
 * Build complete standalone hardware applications
-
-``SquishBox()`` always returns the same shared hardware interface instance.
-
-.. code-block:: python
-
-   a = squishbox.SquishBox()
-   b = squishbox.SquishBox()
-
-   print(a is b)   # True
-
-This allows helper modules or plugins to access the hardware safely without
-creating duplicate GPIO handlers.
 
 Application Model
 -----------------
@@ -146,6 +133,8 @@ Write text:
    sb.lcd.write("Grand Piano", row=1, align="right")
 
 Long text automatically scrolls when needed. Alignment is left by default.
+Non-scrolling text can be written on top of scrolling text to create
+partially-scrolling displays.
 
 The ``timeout=`` option overlays text for a specified number of seconds:
 
