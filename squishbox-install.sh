@@ -80,14 +80,14 @@ install_debpackages() {
     sudo apt update
     SYSTEM_URL=$(api_find_url squishbox-system_.*_arm64.deb)
     curl -L "$SYSTEM_URL" -o /tmp/system.deb
-    sudo dpkg -i /tmp/system.deb
+    sudo dpkg -i /tmp/system.deb || true
     mkdir -p "$SB_DIR/config"
     cp -n /usr/share/squishbox/defaults/*.yaml "$SB_DIR/config"
 
     if [[ $MODE == "full" ]]; then
         FULL_URL=$(api_find_url squishbox-full_.*_all.deb)
         curl -L "$FULL_URL" -o /tmp/full.deb
-        sudo dpkg -i /tmp/full.deb
+        sudo dpkg -i /tmp/full.deb || true
     fi
 
     sudo apt -f install -y
