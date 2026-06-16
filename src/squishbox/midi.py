@@ -11,6 +11,7 @@ def midi_ports(**kwargs):
         for p in sbclient.list_ports(**{
             "type": alsa_midi.PortType.ANY,
             "include_no_export": False,
+            "include_midi_through": False,
         } | kwargs)
     }
 
@@ -20,7 +21,8 @@ def midi_connect():
     conn = set(CONFIG.get("midi_connections", []))
     for src, sport in midi_ports(input=True).items():
         for dest, dport in midi_ports(output=True).items():
-            if {f"{src}>{dest}", f"any>{dest}", f"{src}>any", "any>any"} & conn:
+            allowed = {f"{src}>{dest}", f"any>{dest}", f"{src}>any", "any>any"}
+            if allowed & conn and src != dest:
                 try:
                     sbclient.subscribe_port(sport, dport)
                 except alsa_midi.ALSAError:
