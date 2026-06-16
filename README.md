@@ -66,15 +66,16 @@ Here is a simple example app:
 import squishbox
 
 sb = squishbox.SquishBox()
+card = "hw:sndrpihifiberry"
 
 sb.lcd.clear()
 sb.lcd.write("Audio Test", row=0)
 while True:
     i, option = sb.menu_choose(["Noise", "Sine", "Exit"], row=1)
     if option == "Noise":
-        sb.shell_cmd("speaker-test -l2 -c2")
+        sb.shell_cmd(f"speaker-test -l2 -c2 -D{card}")
     elif option == "Sine":
-        sb.shell_cmd("speaker-test -l2 -c2 -tsine")
+        sb.shell_cmd(f"speaker-test -l2 -c2 -tsine -D{card}")
     elif option == "Exit":
         break
 ```
