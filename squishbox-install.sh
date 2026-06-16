@@ -181,6 +181,11 @@ configure_boot_files() {
 configure_user() {
     sudo usermod -aG input,audio,plugdev "$USER"
 
+    sudo tee /etc/sudoers.d/squishbox-power >/dev/null <<EOF
+$USER ALL=(root) NOPASSWD: /usr/bin/systemctl reboot, /usr/bin/systemctl poweroff
+EOF
+    sudo chmod 440 /etc/sudoers.d/squishbox-power
+
     bashrc_add() {
         grep -qxF "$1" "$HOME/.bashrc" || echo "$1" >> "$HOME/.bashrc"
     }
