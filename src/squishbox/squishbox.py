@@ -522,12 +522,12 @@ class SquishBox:
             case "Shutdown":
                 self.lcd.write("Shutting down..".ljust(COLS), row)
                 self.lcd.write("wait 15s, unplug".rjust(COLS), row + 1)
-                self.shell_cmd("sudo poweroff")
+                self.shell_cmd("sudo systemctl poweroff")
                 sys.exit()
             case "Reboot":
                 self.lcd.write("Rebooting".ljust(COLS), row)
                 self.lcd.write("please wait..".rjust(COLS), row + 1)
-                self.shell_cmd("sudo reboot")
+                self.shell_cmd("sudo systemctl reboot")
                 sys.exit()
             case "Shell":
                 return "shell"
