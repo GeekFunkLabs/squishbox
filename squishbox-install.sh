@@ -148,6 +148,7 @@ install_web_manager() {
         > /tmp/squishbox-index.php
     sudo install -D -m 0644 /tmp/squishbox-index.php /var/www/html/index.php
     sudo install -D -m 0644 /usr/share/squishbox-web/gfl_logo.png /var/www/html/
+    sudo rm -f /var/www/html/index.html
 }
 
 configure_boot_files() {
