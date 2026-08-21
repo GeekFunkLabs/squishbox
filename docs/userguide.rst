@@ -239,9 +239,13 @@ opens a menu for loading/saving files or inserting/deleting rows.
 """""""""""""""
 
 File manager for copying, moving, renaming, deleting files, and running
-shell commands. Able to mount/unmount USB drives and copy directory trees,
-making it a useful tool for managing files on the SquishBox without a network
+shell commands. Able to mount/unmount USB drives and copy files,
+making it a useful tool for managing SquishBox content without a network
 connection.
+
+Select files to act upon using the **Choose File(s)..** menu option. Canceling
+file selection chooses the current directory, allowing selection of multiple
+files or the entire directory tree.
 
 Shell commands can be entered using encoder input or a keyboard. If file(s)
 are currently selected, they are added as arguments at the end of the command.
@@ -292,7 +296,7 @@ Physical orientation:
 * **Front jack** = MIDI Out
 * **Rear jack** = MIDI In
 
-(When viewed from the front, these appear on the left and right sides respectively.)
+(When viewed face-on, MIDI In is on the right.)
 
 The PCB silkscreen also identifies each port.
 

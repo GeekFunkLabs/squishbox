@@ -27,7 +27,7 @@ Application Model
 
 Most SquishBox programs follow a simple pattern:
 
-1. Access the shared ``SquishBox()`` instance
+1. Create a ``SquishBox()`` instance
 2. Start the synth/audio process
 3. Draw something on the LCD
 4. Wait for user input
@@ -208,6 +208,8 @@ Confirmation Prompt
 
    if sb.menu_confirm("Delete file?"):
        delete_file()
+
+Displays a toggling check/"X" at the end of text and returns True/False.
 
 Text Entry
 ^^^^^^^^^^
