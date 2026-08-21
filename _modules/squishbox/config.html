@@ -39,18 +39,18 @@
 
 
 <span class="n">CONFIG_PATH</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
-    <span class="s2">&quot;SQUISHBOX_CONFIG&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;~/SquishBox/config/squishboxconf.yaml&quot;</span>
+    <span class="s2">"SQUISHBOX_CONFIG"</span><span class="p">,</span>
+    <span class="s2">"~/SquishBox/config/squishboxconf.yaml"</span>
 <span class="p">))</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="load_config">
 <a class="viewcode-back" href="../../api/config.html#squishbox.config.load_config">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">load_config</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default_cfg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load configuration data</span>
+<span class="w">    </span><span class="sd">"""Load configuration data</span>
 
 <span class="sd">    Loads config from YAML files. Creates a default config if target</span>
-<span class="sd">    doesn&#39;t exist. Returns config as a dict after performing Path</span>
+<span class="sd">    doesn't exist. Returns config as a dict after performing Path</span>
 <span class="sd">    conversion on items with keys ending in ``_path``.</span>
 
 <span class="sd">    Args:</span>
@@ -59,12 +59,12 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        dict: config data</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">default_cfg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">default_cfg</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="n">path</span> <span class="o">=</span> <span class="n">CONFIG_PATH</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="n">name</span>
-    <span class="n">pkg_default</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">files</span><span class="p">(</span><span class="s2">&quot;squishbox.data.defaults&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">pkg_default</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">files</span><span class="p">(</span><span class="s2">"squishbox.data.defaults"</span><span class="p">)</span> <span class="o">/</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span>
     <span class="k">if</span> <span class="n">pkg_default</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
         <span class="n">cfg</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">pkg_default</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="k">else</span><span class="p">:</span>
@@ -79,7 +79,7 @@
         <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">safe_dump</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-        <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_path&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"_path"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">cfg</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">cfg</span></div>
@@ -89,12 +89,12 @@
 <div class="viewcode-block" id="save_state">
 <a class="viewcode-back" href="../../api/config.html#squishbox.config.save_state">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">save_state</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write config data back to a file</span>
+<span class="w">    </span><span class="sd">"""Write config data back to a file</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
 <span class="sd">        name (str | Path): config file relative to CONFIG_PATH or absolute</span>
 <span class="sd">        cfg (dict): the current config state</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">CONFIG_PATH</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="n">name</span>
     <span class="n">cfg_posix</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Path</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
                  <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cfg</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
@@ -103,9 +103,9 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">str_presenter</span><span class="p">(</span><span class="n">dumper</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-    <span class="k">if</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">dumper</span><span class="o">.</span><span class="n">represent_scalar</span><span class="p">(</span><span class="s2">&quot;tag:yaml.org,2002:str&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;|&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">dumper</span><span class="o">.</span><span class="n">represent_scalar</span><span class="p">(</span><span class="s2">&quot;tag:yaml.org,2002:str&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dumper</span><span class="o">.</span><span class="n">represent_scalar</span><span class="p">(</span><span class="s2">"tag:yaml.org,2002:str"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">style</span><span class="o">=</span><span class="s2">"|"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dumper</span><span class="o">.</span><span class="n">represent_scalar</span><span class="p">(</span><span class="s2">"tag:yaml.org,2002:str"</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 
 
 <span class="n">yaml</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">str_presenter</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">SafeDumper</span><span class="p">)</span>

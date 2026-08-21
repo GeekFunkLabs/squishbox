@@ -57,7 +57,7 @@ a single high-level object</p>
 <h2>Application Model<a class="headerlink" href="#application-model" title="Link to this heading">¶</a></h2>
 <p>Most SquishBox programs follow a simple pattern:</p>
 <ol class="arabic simple">
-<li><p>Access the shared <code class="docutils literal notranslate"><span class="pre">SquishBox()</span></code> instance</p></li>
+<li><p>Create a <code class="docutils literal notranslate"><span class="pre">SquishBox()</span></code> instance</p></li>
 <li><p>Start the synth/audio process</p></li>
 <li><p>Draw something on the LCD</p></li>
 <li><p>Wait for user input</p></li>
@@ -69,7 +69,7 @@ a single high-level object</p>
 
 <span class="n">sb</span> <span class="o">=</span> <span class="n">squishbox</span><span class="o">.</span><span class="n">SquishBox</span><span class="p">()</span>
 <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-<span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;My Cool Synth&quot;</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"My Cool Synth"</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">synth</span> <span class="o">=</span> <span class="n">start_synth</span><span class="p">()</span>
@@ -122,12 +122,12 @@ The <code class="docutils literal notranslate"><span class="pre">load_config()</
 to manage config files for SquishBox apps.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">squishbox.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span><span class="p">,</span> <span class="n">save_state</span>
 
-<span class="n">myconfig</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="s2">&quot;myappconf.yaml&quot;</span><span class="p">)</span>
+<span class="n">myconfig</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="s2">"myappconf.yaml"</span><span class="p">)</span>
 
 <span class="o">...</span>
 
-<span class="n">myconfig</span><span class="p">[</span><span class="s2">&quot;last_bank_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_bank</span>
-<span class="n">save_state</span><span class="p">(</span><span class="s2">&quot;myappconf.yaml&quot;</span><span class="p">,</span> <span class="n">myconfig</span><span class="p">)</span>
+<span class="n">myconfig</span><span class="p">[</span><span class="s2">"last_bank_path"</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_bank</span>
+<span class="n">save_state</span><span class="p">(</span><span class="s2">"myappconf.yaml"</span><span class="p">,</span> <span class="n">myconfig</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Tokens ending with <code class="docutils literal notranslate"><span class="pre">_path</span></code> in config files are converted to <code class="docutils literal notranslate"><span class="pre">pathlib.Path</span></code>
@@ -145,15 +145,15 @@ objects upon loading, and are serialized as POSIX strings when saving.</p>
 </pre></div>
 </div>
 <p>Write text:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Patch Loaded&quot;</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Grand Piano&quot;</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"Patch Loaded"</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"Grand Piano"</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">"right"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Long text automatically scrolls when needed. Alignment is left by default.
 Non-scrolling text can be written on top of scrolling text to create
 partially-scrolling displays.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">timeout=</span></code> option overlays text for a specified number of seconds:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Saved&quot;</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"Saved"</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This is useful for status messages.</p>
@@ -176,7 +176,7 @@ custom characters in the configuration file:</p>
 <p>A maximum of 8 unique custom characters can be displayed at once, but
 an arbitrary number can be defined in the LCD object. They are displayed
 using element access:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;WiFi status: &quot;</span> <span class="o">+</span> <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="p">[</span><span class="s2">&quot;wifi_on&quot;</span><span class="p">],</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"WiFi status: "</span> <span class="o">+</span> <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="p">[</span><span class="s2">"wifi_on"</span><span class="p">],</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -192,7 +192,7 @@ such as synths/audio applications.</p>
 <section id="choice-menu">
 <h3>Choice Menu<a class="headerlink" href="#choice-menu" title="Link to this heading">¶</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">i</span><span class="p">,</span> <span class="n">option</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_choose</span><span class="p">(</span>
-    <span class="p">[</span><span class="s2">&quot;Piano&quot;</span><span class="p">,</span> <span class="s2">&quot;Organ&quot;</span><span class="p">,</span> <span class="s2">&quot;Synth&quot;</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">"Piano"</span><span class="p">,</span> <span class="s2">"Organ"</span><span class="p">,</span> <span class="s2">"Synth"</span><span class="p">],</span>
     <span class="n">row</span><span class="o">=</span><span class="mi">1</span>
 <span class="p">)</span>
 
@@ -209,14 +209,15 @@ such as synths/audio applications.</p>
 </section>
 <section id="confirmation-prompt">
 <h3>Confirmation Prompt<a class="headerlink" href="#confirmation-prompt" title="Link to this heading">¶</a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_confirm</span><span class="p">(</span><span class="s2">&quot;Delete file?&quot;</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_confirm</span><span class="p">(</span><span class="s2">"Delete file?"</span><span class="p">):</span>
     <span class="n">delete_file</span><span class="p">()</span>
 </pre></div>
 </div>
+<p>Displays a toggling check/”X” at the end of text and returns True/False.</p>
 </section>
 <section id="text-entry">
 <h3>Text Entry<a class="headerlink" href="#text-entry" title="Link to this heading">¶</a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">name</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_entertext</span><span class="p">(</span><span class="s2">&quot;New Patch&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">name</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_entertext</span><span class="p">(</span><span class="s2">"New Patch"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Useful for:</p>
@@ -231,7 +232,7 @@ confirm/cancel the input if desired.</p>
 </section>
 <section id="file-browser">
 <h3>File Browser<a class="headerlink" href="#file-browser" title="Link to this heading">¶</a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">path</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_choosefile</span><span class="p">(</span><span class="s2">&quot;/home/pi/patches&quot;</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;.yaml&quot;</span><span class="p">])</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">path</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_choosefile</span><span class="p">(</span><span class="s2">"/home/pi/patches"</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="p">[</span><span class="s2">".yaml"</span><span class="p">])</span>
 </pre></div>
 </div>
 <p>This provides a simple two-line browser for selecting files. Returns
@@ -240,7 +241,7 @@ canceled.</p>
 </section>
 <section id="system-settings-menu">
 <h3>System Settings Menu<a class="headerlink" href="#system-settings-menu" title="Link to this heading">¶</a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_systemsettings</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;shell&quot;</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">sb</span><span class="o">.</span><span class="n">menu_systemsettings</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"shell"</span><span class="p">:</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -264,21 +265,21 @@ retrieves them FIFO-style, blocking while the queue is empty
 <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">irow</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">irow</span> <span class="o">+</span> <span class="n">ROWS</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">))):</span>
         <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">COLS</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">COLS</span><span class="p">),</span>
             <span class="n">row</span><span class="o">=</span><span class="n">i</span> <span class="o">-</span> <span class="n">irow</span>
         <span class="p">)</span>
     <span class="k">match</span> <span class="n">sb</span><span class="o">.</span><span class="n">get_action</span><span class="p">():</span>
-        <span class="k">case</span> <span class="s2">&quot;inc&quot;</span><span class="p">:</span>
+        <span class="k">case</span> <span class="s2">"inc"</span><span class="p">:</span>
             <span class="n">crow</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="k">if</span> <span class="n">crow</span> <span class="o">==</span> <span class="n">ROWS</span> <span class="ow">or</span> <span class="n">crow</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">):</span>
                 <span class="n">crow</span> <span class="o">-=</span> <span class="mi">1</span>
                 <span class="n">irow</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">irow</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">-</span> <span class="n">ROWS</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
-        <span class="k">case</span> <span class="s2">&quot;dec&quot;</span><span class="p">:</span>
+        <span class="k">case</span> <span class="s2">"dec"</span><span class="p">:</span>
             <span class="n">crow</span> <span class="o">-=</span> <span class="mi">1</span>
             <span class="k">if</span> <span class="n">crow</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">crow</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="n">irow</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">irow</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="k">case</span> <span class="s2">&quot;select&quot;</span> <span class="o">|</span> <span class="s2">&quot;back&quot;</span><span class="p">:</span>
+        <span class="k">case</span> <span class="s2">"select"</span> <span class="o">|</span> <span class="s2">"back"</span><span class="p">:</span>
             <span class="k">break</span>
 </pre></div>
 </div>
@@ -294,10 +295,10 @@ to be picked up by <code class="docutils literal notranslate"><span class="pre">
 <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
     <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">patchnames</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">action</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">get_action</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;inc&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">"inc"</span><span class="p">:</span>
         <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">patchnames</span><span class="p">)</span>
         <span class="n">select_patch</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&quot;dec&quot;</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">"dec"</span><span class="p">:</span>
         <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">patchnames</span><span class="p">)</span>
         <span class="n">select_patch</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">MidiEvent</span><span class="p">):</span>
@@ -315,12 +316,12 @@ to be picked up by <code class="docutils literal notranslate"><span class="pre">
 </div>
 <p>Configured outputs are available through <code class="docutils literal notranslate"><span class="pre">sb.outputs</span></code>.</p>
 <p>Example:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;led_blinker&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
-<span class="n">sb</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;led_blinker&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">off</span><span class="p">()</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"led_blinker"</span><span class="p">]</span><span class="o">.</span><span class="n">on</span><span class="p">()</span>
+<span class="n">sb</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"led_blinker"</span><span class="p">]</span><span class="o">.</span><span class="n">off</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>PWM outputs expose a <code class="docutils literal notranslate"><span class="pre">level</span></code> property representing duty cycle percentage.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;led_fader&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="mi">75</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sb</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"led_fader"</span><span class="p">]</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="mi">75</span>
 </pre></div>
 </div>
 </section>
@@ -331,7 +332,7 @@ to be picked up by <code class="docutils literal notranslate"><span class="pre">
 <h3>Running Shell Commands<a class="headerlink" href="#running-shell-commands" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">shell_cmd()</span></code> method executes a string as a shell command and
 returns the output as an ASCII-encoded string.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">shell_cmd</span><span class="p">(</span><span class="s2">&quot;hostname -I&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">shell_cmd</span><span class="p">(</span><span class="s2">"hostname -I"</span><span class="p">)</span>
 <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -347,7 +348,7 @@ returns the output as an ASCII-encoded string.</p>
 <section id="long-running-tasks">
 <h3>Long Running Tasks<a class="headerlink" href="#long-running-tasks" title="Link to this heading">¶</a></h3>
 <p>Use the activity spinner while work is in progress:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">activity</span><span class="p">(</span><span class="s2">&quot;Loading...&quot;</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">sb</span><span class="o">.</span><span class="n">lcd</span><span class="o">.</span><span class="n">activity</span><span class="p">(</span><span class="s2">"Loading..."</span><span class="p">):</span>
     <span class="n">load_large_patch</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -360,7 +361,7 @@ application exits. To handle errors gracefully (i.e. without exiting):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
     <span class="n">load_patch</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-    <span class="n">sb</span><span class="o">.</span><span class="n">display_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">&quot;Load failed&quot;</span><span class="p">)</span>
+    <span class="n">sb</span><span class="o">.</span><span class="n">display_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">"Load failed"</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
