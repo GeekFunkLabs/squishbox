@@ -187,6 +187,8 @@ $USER ALL=(root) NOPASSWD: /usr/bin/systemctl reboot, /usr/bin/systemctl powerof
 EOF
     sudo chmod 440 /etc/sudoers.d/squishbox-power
 
+    ln -s "/media/$USER" "$HOME/usbmedia"
+
     bashrc_add() {
         grep -qxF "$1" "$HOME/.bashrc" || echo "$1" >> "$HOME/.bashrc"
     }
