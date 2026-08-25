@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]; then
+    if systemctl --global is-enabled --quiet fluidsynth.service; then
+        echo "Disabling system FluidSynth daemon for SquishBox..."
+        systemctl --global disable fluidsynth.service
+    fi
+fi
+
+exit 0
