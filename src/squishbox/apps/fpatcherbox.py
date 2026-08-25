@@ -22,7 +22,7 @@ FLUIDFX_VALS = {
     name: (
         fsname,
         [format(x + z * i, fmt) for i in range(int((y - x) / z) + 1)]
-    )  for fsname, x, y, z, name, fmt in (
+    ) for fsname, x, y, z, name, fmt in (
         ("synth.reverb.room-size", 0, 1, 0.01, "Reverb Size", "4.2f"),
         ("synth.reverb.damp", 0, 1, 0.01, "Reverb Damp", "4.2f"),
         ("synth.reverb.width", 0, 1, 0.01, "Reverb Width", "4.2f"),

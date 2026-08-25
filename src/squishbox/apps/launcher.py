@@ -14,7 +14,7 @@ COLS = CONFIG["lcd_cols"]
 paths = []
 builtin_dir = Path(__file__).parent
 for path in builtin_dir.glob("*.py"):
-    if path.stem in {"__init__", Path(__file__).stem}:
+    if path.name in {"__init__.py", Path(__file__).name}:
         continue
     paths.append(path)
 for d in CONFIG.get("app_dirs", []):

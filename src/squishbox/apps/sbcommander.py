@@ -108,14 +108,13 @@ while True:
     elif choice == "Eject Drives":
         sb.lcd.write("Eject Drives".ljust(COLS), row=ROWS - 2)
         sb.lcd.write("please wait ".rjust(COLS), row=ROWS - 1)
-        sb.lcd.activity_start()
-        for name, info in [b.split(maxsplit=1) for b in (
-            sb.shell_cmd("lsblk -lpo NAME,TYPE,TRAN").splitlines()
-        )]:
-            if "usb" in info and "/media" in info:
-                sb.shell_cmd(f"udisksctl unmount -b {name}")
-                sb.shell_cmd(f"udisksctl power-off -b {name}")
-        sb.lcd.activity_stop()
+        with sb.lcd.activity("unmounting ".rjust(COLS))
+            for name, info in [b.split(maxsplit=1) for b in (
+                sb.shell_cmd("lsblk -lpo NAME,TYPE,TRAN").splitlines()
+            )]:
+                if "usb" in info and "/media" in info:
+                    sb.shell_cmd(f"udisksctl unmount -b {name}")
+                    sb.shell_cmd(f"udisksctl power-off -b {name}")
         sb.lcd.write("safe to remove".rjust(COLS), row=ROWS - 1)
         sb.get_action(timeout=MENU_TIME)
     elif choice == "Run Command":
