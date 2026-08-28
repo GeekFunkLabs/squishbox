@@ -26,6 +26,8 @@ paths.sort(key=lambda path: path.stem)
 apps = {path.stem: path for path in paths}
 if CONFIG.get("startup_app") in apps:
     subprocess.run([sys.executable, apps[CONFIG["startup_app"]]])
+    CONFIG.pop("startup_app", None)
+    save_state(CONFIG_PATH, CONFIG)
 
 sb = SquishBox()
 
@@ -61,7 +63,7 @@ while True:
             save_state(CONFIG_PATH, CONFIG)
             sb.close()
             subprocess.run([sys.executable, apps[name]])
-            sb = SquishBox()
             CONFIG.pop("startup_app", None)
             save_state(CONFIG_PATH, CONFIG)
+            sb = SquishBox()
 
