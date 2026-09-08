@@ -330,14 +330,14 @@ Example:
 
 .. code-block:: python
 
-   sb.outputs["led_blinker"].on()
-   sb.outputs["led_blinker"].off()
+    sb.outputs["led_blinker"].on()
+    sb.outputs["led_blinker"].off()
 
 PWM outputs expose a ``level`` property representing duty cycle percentage.
 
 .. code-block:: python
 
-   sb.outputs["led_fader"].level = 75
+    sb.outputs["led_fader"].level = 75
 
 Miscellaneous Tools
 -------------------
@@ -346,13 +346,18 @@ Controlling MIDI Applications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``sb.midi.wrap()`` method returns a ``SquishBoxMidiWrapper`` object
-that allows filtering MIDI messages to applications.
+that catches all MIDI messages destined for the wrapped port, allowing
+apps to filter/modify them or produce feedback on the LCD.
 
 .. code-block:: python
 
-   evt = wrapper.receive()
-   evt.value *= 2
-   wrapper.send(evt)
+    wrapper = sb.midi.wrap("mysynth.exe:0(MIDI in)")
+
+    ...
+
+    evt = wrapper.receive()
+    evt.value *= 2
+    wrapper.send(evt)
 
 Running Shell Commands
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -409,5 +414,6 @@ for the squishbox package.
 
    api/squishbox
    api/hardware
+   api/midi
    api/config
 

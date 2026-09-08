@@ -22,12 +22,14 @@ def _disconnect(client, src, dest):
 class SquishBoxMidi:
     """ALSA sequencer wrapper for SquishBox
 
-    - creates in/out ports
-    - automatically connects devices specified in midi_connections
-    - provides methods for querying ports, sending messages
+    - Automatically connects devices specified in midi_connections
+    - Provides methods for querying ports, sending messages
+    - Can wrap other device/synth ports for filtering MIDI messages
     """
 
     def __init__(self):
+        """Creates SquishBox ports and start listener thread
+        """        
         self._client = alsa_midi.SequencerClient("SquishBox")
         self._outport = self._client.create_port(
             "SquishBox MIDI out",
@@ -51,6 +53,8 @@ class SquishBoxMidi:
                 self.refresh()
 
     def close(self):
+        """Cleanly free SquishBox port and any wrappers
+        """
         self._listening = False
         self._thread.join()
         for wrapper in self._wrappers.values():
@@ -58,7 +62,14 @@ class SquishBoxMidi:
         self._client.close()
 
     def ports(self, **kwargs):
-        """Return a dictionary of ports keyed by port info string
+        """List all MIDI ports currently available on the system
+
+        Args:
+            **kwargs (dict): Options passed to
+                alsa_midi.SequencerClient().list_ports()
+
+        Returns:
+            A dictionary of ports keyed by port info string
         """
         return {
             f"{p.client_name.strip()}:{p.port_id}({p.name.strip()})": p
@@ -70,7 +81,12 @@ class SquishBoxMidi:
         }
 
     def refresh(self):
-        """Reestablish MIDI connection graph"""
+        """Enforce MIDI connection graph
+        
+        - Connects ports as described in CONFIG["midi_connections"]
+        - Removes all other connections
+        - Funnels connections through wrappers for wrapped ports
+        """
         conn = set(CONFIG.get("midi_connections", []))
         for src, sport in self.ports(input=True).items():
             for dest, dport in self.ports(output=True).items():
@@ -88,12 +104,24 @@ class SquishBoxMidi:
                         _disconnect(wrapper._client, sport, wrapper._inport)
 
     def send(self, evt):
-        """Send a MIDI message triggered by a SquishBox button/control"""
+        """Send a MIDI message triggered by a SquishBox button/control
+
+        Args:
+            evt (alsa_midi.Event()): the MIDI event to send
+        """
         self._client.event_output(evt)
         self._client.drain_output()
 
     def wrap(self, portname):
-        """Wrap a port with a hidden sequencer client"""
+        """Wrap a port with a hidden sequencer client
+
+        Args:
+            portname (str): The port to wrap as given by ports()
+
+        Returns:
+            SquishBoxMidiWrapper: An object for handling messages to
+                the wrapped port
+        """
         port = self.ports().get(portname)
         if not port:
             return None
@@ -123,7 +151,24 @@ class SquishBoxMidiWrapper:
     def close(self):
         self._client.close()
 
+    def receive(self, **kwargs):
+        """Receive MIDI messages destined for the wrapped port
+
+        Args:
+            **kwargs (dict): Options passed to
+                alsa_midi.SequencerClient().event_input()
+
+        Returns:
+            alsa_midi.Event() or None if timed out
+        """
+        return self._client.event_input(**kwargs)
+
     def send(self, evt):
+        """Send a MIDI message to the wrapped port
+        
+        Args:
+            evt (alsa_midi.Event()): the MIDI event to send
+        """
         self._client.event_output(
             evt,
             port=self._outport,
@@ -131,5 +176,3 @@ class SquishBoxMidiWrapper:
         )
         self._client.drain_output()
 
-    def receive(self, **kwargs):
-        return self._client.event_input(**kwargs)
