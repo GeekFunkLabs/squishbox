@@ -328,6 +328,16 @@ to be picked up by <code class="docutils literal notranslate"><span class="pre">
 </section>
 <section id="miscellaneous-tools">
 <h2>Miscellaneous Tools<a class="headerlink" href="#miscellaneous-tools" title="Link to this heading">¶</a></h2>
+<section id="controlling-midi-applications">
+<h3>Controlling MIDI Applications<a class="headerlink" href="#controlling-midi-applications" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">sb.midi.wrap()</span></code> method returns a <code class="docutils literal notranslate"><span class="pre">SquishBoxMidiWrapper</span></code> object
+that allows filtering MIDI messages to applications.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">evt</span> <span class="o">=</span> <span class="n">wrapper</span><span class="o">.</span><span class="n">receive</span><span class="p">()</span>
+<span class="n">evt</span><span class="o">.</span><span class="n">value</span> <span class="o">*=</span> <span class="mi">2</span>
+<span class="n">wrapper</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">evt</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
 <section id="running-shell-commands">
 <h3>Running Shell Commands<a class="headerlink" href="#running-shell-commands" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">shell_cmd()</span></code> method executes a string as a shell command and
