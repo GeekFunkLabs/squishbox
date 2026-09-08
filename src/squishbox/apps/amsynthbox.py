@@ -10,7 +10,6 @@ import alsa_midi
 
 import squishbox
 from squishbox.config import load_config, save_state
-from squishbox.midi import midi_ports
 
 
 COLS = squishbox.CONFIG["lcd_cols"]
@@ -215,31 +214,9 @@ def setup_amsynth():
     amsctrl.write_text("\n".join(controllers))
 
 
-def redirect_ports():
-    """Redirect any ports connected to amsynth to the wrapper
-    """
-    addr = (amsynth_port.client_id, amsynth_port.port_id)
-    for p in midi_ports(input=True).values():
-        for sq in wrapper.list_port_subscribers(p):
-            if (sq.addr.client_id, sq.addr.port_id) == addr:
-                print(f"redirecting {p.client_id}:{p.port_id}")
-                try:
-                    wrapper.unsubscribe_port(p, amsynth_port)
-                except alsa_midi.ALSAError:
-                    pass
-                try:
-                    wrapper.subscribe_port(p, wrapper_in)
-                except alsa_midi.ALSAError:
-                    pass
-                break
-
-
 def process_events():
     while True:
-        try:
-            evt = wrapper.event_input(timeout=0.1)
-        except TypeError: # occurs if client is closed
-            break
+        evt = wrapper.receive(timeout=0.1)
         if evt == None:
             continue
         if midi_learn_callback != None:
@@ -264,8 +241,7 @@ def process_events():
                 else:
                     sb.outputs[name].off()
         else:
-            wrapper.event_output(evt, dest=amsynth_port)
-            wrapper.drain_output()
+            wrapper.send(evt)
 
 
 def send_param(name, i):
@@ -275,8 +251,7 @@ def send_param(name, i):
         param=PARS[name]["cc"],
         value=i,
     )
-    wrapper.event_output(evt, dest=amsynth_port)
-    wrapper.drain_output()
+    wrapper.send(evt)
 
 
 def set_preset(presetname):
@@ -312,21 +287,8 @@ amsynthx = Popen(
 for line in amsynthx.stdout:
     if "headless mode" in line:
         break
-amsynth_port = midi_ports()[AMSPORT]
 
-# create MIDI wrapper
-wrapper = alsa_midi.SequencerClient("_amsynth_wrapper")
-wrapper_in = wrapper.create_port(
-    "in",
-    caps=alsa_midi.WRITE_PORT | alsa_midi.PortCaps.NO_EXPORT,
-    type=alsa_midi.PortType.MIDI_GENERIC,
-)
-wrapper_out = wrapper.create_port(
-    "out",
-    caps=alsa_midi.READ_PORT | alsa_midi.PortCaps.NO_EXPORT,
-    type=alsa_midi.PortType.MIDI_GENERIC,
-)
-redirect_ports()
+wrapper = sb.midi.wrap("amsynth:0(MIDI IN)")
 
 midithread = Thread(target=process_events, daemon=True)
 display_callback = sb.add_action
@@ -415,6 +377,7 @@ while True:
                     i, cc = sb.menu_choose(
                         range(128), row=1, i=ctrls.get(par, 0),
                         passthrough=(int,))
+                    midi_learn_callback = None
                     CONFIG.setdefault("controllers", {})
                     if isinstance(cc, int):
                         CONFIG["controllers"][cc] = par
@@ -422,8 +385,7 @@ while True:
                         CONFIG["controllers"].pop(cc, None)
                         if CONFIG["controllers"] == {}:
                             del CONFIG["controllers"]
-                        save_state("amsynthboxconf.yaml", CONFIG)
-                    midi_learn_callback = None
+                    save_state("amsynthboxconf.yaml", CONFIG)
             elif choice == "Save Preset":
                 sb.lcd.write("Save preset as:".ljust(COLS), row=0)
                 newname = sb.menu_entertext(pname).strip()
