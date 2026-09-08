@@ -5,15 +5,15 @@ from threading import Thread
 import time
 import traceback
 
-from . import hardware
+import alsa_midi
+
+from . import hardware, midi
 from .config import CONFIG, CONFIG_PATH, save_state
-from .midi import midi_connect, midi_ports, send_message
 from .keys import keys_dispatch
 
 ROWS = CONFIG["lcd_rows"]
 COLS = CONFIG["lcd_cols"]
 MENU_TIME = CONFIG["menu_timeout"]
-
 
 class SquishBox:
     """Interface to SquishBox hardware and UI.
@@ -33,6 +33,9 @@ class SquishBox:
           - Installs a global exception hook to display errors on the LCD
         """
         self._actions = []
+        self._wifienabled = None
+        # connect MIDI
+        self.midi = midi.SquishBoxMidi()
         # set up LCD
         self.lcd = hardware.LCD_HD44780(
             CONFIG["lcd_regsel"],
@@ -60,8 +63,19 @@ class SquishBox:
                     event, lambda a=action: self.add_action(a)
                 )
             for event, msg in spec.get("messages", {}).items():
+                match msg.split(":"):
+                    case ["ctrl", *args]:
+                        midi_type = alsa_midi.ControlChangeEvent
+                    case ["note", *args]:
+                        midi_type = alsa_midi.NoteOnEvent
+                    case ["prog", *args]:
+                        midi_type = alsa_midi.ProgramChangeEvent
+                    case _:
+                        continue
+                args = tuple(map(int, args))
                 self.controls[name].bind(
-                    event, lambda msg=msg: send_message(msg)
+                    event, lambda midi_type=midi_type, args=args:
+                        self.midi.send(midi_type(*args))
                 )
         # add outputs
         self.outputs = {}
@@ -79,12 +93,12 @@ class SquishBox:
                 )
             else:
                 continue
-        self._wifienabled = None
         sys.excepthook = lambda _, e, __: self.display_error(e)
 
     def close(self):
-        """Cleanly free the GPIO hardware used by the SquishBox
+        """Cleanly free the resources used by the SquishBox
         """
+        self.midi.close()
         self.lcd.release()
         for control in self.controls.values():
             control.release()
@@ -366,8 +380,8 @@ class SquishBox:
             row (int): Starting LCD row (uses two rows).
             timeout (float): Seconds to wait (0 = wait indefinitely).
         """
-        srcnames = list(midi_ports(input=True))
-        destnames = list(midi_ports(output=True))
+        srcnames = list(self.midi.ports(input=True))
+        destnames = list(self.midi.ports(output=True))
         if not (srcnames and destnames):
             self.lcd.write("no MIDI ports".rjust(COLS), row + 1)
             self.get_action(timeout=MENU_TIME)
@@ -390,7 +404,7 @@ class SquishBox:
                 save_state(CONFIG_PATH, CONFIG)
                 break
             while True:
-                midi_connect()
+                self.midi.refresh()
                 self.lcd.write("Dest. Ports:".ljust(COLS), row)
                 last_dest, dest = self.menu_choose(
                     [f">{p}" if f"{src}>{p}" in conns else f" {p}"
