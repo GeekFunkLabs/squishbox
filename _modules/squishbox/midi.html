@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>squishbox.midi &#8212; SquishBox 1.3.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=1f29e9d3"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for squishbox.midi</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Thread</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">alsa_midi</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">CONFIG</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_connect</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">subscribe_port</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">alsa_midi</span><span class="o">.</span><span class="n">ALSAError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_disconnect</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">unsubscribe_port</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">alsa_midi</span><span class="o">.</span><span class="n">ALSAError</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+
+<div class="viewcode-block" id="SquishBoxMidi">
+<a class="viewcode-back" href="../../api/midi.html#squishbox.midi.SquishBoxMidi">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SquishBoxMidi</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""ALSA sequencer wrapper for SquishBox</span>
+
+<span class="sd">    - Automatically connects devices specified in midi_connections</span>
+<span class="sd">    - Provides methods for querying ports, sending messages</span>
+<span class="sd">    - Can wrap other device/synth ports for filtering MIDI messages</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Creates SquishBox ports and start listener thread</span>
+<span class="sd">        """</span>        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span> <span class="o">=</span> <span class="n">alsa_midi</span><span class="o">.</span><span class="n">SequencerClient</span><span class="p">(</span><span class="s2">"SquishBox"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_outport</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">create_port</span><span class="p">(</span>
+            <span class="s2">"SquishBox MIDI out"</span><span class="p">,</span>
+            <span class="n">caps</span><span class="o">=</span><span class="n">alsa_midi</span><span class="o">.</span><span class="n">READ_PORT</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inport</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">create_port</span><span class="p">(</span>
+            <span class="s2">"SquishBox MIDI in"</span><span class="p">,</span>
+            <span class="n">caps</span><span class="o">=</span><span class="n">alsa_midi</span><span class="o">.</span><span class="n">WRITE_PORT</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inport</span><span class="o">.</span><span class="n">connect_from</span><span class="p">(</span><span class="n">alsa_midi</span><span class="o">.</span><span class="n">SYSTEM_ANNOUNCE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrappers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_listening</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_listening</span><span class="p">:</span>
+            <span class="n">evt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">event_input</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">evt</span> <span class="ow">and</span> <span class="n">evt</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">alsa_midi</span><span class="o">.</span><span class="n">EventType</span><span class="o">.</span><span class="n">PORT_START</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SquishBoxMidi.close">
+<a class="viewcode-back" href="../../api/midi.html#squishbox.midi.SquishBoxMidi.close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Cleanly free SquishBox port and any wrappers</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_listening</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">wrapper</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrappers</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">wrapper</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SquishBoxMidi.ports">
+<a class="viewcode-back" href="../../api/midi.html#squishbox.midi.SquishBoxMidi.ports">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ports</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""List all MIDI ports currently available on the system</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            **kwargs (dict): Options passed to</span>
+<span class="sd">                alsa_midi.SequencerClient().list_ports()</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary of ports keyed by port info string</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">client_name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">port_id</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">)"</span><span class="p">:</span> <span class="n">p</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">list_ports</span><span class="p">(</span><span class="o">**</span><span class="p">{</span>
+                <span class="s2">"type"</span><span class="p">:</span> <span class="n">alsa_midi</span><span class="o">.</span><span class="n">PortType</span><span class="o">.</span><span class="n">ANY</span><span class="p">,</span>
+                <span class="s2">"include_no_export"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">"include_midi_through"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="p">}</span> <span class="o">|</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="SquishBoxMidi.refresh">
+<a class="viewcode-back" href="../../api/midi.html#squishbox.midi.SquishBoxMidi.refresh">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Enforce MIDI connection graph</span>
+<span class="sd">        </span>
+<span class="sd">        - Connects ports as described in CONFIG["midi_connections"]</span>
+<span class="sd">        - Removes all other connections</span>
+<span class="sd">        - Funnels connections through wrappers for wrapped ports</span>
+<span class="sd">        """</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"midi_connections"</span><span class="p">,</span> <span class="p">[]))</span>
+        <span class="k">for</span> <span class="n">src</span><span class="p">,</span> <span class="n">sport</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ports</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">dest</span><span class="p">,</span> <span class="n">dport</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ports</span><span class="p">(</span><span class="n">output</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">allowed</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2">&gt;</span><span class="si">{</span><span class="n">dest</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"any&gt;</span><span class="si">{</span><span class="n">dest</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2">&gt;any"</span><span class="p">,</span> <span class="s2">"any&gt;any"</span><span class="p">}</span>
+                <span class="n">wrapper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrappers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">allowed</span> <span class="o">&amp;</span> <span class="n">conn</span> <span class="ow">and</span> <span class="n">src</span> <span class="o">!=</span> <span class="n">dest</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">wrapper</span><span class="p">:</span>
+                        <span class="n">_disconnect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="p">,</span> <span class="n">sport</span><span class="p">,</span> <span class="n">dport</span><span class="p">)</span>
+                        <span class="n">_connect</span><span class="p">(</span><span class="n">wrapper</span><span class="o">.</span><span class="n">_client</span><span class="p">,</span> <span class="n">sport</span><span class="p">,</span> <span class="n">wrapper</span><span class="o">.</span><span class="n">_inport</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">_connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="p">,</span> <span class="n">sport</span><span class="p">,</span> <span class="n">dport</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">_disconnect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="p">,</span> <span class="n">sport</span><span class="p">,</span> <span class="n">dport</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">wrapper</span><span class="p">:</span>
+                        <span class="n">_disconnect</span><span class="p">(</span><span class="n">wrapper</span><span class="o">.</span><span class="n">_client</span><span class="p">,</span> <span class="n">sport</span><span class="p">,</span> <span class="n">wrapper</span><span class="o">.</span><span class="n">_inport</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SquishBoxMidi.send">
+<a class="viewcode-back" href="../../api/midi.html#squishbox.midi.SquishBoxMidi.send">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Send a MIDI message triggered by a SquishBox button/control</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            evt (alsa_midi.Event()): the MIDI event to send</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">event_output</span><span class="p">(</span><span class="n">evt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">drain_output</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SquishBoxMidi.wrap">
+<a class="viewcode-back" href="../../api/midi.html#squishbox.midi.SquishBoxMidi.wrap">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">portname</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Wrap a port with a hidden sequencer client</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            portname (str): The port to wrap as given by ports()</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            SquishBoxMidiWrapper: An object for handling messages to</span>
+<span class="sd">                the wrapped port</span>
+<span class="sd">        """</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ports</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">portname</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">port</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrappers</span><span class="p">[</span><span class="n">portname</span><span class="p">]</span> <span class="o">=</span> <span class="n">SquishBoxMidiWrapper</span><span class="p">(</span><span class="n">port</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrappers</span><span class="p">[</span><span class="n">portname</span><span class="p">]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SquishBoxMidiWrapper">
+<a class="viewcode-back" href="../../api/midi.html#squishbox.midi.SquishBoxMidiWrapper">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SquishBoxMidiWrapper</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A container for a hidden ALSA client with in/out ports"""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">port</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span> <span class="o">=</span> <span class="n">alsa_midi</span><span class="o">.</span><span class="n">SequencerClient</span><span class="p">(</span>
+            <span class="s2">"wrap_"</span> <span class="o">+</span> <span class="n">port</span><span class="o">.</span><span class="n">client_name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inport</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">create_port</span><span class="p">(</span>
+            <span class="s2">"in"</span><span class="p">,</span>
+            <span class="n">caps</span><span class="o">=</span><span class="n">alsa_midi</span><span class="o">.</span><span class="n">WRITE_PORT</span> <span class="o">|</span> <span class="n">alsa_midi</span><span class="o">.</span><span class="n">PortCaps</span><span class="o">.</span><span class="n">NO_EXPORT</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">alsa_midi</span><span class="o">.</span><span class="n">PortType</span><span class="o">.</span><span class="n">MIDI_GENERIC</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_outport</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">create_port</span><span class="p">(</span>
+            <span class="s2">"out"</span><span class="p">,</span>
+            <span class="n">caps</span><span class="o">=</span><span class="n">alsa_midi</span><span class="o">.</span><span class="n">READ_PORT</span> <span class="o">|</span> <span class="n">alsa_midi</span><span class="o">.</span><span class="n">PortCaps</span><span class="o">.</span><span class="n">NO_EXPORT</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">alsa_midi</span><span class="o">.</span><span class="n">PortType</span><span class="o">.</span><span class="n">MIDI_GENERIC</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">_connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outport</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SquishBoxMidiWrapper.close">
+<a class="viewcode-back" href="../../api/midi.html#squishbox.midi.SquishBoxMidiWrapper.close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SquishBoxMidiWrapper.receive">
+<a class="viewcode-back" href="../../api/midi.html#squishbox.midi.SquishBoxMidiWrapper.receive">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">receive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Receive MIDI messages destined for the wrapped port</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            **kwargs (dict): Options passed to</span>
+<span class="sd">                alsa_midi.SequencerClient().event_input()</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            alsa_midi.Event() or None if timed out</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">event_input</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SquishBoxMidiWrapper.send">
+<a class="viewcode-back" href="../../api/midi.html#squishbox.midi.SquishBoxMidiWrapper.send">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Send a MIDI message to the wrapped port</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            evt (alsa_midi.Event()): the MIDI event to send</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">event_output</span><span class="p">(</span>
+            <span class="n">evt</span><span class="p">,</span>
+            <span class="n">port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_outport</span><span class="p">,</span>
+            <span class="n">dest</span><span class="o">=</span><span class="n">alsa_midi</span><span class="o">.</span><span class="n">ALL_SUBSCRIBERS</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">drain_output</span><span class="p">()</span></div>
+</div>
+
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">SquishBox</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=GeekFunkLabs&repo=squishbox&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../assembly.html">Assembly</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../programming.html">Programming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../technical.html">Technical Docs</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Bill Peterson.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.0.4</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

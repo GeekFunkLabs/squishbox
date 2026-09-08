@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Config Module &#8212; SquishBox 1.3.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=1f29e9d3"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Config Module" href="config.html" />
+    <link rel="prev" title="Hardware Module" href="hardware.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-squishbox.midi">
+<span id="config-module"></span><h1>Config Module<a class="headerlink" href="#module-squishbox.midi" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="squishbox.midi.SquishBoxMidi">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">squishbox.midi.</span></span><span class="sig-name descname"><span class="pre">SquishBoxMidi</span></span><a class="reference internal" href="../_modules/squishbox/midi.html#SquishBoxMidi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.midi.SquishBoxMidi" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>ALSA sequencer wrapper for SquishBox</p>
+<ul class="simple">
+<li><p>Automatically connects devices specified in midi_connections</p></li>
+<li><p>Provides methods for querying ports, sending messages</p></li>
+<li><p>Can wrap other device/synth ports for filtering MIDI messages</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.midi.SquishBoxMidi.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/midi.html#SquishBoxMidi.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.midi.SquishBoxMidi.close" title="Link to this definition">¶</a></dt>
+<dd><p>Cleanly free SquishBox port and any wrappers</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.midi.SquishBoxMidi.ports">
+<span class="sig-name descname"><span class="pre">ports</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/midi.html#SquishBoxMidi.ports"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.midi.SquishBoxMidi.ports" title="Link to this definition">¶</a></dt>
+<dd><p>List all MIDI ports currently available on the system</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> (<em>dict</em>) – Options passed to
+alsa_midi.SequencerClient().list_ports()</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary of ports keyed by port info string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.midi.SquishBoxMidi.refresh">
+<span class="sig-name descname"><span class="pre">refresh</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/midi.html#SquishBoxMidi.refresh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.midi.SquishBoxMidi.refresh" title="Link to this definition">¶</a></dt>
+<dd><p>Enforce MIDI connection graph</p>
+<ul class="simple">
+<li><p>Connects ports as described in CONFIG[“midi_connections”]</p></li>
+<li><p>Removes all other connections</p></li>
+<li><p>Funnels connections through wrappers for wrapped ports</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.midi.SquishBoxMidi.send">
+<span class="sig-name descname"><span class="pre">send</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">evt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/midi.html#SquishBoxMidi.send"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.midi.SquishBoxMidi.send" title="Link to this definition">¶</a></dt>
+<dd><p>Send a MIDI message triggered by a SquishBox button/control</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>evt</strong> (<em>alsa_midi.Event</em><em>(</em><em>)</em>) – the MIDI event to send</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.midi.SquishBoxMidi.wrap">
+<span class="sig-name descname"><span class="pre">wrap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">portname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/midi.html#SquishBoxMidi.wrap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.midi.SquishBoxMidi.wrap" title="Link to this definition">¶</a></dt>
+<dd><p>Wrap a port with a hidden sequencer client</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>portname</strong> (<em>str</em>) – The port to wrap as given by ports()</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>An object for handling messages to</dt><dd><p>the wrapped port</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#squishbox.midi.SquishBoxMidiWrapper" title="squishbox.midi.SquishBoxMidiWrapper">SquishBoxMidiWrapper</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="squishbox.midi.SquishBoxMidiWrapper">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">squishbox.midi.</span></span><span class="sig-name descname"><span class="pre">SquishBoxMidiWrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/midi.html#SquishBoxMidiWrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.midi.SquishBoxMidiWrapper" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A container for a hidden ALSA client with in/out ports</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.midi.SquishBoxMidiWrapper.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/midi.html#SquishBoxMidiWrapper.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.midi.SquishBoxMidiWrapper.close" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.midi.SquishBoxMidiWrapper.receive">
+<span class="sig-name descname"><span class="pre">receive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/midi.html#SquishBoxMidiWrapper.receive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.midi.SquishBoxMidiWrapper.receive" title="Link to this definition">¶</a></dt>
+<dd><p>Receive MIDI messages destined for the wrapped port</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> (<em>dict</em>) – Options passed to
+alsa_midi.SequencerClient().event_input()</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>alsa_midi.Event() or None if timed out</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="squishbox.midi.SquishBoxMidiWrapper.send">
+<span class="sig-name descname"><span class="pre">send</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">evt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/squishbox/midi.html#SquishBoxMidiWrapper.send"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#squishbox.midi.SquishBoxMidiWrapper.send" title="Link to this definition">¶</a></dt>
+<dd><p>Send a MIDI message to the wrapped port</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>evt</strong> (<em>alsa_midi.Event</em><em>(</em><em>)</em>) – the MIDI event to send</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">SquishBox</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=GeekFunkLabs&repo=squishbox&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../userguide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../assembly.html">Assembly</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../programming.html">Programming</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../programming.html#application-model">Application Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../programming.html#controlling-the-lcd">Controlling the LCD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../programming.html#user-interaction">User Interaction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../programming.html#miscellaneous-tools">Miscellaneous Tools</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../programming.html#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../technical.html">Technical Docs</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Bill Peterson.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.0.4</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../_sources/api/midi.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
