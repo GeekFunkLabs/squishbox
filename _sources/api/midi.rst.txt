@@ -1,4 +1,4 @@
-Config Module
+Midi Module
 =============
 
 .. automodule:: squishbox.midi
