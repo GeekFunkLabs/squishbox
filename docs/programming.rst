@@ -342,6 +342,18 @@ PWM outputs expose a ``level`` property representing duty cycle percentage.
 Miscellaneous Tools
 -------------------
 
+Controlling MIDI Applications
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``sb.midi.wrap()`` method returns a ``SquishBoxMidiWrapper`` object
+that allows filtering MIDI messages to applications.
+
+.. code-block:: python
+
+   evt = wrapper.receive()
+   evt.value *= 2
+   wrapper.send(evt)
+
 Running Shell Commands
 ^^^^^^^^^^^^^^^^^^^^^^
 
