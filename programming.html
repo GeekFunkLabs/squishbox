@@ -331,8 +331,13 @@ to be picked up by <code class="docutils literal notranslate"><span class="pre">
 <section id="controlling-midi-applications">
 <h3>Controlling MIDI Applications<a class="headerlink" href="#controlling-midi-applications" title="Link to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">sb.midi.wrap()</span></code> method returns a <code class="docutils literal notranslate"><span class="pre">SquishBoxMidiWrapper</span></code> object
-that allows filtering MIDI messages to applications.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">evt</span> <span class="o">=</span> <span class="n">wrapper</span><span class="o">.</span><span class="n">receive</span><span class="p">()</span>
+that catches all MIDI messages destined for the wrapped port, allowing
+apps to filter/modify them or produce feedback on the LCD.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">wrapper</span> <span class="o">=</span> <span class="n">sb</span><span class="o">.</span><span class="n">midi</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span><span class="s2">"mysynth.exe:0(MIDI in)"</span><span class="p">)</span>
+
+<span class="o">...</span>
+
+<span class="n">evt</span> <span class="o">=</span> <span class="n">wrapper</span><span class="o">.</span><span class="n">receive</span><span class="p">()</span>
 <span class="n">evt</span><span class="o">.</span><span class="n">value</span> <span class="o">*=</span> <span class="mi">2</span>
 <span class="n">wrapper</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">evt</span><span class="p">)</span>
 </pre></div>
