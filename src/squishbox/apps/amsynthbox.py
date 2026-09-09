@@ -382,7 +382,7 @@ while True:
                     if isinstance(cc, int):
                         CONFIG["controllers"][cc] = par
                     elif i > -1:
-                        CONFIG["controllers"].pop(cc, None)
+                        CONFIG["controllers"].pop(i, None)
                         if CONFIG["controllers"] == {}:
                             del CONFIG["controllers"]
                     save_state("amsynthboxconf.yaml", CONFIG)
