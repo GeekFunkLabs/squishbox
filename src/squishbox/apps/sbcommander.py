@@ -108,7 +108,7 @@ while True:
     elif choice == "Eject Drives":
         sb.lcd.write("Eject Drives".ljust(COLS), row=ROWS - 2)
         sb.lcd.write("please wait ".rjust(COLS), row=ROWS - 1)
-        with sb.lcd.activity("unmounting ".rjust(COLS))
+        with sb.lcd.activity("unmounting ".rjust(COLS)):
             for name, info in [b.split(maxsplit=1) for b in (
                 sb.shell_cmd("lsblk -lpo NAME,TYPE,TRAN").splitlines()
             )]:
