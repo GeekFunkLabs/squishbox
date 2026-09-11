@@ -441,7 +441,6 @@ while True:
                 if sb.menu_systemsettings() == "shell":
                     amsynthx.terminate()
                     break
-                redirect_ports()
             display_callback = sb.add_action
     refresh_display()
 

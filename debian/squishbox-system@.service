@@ -9,6 +9,7 @@ User=%i
 WorkingDirectory=/home/%i
 ExecStart=/home/%i/.local/share/squishbox/squishbox-venv/bin/python -m squishbox.apps.launcher
 Restart=on-failure
+RestartForceExitStatus=0
 LimitMEMLOCK=infinity
 LimitRTPRIO=90
 
