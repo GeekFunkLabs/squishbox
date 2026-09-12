@@ -72,7 +72,8 @@ class SquishBox:
                         midi_type = alsa_midi.ProgramChangeEvent
                     case _:
                         continue
-                args = tuple(map(int, args))
+                args = list(map(int, args))
+                args[0] -= 1
                 self.controls[name].bind(
                     event, lambda midi_type=midi_type, args=args:
                         self.midi.send(midi_type(*args))
