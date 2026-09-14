@@ -186,6 +186,12 @@ configure_user() {
 $USER ALL=(root) NOPASSWD: /usr/bin/systemctl reboot, /usr/bin/systemctl poweroff
 EOF
     sudo chmod 440 /etc/sudoers.d/squishbox-power
+    sudo tee /etc/sudoers.d/squishbox-network >/dev/null <<EOF
+$USER ALL=(root) NOPASSWD: /usr/bin/nmcli con down *
+$USER ALL=(root) NOPASSWD: /usr/bin/nmcli con up *
+$USER ALL=(root) NOPASSWD: /usr/bin/nmcli dev wifi connect *
+EOF
+    sudo chmod 440 /etc/sudoers.d/squishbox-network
 
     ln -s "/media/$USER" "$HOME/usbmedia"
 
