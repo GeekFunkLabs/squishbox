@@ -181,8 +181,8 @@ The app recognizes several custom router rule parameters:
     decimal places.
 
 ``setpin``
-    Sets the named SquishBox output. Can be used to
-    turn an LED on/off in response to a MIDI event.
+    Sets the named output, as defined in the SquishBox config file.
+    Can be used to turn an LED on/off in response to a MIDI event.
 
 ``patch``
     Applies a patch by name or increments the current patch by an amount.
