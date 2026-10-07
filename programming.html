@@ -99,8 +99,9 @@ Each item describes the hardware type, GPIO settings, and event bindings.</p>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">messages</span></code> Emits MIDI messages in response to events.
-Message format is <code class="docutils literal notranslate"><span class="pre">&lt;type&gt;:&lt;channel&gt;:&lt;number&gt;:&lt;value&gt;</span></code>.
-Only control change messages (<code class="docutils literal notranslate"><span class="pre">ctrl</span></code>) are implemented.</p></li>
+Control change, note, and program change messages are implemented.
+Message format is <code class="docutils literal notranslate"><span class="pre">{ctrl|note}:&lt;channel&gt;:&lt;number&gt;:&lt;value&gt;</span></code>
+or <code class="docutils literal notranslate"><span class="pre">{prog}:&lt;channel&gt;:&lt;value&gt;</span></code>.</p></li>
 </ul>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">controls</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">knob1</span><span class="p">:</span>
