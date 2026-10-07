@@ -72,9 +72,9 @@ Each item describes the hardware type, GPIO settings, and event bindings.
   * ``back`` cancel/return
   
 * ``messages`` Emits MIDI messages in response to events.
-  Message format is ``<type>:<channel>:<number>:<value>``.
-  Only control change messages (``ctrl``) are implemented.
-
+  Control change, note, and program change messages are implemented.
+  Message format is ``{ctrl|note}:<channel>:<number>:<value>``
+  or ``{prog}:<channel>:<value>``.
 
 .. code-block:: yaml
 
